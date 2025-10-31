@@ -39,3 +39,4 @@ murfi-rt-PyProject/scripts/img/
 # Already covered by subjects/ but being explicit
 murfi-rt-PyProject/subjects/*/rest/*.nii
 murfi-rt-PyProject/subjects/*/rest/*.nii.gz
+murfi-rt-PyProject/scripts/img/
