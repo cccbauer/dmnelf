@@ -1,0 +1,8 @@
+[2025-09-26_10:00:07] Starting DMNELF Real-time DMN/CEN Neurofeedback System
+[2025-09-26_10:00:07] Checking system requirements...
+[2025-09-26_10:00:07] System configured for 12 CPU cores
+[2025-09-26_10:00:11] DMNELF subject ID: dmnelf009
+[2025-09-26_10:00:16] Overwriting existing subject directory for dmnelf009
+[2025-09-26_10:00:16] Fresh directory created for dmnelf009
+[2025-09-26_10:00:23] Executing DMNELF step: create for dmnelf009 in accelerated mode
+[2025-09-26_10:00:23] Creating XML files for dmnelf009

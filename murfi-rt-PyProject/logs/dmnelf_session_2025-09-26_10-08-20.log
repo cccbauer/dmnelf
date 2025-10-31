@@ -1,0 +1,28 @@
+[2025-09-26_10:08:20] Starting DMNELF Real-time DMN/CEN Neurofeedback System
+[2025-09-26_10:08:20] Checking system requirements...
+[2025-09-26_10:08:21] System configured for 12 CPU cores
+[2025-09-26_10:08:26] DMNELF subject ID: dmnelf009
+[2025-09-26_10:08:28] Overwriting existing subject directory for dmnelf009
+[2025-09-26_10:08:28] Fresh directory created for dmnelf009
+[2025-09-26_10:08:37] Executing DMNELF step: create for dmnelf009 in accelerated mode
+[2025-09-26_10:08:37] Creating XML files and copying templates for dmnelf009
+[2025-09-26_10:08:37] Running createxml.sh for directory creation
+mkdir: cannot create directory ‘../subjects/dmnelf009’: File exists
+[2025-09-26_10:08:37] Copying XML files from ../subjects/template/xml/xml_orig to ../subjects/dmnelf009/xml
+[2025-09-26_10:08:37] Copied 4 XML files
+[2025-09-26_10:08:37] Copying mask files from ../subjects/template/mask to ../subjects/dmnelf009/mask
+sending incremental file list
+./
+mni/
+
+sent 88 bytes  received 23 bytes  222.00 bytes/sec
+total size is 0  speedup is 0.00
+[2025-09-26_10:08:37] Copied mask directory structure with 0 files
+[2025-09-26_10:08:37] Final verification - XML files: 4, Mask files: 0
+[2025-09-26_10:08:37] Template copying completed successfully for dmnelf009
+[2025-09-26_10:08:42] XML files copied:
+[2025-09-26_10:08:42]   - rtdmn.xml
+[2025-09-26_10:08:42]   - 2vol.xml
+[2025-09-26_10:08:42]   - short_rest.xml
+[2025-09-26_10:08:42]   - experience_sampling.xml
+[2025-09-26_10:08:42] DMNELF step 'create' completed successfully for dmnelf009

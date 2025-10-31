@@ -1,0 +1,19 @@
+[2025-09-26_10:42:17] Starting DMNELF Real-time DMN/CEN Neurofeedback System
+[2025-09-26_10:42:17] Checking system requirements...
+[2025-09-26_10:42:18] MELODIC acceleration configured: 12 CPU cores
+[2025-09-26_10:42:18] Environment variables set: OMP_NUM_THREADS=12, MELODIC_NPROC=12
+[2025-09-26_10:42:22] DMNELF subject ID: dmnelf009
+[2025-09-26_10:42:23] Using existing directory for dmnelf009
+[2025-09-26_10:42:26] Executing DMNELF step: setup for dmnelf009 in accelerated mode
+[2025-09-26_10:42:26] Running system setup for DMNELF neurofeedback
+[2025-09-26_10:42:28] Setup completed successfully for dmnelf009
+[2025-09-26_10:42:28] DMNELF step 'setup' completed successfully for dmnelf009
+[2025-09-26_10:42:28] DMNELF setup step completed for dmnelf009
+[2025-09-26_10:42:35] User confirmed network connectivity is working
+[2025-09-26_10:42:39] Executing DMNELF step: process_roi_masks_native for dmnelf009 in accelerated mode
+[2025-09-26_10:42:39] Processing ROI masks in native space for dmnelf009
+[2025-09-26_10:42:39] Found single-run MELODIC results: ../subjects/dmnelf009/rest/rs_network.ica/filtered_func_data.ica/
+[2025-09-26_10:42:39] Pre-checks passed, starting ROI mask processing
+[2025-09-26_10:42:46] Current directory: /home/rt/dmnelf/murfi-rt-PyProject/scripts
+[2025-09-26_10:42:46] Running: source feedback.sh dmnelf009 process_roi_masks_native
+[2025-09-26_10:42:46] ERROR: ROI masks were not created despite step completion

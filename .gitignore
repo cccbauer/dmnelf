@@ -1,0 +1,41 @@
+# Singularity image files
+*.sif
+
+# Subject data directory
+murfi-rt-PyProject/subjects/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE/Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large neuroimaging data files
+*.nii
+*.nii.gz
+*.img
+*.hdr
+
+# Singularity images
+*.sif
+
+# Installation files
+*.deb
+
+# Image folders with scan data
+murfi-rt-PyProject/scripts/img/
+
+# Already covered by subjects/ but being explicit
+murfi-rt-PyProject/subjects/*/rest/*.nii
+murfi-rt-PyProject/subjects/*/rest/*.nii.gz

@@ -1,0 +1,18 @@
+[2025-09-26_09:52:12] Starting DMNELF Real-time DMN/CEN Neurofeedback System
+[2025-09-26_09:52:12] Checking system requirements...
+[2025-09-26_09:52:13] System configured for 12 CPU cores
+[2025-09-26_09:52:28] DMNELF subject ID: dmnelf009
+[2025-09-26_09:52:32] Overwriting existing subject directory for dmnelf009
+[2025-09-26_09:52:32] Fresh directory created for dmnelf009
+[2025-09-26_09:52:46] Executing DMNELF step: setup for dmnelf009 in accelerated mode
+[2025-09-26_09:52:46] Running system setup for DMNELF neurofeedback
+[2025-09-26_09:52:56] Setup completed successfully for dmnelf009
+[2025-09-26_09:52:56] DMNELF step 'setup' completed successfully for dmnelf009
+[2025-09-26_09:52:56] DMNELF setup step completed for dmnelf009
+[2025-09-26_09:53:02] User confirmed network connectivity is working
+[2025-09-26_09:53:13] Executing DMNELF step: 2vol for dmnelf009 in accelerated mode
+[2025-09-26_09:58:02] DMNELF step '2vol' completed successfully for dmnelf009
+[2025-09-26_09:58:02] 2-volume scan completed for dmnelf009
+[2025-09-26_09:58:09] Executing DMNELF step: 2vol for dmnelf009 in accelerated mode
+[2025-09-26_09:58:24] DMNELF step '2vol' completed successfully for dmnelf009
+[2025-09-26_09:58:24] 2-volume scan completed for dmnelf009

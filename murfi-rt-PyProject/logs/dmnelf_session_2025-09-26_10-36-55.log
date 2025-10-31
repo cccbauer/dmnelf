@@ -1,0 +1,16 @@
+[2025-09-26_10:36:55] Starting DMNELF Real-time DMN/CEN Neurofeedback System
+[2025-09-26_10:36:55] Checking system requirements...
+[2025-09-26_10:36:56] MELODIC acceleration configured: 12 CPU cores
+[2025-09-26_10:36:56] Environment variables set: OMP_NUM_THREADS=12, MELODIC_NPROC=12
+[2025-09-26_10:37:01] DMNELF subject ID: dmnelf009
+[2025-09-26_10:37:02] Using existing directory for dmnelf009
+[2025-09-26_10:37:05] Executing DMNELF step: setup for dmnelf009 in accelerated mode
+[2025-09-26_10:37:05] Running system setup for DMNELF neurofeedback
+[2025-09-26_10:37:06] Setup completed successfully for dmnelf009
+[2025-09-26_10:37:06] DMNELF step 'setup' completed successfully for dmnelf009
+[2025-09-26_10:37:06] DMNELF setup step completed for dmnelf009
+[2025-09-26_10:37:08] User confirmed network connectivity is working
+[2025-09-26_10:37:18] Executing DMNELF step: process_roi_masks_native for dmnelf009 in accelerated mode
+[2025-09-26_10:37:18] Processing ROI masks in native space for dmnelf009
+[2025-09-26_10:37:24] WARNING: ROI mask creation may have failed
+[2025-09-26_10:37:29] DMNELF step 'process_roi_masks_native' completed successfully for dmnelf009

@@ -1,0 +1,44 @@
+[2025-09-26_10:09:31] Starting DMNELF Real-time DMN/CEN Neurofeedback System
+[2025-09-26_10:09:31] Checking system requirements...
+[2025-09-26_10:09:37] System configured for 12 CPU cores
+[2025-09-26_10:09:42] DMNELF subject ID: dmnelf009
+[2025-09-26_10:09:43] Overwriting existing subject directory for dmnelf009
+[2025-09-26_10:09:43] Fresh directory created for dmnelf009
+[2025-09-26_10:09:50] Executing DMNELF step: create for dmnelf009 in accelerated mode
+[2025-09-26_10:09:50] Creating XML files and copying templates for dmnelf009
+[2025-09-26_10:09:50] Running createxml.sh for directory creation
+mkdir: cannot create directory ‘../subjects/dmnelf009’: File exists
+[2025-09-26_10:09:50] Copying XML files from ../subjects/template/xml/xml_orig to ../subjects/dmnelf009/xml
+[2025-09-26_10:09:50] Copied 4 XML files
+[2025-09-26_10:09:50] Copying mask files from ../subjects/template/mask to ../subjects/dmnelf009/mask
+sending incremental file list
+./
+mni/
+
+sent 88 bytes  received 23 bytes  222.00 bytes/sec
+total size is 0  speedup is 0.00
+[2025-09-26_10:09:50] Copied mask directory structure with 0 files
+[2025-09-26_10:09:50] Final verification - XML files: 4, Mask files: 0
+[2025-09-26_10:09:50] Template copying completed successfully for dmnelf009
+[2025-09-26_10:09:52] XML files copied:
+[2025-09-26_10:09:52]   - short_rest.xml
+[2025-09-26_10:09:52]   - experience_sampling.xml
+[2025-09-26_10:09:52]   - 2vol.xml
+[2025-09-26_10:09:52]   - rtdmn.xml
+[2025-09-26_10:09:52] DMNELF step 'create' completed successfully for dmnelf009
+[2025-09-26_10:09:56] Executing DMNELF step: setup for dmnelf009 in accelerated mode
+[2025-09-26_10:09:56] Running system setup for DMNELF neurofeedback
+[2025-09-26_10:10:04] Setup completed successfully for dmnelf009
+[2025-09-26_10:10:04] DMNELF step 'setup' completed successfully for dmnelf009
+[2025-09-26_10:10:04] DMNELF setup step completed for dmnelf009
+[2025-09-26_10:10:07] User confirmed network connectivity is working
+[2025-09-26_10:10:12] Executing DMNELF step: 2vol for dmnelf009 in accelerated mode
+[2025-09-26_10:10:30] DMNELF step '2vol' completed successfully for dmnelf009
+[2025-09-26_10:10:30] 2-volume scan completed for dmnelf009
+[2025-09-26_10:10:44] Executing DMNELF step: short_rest for dmnelf009 in accelerated mode
+[2025-09-26_10:11:06] DMNELF step 'short_rest' completed successfully for dmnelf009
+[2025-09-26_10:11:06] Short rest completed for dmnelf009
+[2025-09-26_10:11:11] Executing DMNELF step: short_rest for dmnelf009 in accelerated mode
+[2025-09-26_10:13:00] DMNELF step 'short_rest' completed successfully for dmnelf009
+[2025-09-26_10:13:00] Short rest completed for dmnelf009
+[2025-09-26_10:13:13] DMNELF session ended by user for dmnelf009

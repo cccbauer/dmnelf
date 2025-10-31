@@ -1,0 +1,25 @@
+[2025-09-26_10:13:57] Starting DMNELF Real-time DMN/CEN Neurofeedback System
+[2025-09-26_10:13:57] Checking system requirements...
+[2025-09-26_10:13:58] MELODIC acceleration configured: 12 CPU cores
+[2025-09-26_10:13:58] Environment variables set: OMP_NUM_THREADS=12, MELODIC_NPROC=12
+[2025-09-26_10:14:04] DMNELF subject ID: dmnelf009
+[2025-09-26_10:14:06] Using existing directory for dmnelf009
+[2025-09-26_10:14:09] Executing DMNELF step: setup for dmnelf009 in accelerated mode
+[2025-09-26_10:14:09] Running system setup for DMNELF neurofeedback
+[2025-09-26_10:14:17] Setup completed successfully for dmnelf009
+[2025-09-26_10:14:17] DMNELF step 'setup' completed successfully for dmnelf009
+[2025-09-26_10:14:17] DMNELF setup step completed for dmnelf009
+[2025-09-26_10:14:18] User confirmed network connectivity is working
+[2025-09-26_10:14:24] Executing DMNELF step: extract_rs_networks for dmnelf009 in accelerated mode
+[2025-09-26_10:14:24] Running MELODIC with maximum acceleration: 12 cores for DMNELF processing
+[2025-09-26_10:14:24] MELODIC acceleration environment:
+[2025-09-26_10:14:24]   MELODIC_NPROC=12
+[2025-09-26_10:14:24]   FSLPARALLEL=12
+[2025-09-26_10:14:24]   OMP_NUM_THREADS=12
+[2025-09-26_10:14:24]   MKL_NUM_THREADS=12
+[2025-09-26_10:32:16] DMNELF step 'extract_rs_networks' completed successfully for dmnelf009
+[2025-09-26_10:32:16] Network extraction completed for dmnelf009
+[2025-09-26_10:33:24] Executing DMNELF step: process_roi_masks_native for dmnelf009 in accelerated mode
+[2025-09-26_10:33:24] DMNELF step 'process_roi_masks_native' completed successfully for dmnelf009
+[2025-09-26_10:34:50] Executing DMNELF step: process_roi_masks_native for dmnelf009 in accelerated mode
+[2025-09-26_10:34:50] DMNELF step 'process_roi_masks_native' completed successfully for dmnelf009
