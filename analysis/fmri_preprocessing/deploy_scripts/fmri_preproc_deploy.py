@@ -144,12 +144,27 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     run_ssh("mkdir -p " + CLUSTER_BASE + "/logs")
     run_ssh("mkdir -p " + CLUSTER_BASE + "/deploy_scripts")
     run_ssh("mkdir -p /projects/swglab/data/DMNELF/analysis/fmri_preprocessing")
+    run_ssh("mkdir -p /projects/swglab/data/DMNELF/analysis/fmri_preprocessing/deploy_scripts")
     run_ssh("mkdir -p " + FMRI_LOG_DIR)
     run_ssh("mkdir -p /projects/swglab/data/DMNELF/derivatives/fmri_microstates")
     run_ssh("mkdir -p /projects/swglab/data/DMNELF/derivatives/pda_features")
     
     print("Uploading SBATCH script...")
     scp_to(local_temp_path, remote_sbatch)
+    
+    print("Uploading deploy_scripts...")
+    # Get local deploy_scripts directory
+    import os
+    local_deploy_scripts = os.path.join(os.path.dirname(__file__))
+    remote_deploy_scripts = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/deploy_scripts"
+    
+    # Upload each Python script from local deploy_scripts
+    for script_file in os.listdir(local_deploy_scripts):
+        if script_file.endswith('.py') and not script_file.startswith('fmri_preproc_deploy'):
+            local_path = os.path.join(local_deploy_scripts, script_file)
+            remote_path = f"{remote_deploy_scripts}/{script_file}"
+            print(f"  Uploading {script_file}...")
+            scp_to(local_path, remote_path)
     
     # Make executable and submit
     print("Making script executable...")
