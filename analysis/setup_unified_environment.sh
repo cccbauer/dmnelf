@@ -35,14 +35,14 @@ if conda env list | grep -q "^$CONDA_ENV "; then
         echo "Removing existing environment..."
         conda env remove -n "$CONDA_ENV" -y
         echo "Creating new environment from mne_eeg_preprocessing/environment.yml..."
-        conda create -f mne_eeg_preprocessing/environment.yml -n "$CONDA_ENV" -y
+        conda env create -f mne_eeg_preprocessing/environment.yml -n "$CONDA_ENV"
     else
         echo "Using existing environment. Verifying imports..."
     fi
 else
     echo ""
     echo "📦 Creating conda environment '$CONDA_ENV'..."
-    conda create -f mne_eeg_preprocessing/environment.yml -n "$CONDA_ENV" -y
+    conda env create -f mne_eeg_preprocessing/environment.yml -n "$CONDA_ENV"
 fi
 
 echo ""
