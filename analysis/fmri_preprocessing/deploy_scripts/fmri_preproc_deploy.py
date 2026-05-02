@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
 fmri_preproc_deploy.py
-Deploy and run fMRI preprocessing pipeline on cluster (DiFuMo, microstate, PDA, etc.)
+Deploy and run fMRI preprocessing pipeline on cluster (DiFuMo, microstate, TESS, PDA)
 
-Run locally from your machine to deploy to cluster and submit SLURM jobs.
+Orchestrator script that calls individual deployment scripts to generate cluster scripts,
+then submits a single SBATCH job to run them in sequence.
 
-Usage:
+Run locally from your machine:
     python fmri_preproc_deploy.py                          # all subjects
     python fmri_preproc_deploy.py --subject sub-dmnelf012
     python fmri_preproc_deploy.py --all --overwrite
 """
 
 import argparse
+import subprocess
 import time
 import sys
 from pathlib import Path
@@ -20,14 +22,27 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils import run_ssh, scp_to
-from config import CLUSTER_BASE, SLURM_ACCOUNT, LOCAL_BASE, SUBJECTS
+from config import CLUSTER_BASE, SLURM_ACCOUNT, SUBJECTS
 
 CLUSTER_PYTHON = "/home/cccbauer/.conda/envs/eeg_preproc/bin/python"
-CLUSTER_SCRIPTS = CLUSTER_BASE + "/deploy_scripts"
+DEPLOY_SCRIPTS_DIR = Path(__file__).parent
+FMRI_DIR = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing"
+FMRI_LOG_DIR = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/logs"
+
+def call_deployment_script(script_name, *args):
+    """Call a deployment script locally"""
+    script_path = DEPLOY_SCRIPTS_DIR / script_name
+    cmd = [sys.executable, str(script_path)] + list(args)
+    print(f"\n→ Calling {script_name} {' '.join(args)}")
+    result = subprocess.run(cmd, capture_output=False)
+    if result.returncode != 0:
+        print(f"ERROR: {script_name} failed with exit code {result.returncode}")
+        return False
+    return True
 
 def submit_fmri_pipeline(subjects=None, overwrite=False):
     """
-    Submit fMRI preprocessing pipeline job to cluster
+    Deploy all fMRI pipeline scripts and submit orchestrating SBATCH job
     
     Parameters:
     -----------
@@ -47,76 +62,61 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     print("=" * 60)
     print(f"Subjects: {', '.join(subjects)}")
     print(f"Overwrite: {overwrite}")
-    print(f"Cluster: {CLUSTER_BASE}")
-    print("=" * 60 + "\n")
+    print("=" * 60)
     
-    # Build command with arguments
-    cmd = CLUSTER_PYTHON + " " + CLUSTER_SCRIPTS + "/01_fit_microstates.py"
+    # ── Step 1: Call deployment scripts to generate cluster scripts ────────
+    print("\n[1/5] Deploying pipeline scripts...")
     
-    # Add subject arguments
-    for subject in subjects:
-        cmd += f" --subject {subject}"
+    # Each script generates and deploys its cluster version
+    call_deployment_script("00_extract_difumo.py")
+    call_deployment_script("01_fit_microstates.py")
+    call_deployment_script("02_tess_features.py")
+    call_deployment_script("03_compute_pda.py")
     
-    if overwrite:
-        cmd += " --overwrite"
+    # ── Step 2: Create output directories on cluster ─────────────────────
+    print("\n[2/5] Creating cluster output directories...")
+    run_ssh("mkdir -p /projects/swglab/data/DMNELF/analysis/fmri_preprocessing/scripts")
+    run_ssh("mkdir -p " + FMRI_LOG_DIR)
+    run_ssh("mkdir -p /projects/swglab/data/DMNELF/derivatives/fmri_microstates")
+    run_ssh("mkdir -p /projects/swglab/data/DMNELF/derivatives/pda_features")
     
-    # Build SBATCH script
-    FMRI_LOG_DIR = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/logs"
-    FMRI_DIR = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing"
-    FMRI_DEPLOY_SCRIPTS = FMRI_DIR + "/deploy_scripts"
+    # ── Step 3: Build orchestrating SBATCH script ──────────────────────────
+    print("\n[3/5] Building orchestrating SBATCH job...")
     
     sbatch_lines = [
         "#!/bin/bash",
-        "#SBATCH --job-name=fmri_preproc_pipeline",
-        "#SBATCH --output=" + FMRI_LOG_DIR + "/fmri_pipeline_%j.out",
-        "#SBATCH --error=" + FMRI_LOG_DIR + "/fmri_pipeline_%j.err",
+        "#SBATCH --job-name=fmri_pipeline_orchestrate",
+        "#SBATCH --output=" + FMRI_LOG_DIR + "/orchestrate_%j.out",
+        "#SBATCH --error=" + FMRI_LOG_DIR + "/orchestrate_%j.err",
         "#SBATCH --partition=short",
-        "#SBATCH --time=24:00:00",
+        "#SBATCH --time=48:00:00",
         "#SBATCH --cpus-per-task=4",
         "#SBATCH --mem=64G",
         "#SBATCH --account=" + SLURM_ACCOUNT,
         "",
-        "# fMRI Preprocessing Pipeline",
-        "# Steps: DiFuMo → Microstates → TESS → PDA",
-        "",
         "set -e",
         "PYTHON=" + CLUSTER_PYTHON,
-        "FMRI_DIR=" + FMRI_DIR,
-        "FMRI_LOG_DIR=" + FMRI_LOG_DIR,
-        "FMRI_DEPLOY_SCRIPTS=" + FMRI_DEPLOY_SCRIPTS,
-        "",
-        "mkdir -p $FMRI_LOG_DIR",
-        "cd $FMRI_DIR",
+        "SCRIPTS_DIR=/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/scripts",
         "",
         "echo '========================================'",
-        "echo 'fMRI Preprocessing Pipeline'",
+        "echo 'fMRI Preprocessing Pipeline Orchestrator'",
         "echo '========================================'",
         "echo \"Start: $(date)\"",
         "echo \"Job: $SLURM_JOB_ID\"",
         "echo ''",
         "",
-        "# Run pipeline steps in sequence",
-        "for subject in " + " ".join(subjects) + "; do",
-        "  echo \"Processing $subject...\"",
-        "  ",
-        "  # Step 0: DiFuMo extraction",
-        "  echo \"  [0] Extracting DiFuMo-64 timeseries...\"",
-        "  $PYTHON $FMRI_DEPLOY_SCRIPTS/00_extract_difumo.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
-        "  ",
-        "  # Step 1: Fit microstates",
-        "  echo \"  [1] Fitting microstate maps...\"",
-        "  $PYTHON $FMRI_DEPLOY_SCRIPTS/01_fit_microstates.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
-        "  ",
-        "  # Step 2: TESS features",
-        "  echo \"  [2] Computing TESS features...\"",
-        "  $PYTHON $FMRI_DEPLOY_SCRIPTS/02_tess_features.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
-        "  ",
-        "  # Step 3: PDA",
-        "  echo \"  [3] Computing PDA...\"",
-        "  $PYTHON $FMRI_DEPLOY_SCRIPTS/03_compute_pda.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
-        "  ",
-        "  echo \"  ✓ $subject complete\"",
-        "done",
+        "# Run pipeline scripts in sequence",
+        "echo '[0/4] Extracting DiFuMo-64 timeseries...'",
+        "$PYTHON $SCRIPTS_DIR/00_extract_difumo_cluster.py",
+        "",
+        "echo '[1/4] Fitting microstate maps...'",
+        "$PYTHON $SCRIPTS_DIR/01_fit_microstates_250_cluster.py",
+        "",
+        "echo '[2/4] Computing TESS features...'",
+        "$PYTHON $SCRIPTS_DIR/02_tess_features_cluster.py",
+        "",
+        "echo '[3/4] Computing PDA...'",
+        "$PYTHON $SCRIPTS_DIR/03_compute_pda_cluster.py",
         "",
         "echo ''",
         "echo '========================================'",
@@ -127,55 +127,25 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     
     sbatch_script = "\n".join(sbatch_lines)
     
-    # Save SBATCH script locally (to temp location)
+    # Save SBATCH script to temp file
     import tempfile
     with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
         f.write(sbatch_script)
-        local_temp_path = f.name
+        local_sbatch_path = f.name
     
-    print(f"✓ Generated SBATCH script: {local_temp_path}\n")
-    
-    # Upload to cluster and submit
-    print("Uploading to cluster...")
-    remote_sbatch = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/fmri_pipeline_job.sh"
-    
-    # Make sure deploy_scripts directory exists on cluster
-    print("Creating cluster directories...")
-    run_ssh("mkdir -p " + CLUSTER_BASE + "/logs")
-    run_ssh("mkdir -p " + CLUSTER_BASE + "/deploy_scripts")
-    run_ssh("mkdir -p /projects/swglab/data/DMNELF/analysis/fmri_preprocessing")
-    run_ssh("mkdir -p /projects/swglab/data/DMNELF/analysis/fmri_preprocessing/deploy_scripts")
-    run_ssh("mkdir -p " + FMRI_LOG_DIR)
-    run_ssh("mkdir -p /projects/swglab/data/DMNELF/derivatives/fmri_microstates")
-    run_ssh("mkdir -p /projects/swglab/data/DMNELF/derivatives/pda_features")
-    
-    print("Uploading SBATCH script...")
-    scp_to(local_temp_path, remote_sbatch)
-    
-    print("Uploading deploy_scripts...")
-    # Get local deploy_scripts directory
-    import os
-    local_deploy_scripts = os.path.join(os.path.dirname(__file__))
-    remote_deploy_scripts = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/deploy_scripts"
-    
-    # Upload each Python script from local deploy_scripts
-    for script_file in os.listdir(local_deploy_scripts):
-        if script_file.endswith('.py') and not script_file.startswith('fmri_preproc_deploy'):
-            local_path = os.path.join(local_deploy_scripts, script_file)
-            remote_path = f"{remote_deploy_scripts}/{script_file}"
-            print(f"  Uploading {script_file}...")
-            scp_to(local_path, remote_path)
-    
-    # Make executable and submit
-    print("Making script executable...")
+    # ── Step 4: Upload orchestrating SBATCH script ────────────────────────
+    print("[4/5] Uploading orchestrating script...")
+    remote_sbatch = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/fmri_orchestrate_job.sh"
+    scp_to(local_sbatch_path, remote_sbatch)
     run_ssh(f"chmod +x {remote_sbatch}")
     
-    print("Submitting to SLURM...")
+    # ── Step 5: Submit SBATCH job ──────────────────────────────────────────
+    print("[5/5] Submitting SBATCH job...")
     result = run_ssh(f"sbatch {remote_sbatch}")
     
     # Extract stdout if result is CompletedProcess
     if hasattr(result, 'stdout'):
-        result_str = result.stdout
+        result_str = result.stdout.decode() if isinstance(result.stdout, bytes) else result.stdout
     else:
         result_str = str(result)
     
@@ -185,13 +155,18 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     if "Submitted batch job" in result_str:
         job_id = result_str.split("Submitted batch job ")[-1].strip()
         print("\n" + "=" * 60)
-        print(f"✓ Job submitted successfully!")
+        print(f"✓ Orchestrating job submitted successfully!")
         print(f"  Job ID: {job_id}")
         print(f"  Script: {remote_sbatch}")
         print("=" * 60)
         print("\nMonitor with:")
         print(f"  squeue -j {job_id}")
-        print(f"  ssh cccbauer@explorer.northeastern.edu 'tail -f {FMRI_LOG_DIR}/fmri_pipeline_{job_id}.out'")
+        print(f"  ssh cccbauer@explorer.northeastern.edu 'tail -f {FMRI_LOG_DIR}/orchestrate_{job_id}.out'")
+        print(f"\nPipeline steps will be submitted as child jobs:")
+        print(f"  - 00_extract_difumo_cluster.py")
+        print(f"  - 01_fit_microstates_250_cluster.py")
+        print(f"  - 02_tess_features_cluster.py")
+        print(f"  - 03_compute_pda_cluster.py")
     else:
         print("WARNING: Could not parse job ID from response")
         print("Response:", result_str)
