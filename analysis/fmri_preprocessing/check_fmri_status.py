@@ -16,7 +16,7 @@ from config import CLUSTER_SSH
 
 CLUSTER_BASE = "/projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3"
 FMRI_DIR = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing"
-LOGS_DIR = f"{CLUSTER_BASE}/logs"
+LOGS_DIR = f"{FMRI_DIR}/logs"
 DERIVATIVES = "/projects/swglab/data/DMNELF/derivatives"
 
 def check_slurm_queue():

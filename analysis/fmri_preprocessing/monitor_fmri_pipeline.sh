@@ -5,7 +5,7 @@
 
 FMRI_DIR="/projects/swglab/data/DMNELF/analysis/fmri_preprocessing"
 CLUSTER_BASE="/projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3"
-LOGS_DIR="$CLUSTER_BASE/logs"
+LOGS_DIR="$FMRI_DIR/logs"
 DERIVATIVES="/projects/swglab/data/DMNELF/derivatives"
 
 echo "============================================================"
