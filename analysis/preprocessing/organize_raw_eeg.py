@@ -31,23 +31,37 @@ def parse_bv_filename(filename: str) -> Optional[Dict]:
     Examples:
         'sub-dmnelf013_task_feedback-run03_Segment 1.edf' 
         → {'subject': 'sub-dmnelf013', 'task': 'feedback', 'run': '03'}
+        
+        'dmnelf1001_task_feedback-run02_Segment 1.edf' (old format)
+        → {'subject': 'sub-dmnelf1001', 'task': 'feedback', 'run': '02'}
     """
     # Remove " Segment 1" suffix and .edf
     base = filename.replace(' Segment 1.edf', '').replace('.edf', '')
     
-    # Try different patterns
+    # Try different patterns - new format first, then old format
     patterns = [
-        r"(sub-dmnelf\d{3,4})_task_([a-z]+)-run(\d{2})",  # sub-dmnelf013_task_feedback-run03
-        r"(sub-dmnelf\d{3,4})_task_([a-z]+)_run(\d{2})",   # variant with underscore
-        r"(sub-dmnelf\d{3,4})_task_([a-z]+)",              # no run specified
+        # New format (with sub- prefix)
+        (r"(sub-dmnelf\d{3,4})_task_([a-z]+)-run(\d{2})", False),  # sub-dmnelf013_task_feedback-run03
+        (r"(sub-dmnelf\d{3,4})_task_([a-z]+)_run(\d{2})", False),   # variant with underscore
+        (r"(sub-dmnelf\d{3,4})_task_([a-z]+)", False),              # no run specified
+        # Old format (without sub- prefix) - convert to new format
+        (r"(dmnelf\d{3,4})_task_([a-z]+)-run(\d{2})", True),        # dmnelf1001_task_feedback-run02
+        (r"(dmnelf\d{3,4})_task_([a-z]+)_run(\d{2})", True),        # variant with underscore
+        (r"(dmnelf\d{3,4})_task_([a-z]+)", True),                   # no run specified
     ]
     
-    for pattern in patterns:
+    for pattern, is_old_format in patterns:
         match = re.search(pattern, base)
         if match:
             groups = match.groups()
+            subject = groups[0]
+            
+            # Convert old format to new format (add sub- prefix)
+            if is_old_format:
+                subject = f"sub-{subject}"
+            
             result = {
-                'subject': groups[0],
+                'subject': subject,
                 'task': groups[1] if len(groups) > 1 else None,
                 'run': groups[2] if len(groups) > 2 else None,
             }
