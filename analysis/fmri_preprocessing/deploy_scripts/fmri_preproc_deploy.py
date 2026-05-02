@@ -62,6 +62,8 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     
     # Build SBATCH script
     FMRI_LOG_DIR = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/logs"
+    FMRI_DIR = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing"
+    FMRI_DEPLOY_SCRIPTS = FMRI_DIR + "/deploy_scripts"
     
     sbatch_lines = [
         "#!/bin/bash",
@@ -79,11 +81,12 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
         "",
         "set -e",
         "PYTHON=" + CLUSTER_PYTHON,
-        "CLUSTER_BASE=" + CLUSTER_BASE,
+        "FMRI_DIR=" + FMRI_DIR,
         "FMRI_LOG_DIR=" + FMRI_LOG_DIR,
+        "FMRI_DEPLOY_SCRIPTS=" + FMRI_DEPLOY_SCRIPTS,
         "",
         "mkdir -p $FMRI_LOG_DIR",
-        "cd $CLUSTER_BASE",
+        "cd $FMRI_DIR",
         "",
         "echo '========================================'",
         "echo 'fMRI Preprocessing Pipeline'",
@@ -98,19 +101,19 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
         "  ",
         "  # Step 0: DiFuMo extraction",
         "  echo \"  [0] Extracting DiFuMo-64 timeseries...\"",
-        "  $PYTHON deploy_scripts/00_extract_difumo.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
+        "  $PYTHON $FMRI_DEPLOY_SCRIPTS/00_extract_difumo.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
         "  ",
         "  # Step 1: Fit microstates",
         "  echo \"  [1] Fitting microstate maps...\"",
-        "  $PYTHON deploy_scripts/01_fit_microstates.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
+        "  $PYTHON $FMRI_DEPLOY_SCRIPTS/01_fit_microstates.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
         "  ",
         "  # Step 2: TESS features",
         "  echo \"  [2] Computing TESS features...\"",
-        "  $PYTHON deploy_scripts/02_tess_features.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
+        "  $PYTHON $FMRI_DEPLOY_SCRIPTS/02_tess_features.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
         "  ",
         "  # Step 3: PDA",
         "  echo \"  [3] Computing PDA...\"",
-        "  $PYTHON deploy_scripts/03_compute_pda.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
+        "  $PYTHON $FMRI_DEPLOY_SCRIPTS/03_compute_pda.py --subject $subject --all" + (" --overwrite" if overwrite else ""),
         "  ",
         "  echo \"  ✓ $subject complete\"",
         "done",
@@ -142,6 +145,8 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     run_ssh("mkdir -p " + CLUSTER_BASE + "/deploy_scripts")
     run_ssh("mkdir -p /projects/swglab/data/DMNELF/analysis/fmri_preprocessing")
     run_ssh("mkdir -p " + FMRI_LOG_DIR)
+    run_ssh("mkdir -p /projects/swglab/data/DMNELF/derivatives/fmri_microstates")
+    run_ssh("mkdir -p /projects/swglab/data/DMNELF/derivatives/pda_features")
     
     print("Uploading SBATCH script...")
     scp_to(local_temp_path, remote_sbatch)
