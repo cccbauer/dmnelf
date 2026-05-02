@@ -1,0 +1,16 @@
+name: eeg_preproc
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - scipy
+  - pandas
+  - matplotlib
+  - mne
+  - pip
+  - pip:
+    - neurokit2
+    - paramiko
+    - scikit-learn
