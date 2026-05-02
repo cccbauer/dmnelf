@@ -61,11 +61,13 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
         cmd += " --overwrite"
     
     # Build SBATCH script
+    FMRI_LOG_DIR = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/logs"
+    
     sbatch_lines = [
         "#!/bin/bash",
         "#SBATCH --job-name=fmri_preproc_pipeline",
-        "#SBATCH --output=" + CLUSTER_BASE + "/logs/fmri_pipeline_%j.out",
-        "#SBATCH --error=" + CLUSTER_BASE + "/logs/fmri_pipeline_%j.err",
+        "#SBATCH --output=" + FMRI_LOG_DIR + "/fmri_pipeline_%j.out",
+        "#SBATCH --error=" + FMRI_LOG_DIR + "/fmri_pipeline_%j.err",
         "#SBATCH --partition=short",
         "#SBATCH --time=24:00:00",
         "#SBATCH --cpus-per-task=4",
@@ -78,8 +80,9 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
         "set -e",
         "PYTHON=" + CLUSTER_PYTHON,
         "CLUSTER_BASE=" + CLUSTER_BASE,
+        "FMRI_LOG_DIR=" + FMRI_LOG_DIR,
         "",
-        "mkdir -p $CLUSTER_BASE/logs",
+        "mkdir -p $FMRI_LOG_DIR",
         "cd $CLUSTER_BASE",
         "",
         "echo '========================================'",
@@ -138,6 +141,7 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     run_ssh("mkdir -p " + CLUSTER_BASE + "/logs")
     run_ssh("mkdir -p " + CLUSTER_BASE + "/deploy_scripts")
     run_ssh("mkdir -p /projects/swglab/data/DMNELF/analysis/fmri_preprocessing")
+    run_ssh("mkdir -p " + FMRI_LOG_DIR)
     
     print("Uploading SBATCH script...")
     scp_to(local_temp_path, remote_sbatch)
@@ -167,7 +171,7 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
         print("=" * 60)
         print("\nMonitor with:")
         print(f"  squeue -j {job_id}")
-        print(f"  ssh cccbauer@explorer.northeastern.edu 'tail -f {CLUSTER_BASE}/logs/fmri_pipeline_{job_id}.out'")
+        print(f"  ssh cccbauer@explorer.northeastern.edu 'tail -f {FMRI_LOG_DIR}/fmri_pipeline_{job_id}.out'")
     else:
         print("WARNING: Could not parse job ID from response")
         print("Response:", result_str)
