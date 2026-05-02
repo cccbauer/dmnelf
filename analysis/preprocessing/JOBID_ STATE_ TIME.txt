@@ -1,0 +1,1015 @@
+JOBID_   STATE_      TIME
+ 6262280_ RUNNING_     21:09
+JOBID_   STATE_      TIME
+ 6262280_ RUNNING_     21:29
+JOBID_   STATE_      TIME
+ 6262280_ RUNNING_     21:48
+JOBID_   STATE_      TIME
+ 6262280_ RUNNING_     22:07
+Job finished — checking log...
+    shape=(350, 64)  TR=1.2  PSC_mean=0.0
+  Extracting: sub-dmnelf1003  task-shortrest  run-01
+    shape=(100, 64)  TR=1.2  PSC_mean=0.0
+  Extracting: sub-dmnelf1003  task-feedback  run-01
+    shape=(125, 64)  TR=1.2  PSC_mean=-0.0
+  Extracting: sub-dmnelf1003  task-feedback  run-02
+    shape=(154, 64)  TR=1.2  PSC_mean=0.0
+  Extracting: sub-dmnelf1003  task-feedback  run-03
+    shape=(135, 64)  TR=1.2  PSC_mean=0.0
+  MISSING: sub-dmnelf1003_ses-dmnelf_task-feedback_run-04_space-MNI152NLin6Asym_res-2_desc-preproc_bold.nii.gz
+  Extracting: sub-dmnelf999  task-rest  run-01
+    shape=(350, 64)  TR=1.2  PSC_mean=-0.0
+  Extracting: sub-dmnelf999  task-rest  run-02
+    shape=(350, 64)  TR=1.2  PSC_mean=0.0
+  Extracting: sub-dmnelf999  task-shortrest  run-01
+    shape=(50, 64)  TR=1.2  PSC_mean=-0.0
+  Extracting: sub-dmnelf999  task-feedback  run-01
+    shape=(125, 64)  TR=1.2  PSC_mean=0.0
+  Extracting: sub-dmnelf999  task-feedback  run-02
+    shape=(125, 64)  TR=1.2  PSC_mean=0.0
+  Extracting: sub-dmnelf999  task-feedback  run-03
+    shape=(125, 64)  TR=1.2  PSC_mean=-0.0
+  Extracting: sub-dmnelf999  task-feedback  run-04
+    shape=(125, 64)  TR=1.2  PSC_mean=-0.0
+
+=======================================================
+DONE
+  Extracted: 103
+  Missing:   2
+=======================================================
+
+
+✓  [00] done  (23.3 min)
+
+============================================================
+[00b]  00b_extract_personal_masks.py  —  20:43:57
+============================================================
+Checking syntax...
+Syntax OK: 00b_extract_personal_masks_cluster.py
+
+Deploying scripts...
+Deployed: 00b_extract_personal_masks_cluster.py
+Deployed: 00b_extract_personal_masks.sh
+
+Submitting SLURM job...
+Submitted batch job 6262352
+
+Job ID: 6262352
+
+Monitoring job 6262352  (Ctrl+C to stop watching)
+-------------------------------------------------------
+JOBID_   STATE_      TIME
+ 6262352_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262352_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262352_ RUNNING_      0:22
+JOBID_   STATE_      TIME
+ 6262352_ RUNNING_      0:41
+JOBID_   STATE_      TIME
+ 6262352_ RUNNING_      1:00
+JOBID_   STATE_      TIME
+ 6262352_ RUNNING_      1:19
+JOBID_   STATE_      TIME
+ 6262352_ RUNNING_      1:38
+JOBID_   STATE_      TIME
+ 6262352_ RUNNING_      1:57
+Job finished — checking log...
+[fetch_atlas_difumo] Dataset found in /projects/swglab/software/nilearn_data/difumo_atlases
+DiFuMo-64 shape: (104, 123, 104, 64)
+
+=======================================================
+Extracting personalized masks
+=======================================================
+
+--- sub-dmnelf001 ---
+  EXISTS (skip): sub-dmnelf001
+
+--- sub-dmnelf002 ---
+  EXISTS (skip): sub-dmnelf002
+
+--- sub-dmnelf003 ---
+  EXISTS (skip): sub-dmnelf003
+
+--- sub-dmnelf004 ---
+  EXISTS (skip): sub-dmnelf004
+
+--- sub-dmnelf005 ---
+  EXISTS (skip): sub-dmnelf005
+
+--- sub-dmnelf006 ---
+  EXISTS (skip): sub-dmnelf006
+
+--- sub-dmnelf007 ---
+  EXISTS (skip): sub-dmnelf007
+
+--- sub-dmnelf008 ---
+  EXISTS (skip): sub-dmnelf008
+
+--- sub-dmnelf009 ---
+  EXISTS (skip): sub-dmnelf009
+
+--- sub-dmnelf010 ---
+  EXISTS (skip): sub-dmnelf010
+
+--- sub-dmnelf011 ---
+  EXISTS (skip): sub-dmnelf011
+
+--- sub-dmnelf1001 ---
+  EXISTS (skip): sub-dmnelf1001
+
+--- sub-dmnelf1002 ---
+  EXISTS (skip): sub-dmnelf1002
+
+--- sub-dmnelf1003 ---
+  EXISTS (skip): sub-dmnelf1003
+
+--- sub-dmnelf999 ---
+  EXISTS (skip): sub-dmnelf999
+
+=======================================================
+Generating all-subjects overview PNG
+=======================================================
+  Saved: /projects/swglab/data/DMNELF/derivatives/network_masks/all_subjects_masks_overview.png
+
+=======================================================
+DONE
+=======================================================
+
+
+✓  [00b] done  (3.0 min)
+
+============================================================
+[00c]  00c_add_personal_parcels.py  —  20:46:58
+============================================================
+Checking syntax...
+Syntax OK: 00c_add_personal_parcels_cluster.py
+
+Deploying scripts...
+Deployed: 00c_add_personal_parcels_cluster.py
+Deployed: 00c_add_personal_parcels.sh
+
+Submitting SLURM job...
+Submitted batch job 6262371
+
+Job ID: 6262371
+
+Monitoring job 6262371  (Ctrl+C to stop watching)
+-------------------------------------------------------
+JOBID_   STATE_      TIME
+ 6262371_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262371_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262371_ RUNNING_      0:16
+Job finished — checking log...
+  Updated: sub-dmnelf1002_ses-dmnelf_task-shortrest_run-01_desc-difumo64_timeseries.tsv  shape=(50, 68)
+  Updated: sub-dmnelf1002_ses-dmnelf_task-feedback_run-01_desc-difumo64_timeseries.tsv  shape=(125, 68)
+  Updated: sub-dmnelf1002_ses-dmnelf_task-feedback_run-02_desc-difumo64_timeseries.tsv  shape=(125, 68)
+  Updated: sub-dmnelf1002_ses-dmnelf_task-feedback_run-03_desc-difumo64_timeseries.tsv  shape=(125, 68)
+  Updated: sub-dmnelf1002_ses-dmnelf_task-feedback_run-04_desc-difumo64_timeseries.tsv  shape=(125, 68)
+
+--- sub-dmnelf1003 ---
+  Updated: sub-dmnelf1003_ses-dmnelf_task-rest_run-01_desc-difumo64_timeseries.tsv  shape=(350, 68)
+  Updated: sub-dmnelf1003_ses-dmnelf_task-rest_run-02_desc-difumo64_timeseries.tsv  shape=(350, 68)
+  Updated: sub-dmnelf1003_ses-dmnelf_task-shortrest_run-01_desc-difumo64_timeseries.tsv  shape=(100, 68)
+  Updated: sub-dmnelf1003_ses-dmnelf_task-feedback_run-01_desc-difumo64_timeseries.tsv  shape=(125, 68)
+  Updated: sub-dmnelf1003_ses-dmnelf_task-feedback_run-02_desc-difumo64_timeseries.tsv  shape=(154, 68)
+  Updated: sub-dmnelf1003_ses-dmnelf_task-feedback_run-03_desc-difumo64_timeseries.tsv  shape=(135, 68)
+  MISSING TSV: sub-dmnelf1003_ses-dmnelf_task-feedback_run-04_desc-difumo64_timeseries.tsv
+
+--- sub-dmnelf999 ---
+  Updated: sub-dmnelf999_ses-dmnelf_task-rest_run-01_desc-difumo64_timeseries.tsv  shape=(350, 68)
+  Updated: sub-dmnelf999_ses-dmnelf_task-rest_run-02_desc-difumo64_timeseries.tsv  shape=(350, 68)
+  Updated: sub-dmnelf999_ses-dmnelf_task-shortrest_run-01_desc-difumo64_timeseries.tsv  shape=(50, 68)
+  Updated: sub-dmnelf999_ses-dmnelf_task-feedback_run-01_desc-difumo64_timeseries.tsv  shape=(125, 68)
+  Updated: sub-dmnelf999_ses-dmnelf_task-feedback_run-02_desc-difumo64_timeseries.tsv  shape=(125, 68)
+  Updated: sub-dmnelf999_ses-dmnelf_task-feedback_run-03_desc-difumo64_timeseries.tsv  shape=(125, 68)
+  Updated: sub-dmnelf999_ses-dmnelf_task-feedback_run-04_desc-difumo64_timeseries.tsv  shape=(125, 68)
+
+=======================================================
+DONE
+  Updated: 103
+  Skipped: 0
+  Missing: 2
+=======================================================
+
+
+✓  [00c] done  (1.3 min)
+
+============================================================
+[00d]  00d_extract_personal_pda.py  —  20:48:18
+============================================================
+Checking syntax...
+Syntax OK: 00d_extract_personal_pda_cluster.py
+
+Deploying...
+Deployed: 00d_extract_personal_pda_cluster.py
+
+Submitting SLURM job...
+Submitted batch job 6262405
+
+Job ID: 6262405
+
+Monitoring job 6262405  (Ctrl+C to stop)
+-------------------------------------------------------
+JOBID_   STATE_      TIME
+ 6262405_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      0:21
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      0:45
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      1:09
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      1:34
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      1:58
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      2:22
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      2:46
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      3:10
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      3:34
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      3:58
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      4:23
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      4:47
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      5:11
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      5:35
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      5:59
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      6:24
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      6:48
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      7:12
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      7:36
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      7:59
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      8:24
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      8:48
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      9:12
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_      9:36
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     10:00
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     10:24
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     10:48
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     11:12
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     11:36
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     12:00
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     12:24
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     12:48
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     13:12
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     13:36
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     14:00
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     14:24
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     14:49
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     15:13
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     15:37
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     16:01
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     16:25
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     16:49
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     17:13
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     17:37
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     18:01
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     18:25
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     18:50
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     19:14
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     19:38
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     20:02
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     20:26
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     20:50
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     21:14
+JOBID_   STATE_      TIME
+ 6262405_ RUNNING_     21:38
+Job finished — checking log...
+  feedback run-01  n=125  pda_std=0.97  dmn_vox=2000  cen_vox=2000
+  feedback run-02  n=154  pda_std=0.955  dmn_vox=2000  cen_vox=2000
+  feedback run-03  n=135  pda_std=0.682  dmn_vox=2000  cen_vox=2000
+
+=======================================================
+Generating per-subject timeseries plots
+=======================================================
+  EXISTS (skip): sub-dmnelf001
+  EXISTS (skip): sub-dmnelf004
+  EXISTS (skip): sub-dmnelf005
+  EXISTS (skip): sub-dmnelf006
+  EXISTS (skip): sub-dmnelf007
+  EXISTS (skip): sub-dmnelf008
+  EXISTS (skip): sub-dmnelf009
+  EXISTS (skip): sub-dmnelf010
+  EXISTS (skip): sub-dmnelf011
+  EXISTS (skip): sub-dmnelf1001
+  EXISTS (skip): sub-dmnelf1002
+  EXISTS (skip): sub-dmnelf1003
+
+=======================================================
+Generating all-subjects overview PNG
+=======================================================
+  Saved: /projects/swglab/data/DMNELF/derivatives/PDA_plots/all_subjects_pda_overview.png
+
+=======================================================
+DONE
+  Computed: 82
+  Missing:  0
+=======================================================
+
+
+✓  [00d] done  (22.5 min)
+
+============================================================
+[01]  01_fit_microstates.py  —  21:10:47
+============================================================
+Checking syntax...
+Syntax OK: 01_fit_microstates_250Hz_cluster.py
+
+Deploying...
+Deployed: 01_fit_microstates_250Hz_cluster.py
+
+Submitting SLURM job (250Hz)...
+Submitted batch job 6262457
+
+Job ID: 6262457
+
+Monitoring job 6262457  (Ctrl+C to stop)
+-------------------------------------------------------
+JOBID_   STATE_      TIME
+ 6262457_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262457_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262457_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      0:15
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      0:34
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      0:53
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      1:11
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      1:31
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      1:50
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      2:09
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      2:28
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      2:47
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      3:06
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      3:25
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      3:44
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      4:03
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      4:22
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      4:41
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      5:00
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      5:19
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      5:38
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      5:57
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      6:16
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      6:35
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      6:55
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      7:14
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      7:33
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      7:52
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      8:11
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      8:30
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      8:49
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      9:08
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      9:27
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_      9:46
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     10:05
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     10:24
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     10:43
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     11:02
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     11:21
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     11:40
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     11:59
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     12:18
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     12:37
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     12:56
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     13:15
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     13:34
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     13:53
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     14:12
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     14:31
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     14:50
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     15:09
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     15:28
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     15:47
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     16:06
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     16:25
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     16:44
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     17:03
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     17:22
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     17:41
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     18:00
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     18:19
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     18:38
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     18:57
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     19:16
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     19:35
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     19:54
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     20:13
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     20:32
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     20:51
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     21:10
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     21:29
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     21:48
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     22:07
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     22:26
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     22:45
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     23:05
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     23:23
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     23:42
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     24:01
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     24:20
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     24:39
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     24:58
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     25:17
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     25:36
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     25:56
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     26:15
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     26:34
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     26:53
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     27:12
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     27:31
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     27:50
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     28:08
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     28:27
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     28:46
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     29:05
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     29:24
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     29:43
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     30:02
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     30:21
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     30:40
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     30:59
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     31:18
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     31:37
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     31:56
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     32:16
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     32:35
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     32:54
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     33:13
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     33:32
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     33:51
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     34:10
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     34:29
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     34:48
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     35:07
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     35:26
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     35:45
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     36:04
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     36:23
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     36:42
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     37:01
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     37:20
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     37:39
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     37:58
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     38:17
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     38:36
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     38:55
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     39:14
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     39:33
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     39:52
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     40:11
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     40:30
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     40:49
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     41:08
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     41:27
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     41:46
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     42:05
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     42:24
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     42:43
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     43:02
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     43:21
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     43:40
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     43:59
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     44:18
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     44:37
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     44:56
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     45:15
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     45:34
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     45:53
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     46:12
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     46:31
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     46:51
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     47:10
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     47:29
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     47:48
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     48:07
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     48:26
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     48:45
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     49:04
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     49:23
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     49:42
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     50:01
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     50:20
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     50:39
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     50:59
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     51:17
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     51:37
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     51:56
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     52:15
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     52:34
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     52:53
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     53:12
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     53:31
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     53:50
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     54:09
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     54:28
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     54:47
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     55:06
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     55:25
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     55:44
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     56:03
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     56:22
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     56:41
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     57:00
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     57:20
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     57:39
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     57:58
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     58:17
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     58:36
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     58:55
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     59:14
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     59:33
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_     59:53
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:00:12
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:00:31
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:00:50
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:01:10
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:01:29
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:01:48
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:02:07
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:02:26
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:02:45
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:03:04
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:03:23
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:03:42
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:04:01
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:04:20
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:04:39
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:04:59
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:05:18
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:05:37
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:05:56
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:06:15
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:06:34
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:06:53
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:07:12
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:07:31
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:07:50
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:08:10
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:08:29
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:08:48
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:09:07
+JOBID_   STATE_      TIME
+ 6262457_ RUNNING_   1:09:26
+Job finished — checking log...
+
+=======================================================
+4. Per-map stats
+=======================================================
+  MSA  coverage=3.9%  GEV=0.0197
+  MSB  coverage=19.9%  GEV=0.1515
+  MSC  coverage=15.1%  GEV=0.1126
+  MSD  coverage=19.0%  GEV=0.1484
+  MSE  coverage=11.8%  GEV=0.0860
+  MSF  coverage=13.0%  GEV=0.0952
+  MSG  coverage=17.2%  GEV=0.1274
+
+=======================================================
+5. Canonical network matching (Custo 2017)
+=======================================================
+  Channels: 29
+  ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T7', 'T8', 'P7', 'P8', 'Fz', 'Cz', 'Pz', 'Oz', 'FC1', 'FC2', 'CP1', 'CP2', 'FC5', 'FC6', 'CP5', 'CP6', 'POz']
+
+  Correlation matrix (rows=our maps, cols=canonical):
+           DMN    CEN    VIS    SOM    SAL    AUD   DANT
+  MSA    0.505  0.014  0.527  0.352  0.183  0.137  0.491
+  MSB    0.179  0.421  0.223  0.049  0.172  0.007  0.139
+  MSC    0.563  0.001  0.783  0.189  0.555  0.034  0.460
+  MSD    0.096  0.422  0.179  0.095  0.129  0.001  0.054
+  MSE    0.391  0.178  0.646  0.338  0.501  0.018  0.216
+  MSF    0.386  0.370  0.527  0.026  0.315  0.050  0.386
+  MSG    0.450  0.270  0.602  0.140  0.440  0.011  0.358
+
+  Final assignments:
+  MSA -> DMN  r=0.505
+  MSB -> AUD  r=0.007
+  MSC -> VIS  r=0.783
+  MSD -> CEN  r=0.422
+  MSE -> SAL  r=0.501
+  MSF -> DANT  r=0.386
+  MSG -> SOM  r=0.140
+
+  Saved: /projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3/microstates/assignments_250Hz.json
+
+DONE  250Hz
+
+
+✓  [01] done  (70.9 min)
+
+============================================================
+[02]  02_tess_features.py  —  22:21:40
+============================================================
+Checking syntax...
+Syntax OK: 02_tess_features_250Hz_cluster.py
+
+Deploying...
+Deployed: 02_tess_features_250Hz_cluster.py
+Deployed: 02_tess_features_250Hz.sh
+
+Submitting SLURM job...
+Submitted batch job 6262645
+
+Job ID: 6262645
+
+Monitoring job 6262645  (Ctrl+C to stop)
+-------------------------------------------------------
+JOBID_   STATE_      TIME
+ 6262645_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262645_ PENDING_      0:00
+Job finished — checking log...
+  EXISTS (skip): sub-dmnelf1001_task-feedback_run-04_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1002_task-rest_run-01_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1002_task-shortrest_run-01_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1002_task-feedback_run-01_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1002_task-feedback_run-02_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1002_task-feedback_run-03_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1002_task-feedback_run-04_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1003_task-rest_run-01_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1003_task-rest_run-02_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1003_task-shortrest_run-01_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1003_task-feedback_run-01_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1003_task-feedback_run-02_250Hz_nohrf_features.npy
+  EXISTS (skip): sub-dmnelf1003_task-feedback_run-03_250Hz_nohrf_features.npy
+
+=======================================================
+DONE  250Hz
+  Computed: 0
+  Skipped:  82
+  Missing:  0
+=======================================================
+
+
+✓  [02] done  (1.2 min)
+
+============================================================
+[03]  03_compute_pda.py  —  22:22:51
+============================================================
+Checking syntax...
+Syntax OK: 03_compute_pda_cluster.py
+
+Deploying...
+Deployed: 03_compute_pda_cluster.py
+Command:  /home/cccbauer/.conda/envs/eeg_preproc/bin/python /projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3/scripts/03_compute_pda_cluster.py
+
+Submitting SLURM job...
+Submitted batch job 6262648
+
+Job ID: 6262648
+
+Monitoring job 6262648  (Ctrl+C to stop)
+-------------------------------------------------------
+JOBID_   STATE_      TIME
+ 6262648_ PENDING_      0:00
+JOBID_   STATE_      TIME
+ 6262648_ PENDING_      0:00
+Job finished — checking log...
+  EXISTS (skip): sub-dmnelf1001 feedback run-04
+  EXISTS (skip): sub-dmnelf1002 rest run-01
+  EXISTS (skip): sub-dmnelf1002 shortrest run-01
+  EXISTS (skip): sub-dmnelf1002 feedback run-01
+  EXISTS (skip): sub-dmnelf1002 feedback run-02
+  EXISTS (skip): sub-dmnelf1002 feedback run-03
+  EXISTS (skip): sub-dmnelf1002 feedback run-04
+  EXISTS (skip): sub-dmnelf1003 rest run-01
+  EXISTS (skip): sub-dmnelf1003 rest run-02
+  EXISTS (skip): sub-dmnelf1003 shortrest run-01
+  EXISTS (skip): sub-dmnelf1003 feedback run-01
+  EXISTS (skip): sub-dmnelf1003 feedback run-02
+  EXISTS (skip): sub-dmnelf1003 feedback run-03
+
+=======================================================
+DONE
+  Computed: 0
+  Skipped:  82
+  Missing:  0
+=======================================================
+
+
+✓  [03] done  (1.0 min)
+
+============================================================
+[04]  04_train_decoder.py  —  22:23:52
+============================================================
+Checking syntax...
+Syntax OK: 04_train_decoder_250Hz_cluster.py
+
+Deploying...
+Deployed: 04_train_decoder_250Hz_cluster.py
+Command:  /home/cccbauer/.conda/envs/eeg_preproc/bin/python /projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3/scripts/04_train_decoder_250Hz_cluster.py
+
+Submitting SLURM job...
+Submitted batch job 6262651
+
+Job ID: 6262651
+
+Monitoring job 6262651  (Ctrl+C to stop)
+-------------------------------------------------------
+JOBID_   STATE_      TIME
+ 6262651_ PENDING_      0:00
+Job finished — checking log...
+--- sub-dmnelf009 ---
+  EXISTS (skip): group
+  EXISTS (skip): personal
+
+--- sub-dmnelf010 ---
+  EXISTS (skip): group
+  EXISTS (skip): personal
+
+--- sub-dmnelf011 ---
+  EXISTS (skip): group
+  EXISTS (skip): personal
+
+--- sub-dmnelf1001 ---
+  EXISTS (skip): group
+  EXISTS (skip): personal
+
+--- sub-dmnelf1002 ---
+  EXISTS (skip): group
+  EXISTS (skip): personal
+
+--- sub-dmnelf1003 ---
+  EXISTS (skip): group
+  EXISTS (skip): personal
+
+=======================================================
+DONE
+  Trained:  0
+  Skipped:  24
+  Failed:   0
+=======================================================
+
+
+✓  [04] done  (0.8 min)
+
+============================================================
+Pipeline complete  2026-04-20 22:24
+============================================================
+(base) cccbauer@FACKHG6GKJG32 microstate_pda_v3 % 

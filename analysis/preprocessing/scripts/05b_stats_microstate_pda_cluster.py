@@ -1,0 +1,539 @@
+#!/usr/bin/env python3
+"""05b_stats_microstate_pda_cluster.py
+Two-stage t-test (primary) + LMM (confirmatory) + logistic combination.
+"""
+import sys
+sys.stdout.reconfigure(line_buffering=True)
+import numpy as np
+import json, csv
+from pathlib import Path
+import warnings
+warnings.filterwarnings("ignore")
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from scipy import stats as spstats
+
+try:
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import roc_auc_score
+    HAS_SKL = True
+except ImportError:
+    HAS_SKL = False
+    print("WARNING: sklearn not available -- logistic combo skipped")
+
+try:
+    import pandas as pd
+    import statsmodels.formula.api as smf
+    HAS_LMM = True
+    print("statsmodels available -- LMM enabled")
+except ImportError:
+    HAS_LMM = False
+    print("WARNING: statsmodels not available -- LMM skipped")
+
+# ── Paths ────────────────────────────────────────────────
+CLUSTER_BASE    = Path("/projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3")
+FEATURES_DIR    = CLUSTER_BASE / "features"
+TARGETS_DIR     = CLUSTER_BASE / "targets"
+MICROSTATES_DIR = CLUSTER_BASE / "microstates"
+STATS_DIR       = CLUSTER_BASE / "stats"
+STATS_DIR.mkdir(parents=True, exist_ok=True)
+
+# ── Config ───────────────────────────────────────────────
+SUBJECTS     = ['sub-dmnelf001', 'sub-dmnelf004', 'sub-dmnelf005', 'sub-dmnelf006', 'sub-dmnelf007', 'sub-dmnelf008', 'sub-dmnelf009', 'sub-dmnelf010', 'sub-dmnelf011', 'sub-dmnelf1001', 'sub-dmnelf1002', 'sub-dmnelf1003']
+MISSING_RUNS = {'sub-dmnelf1002': [('rest', '02')], 'sub-dmnelf1003': [('feedback', '04')]}
+SFREQ_TAG    = "250Hz"
+TASK_RUNS = {
+    "rest":      ["01", "02"],
+    "shortrest": ["01"],
+    "feedback":  ["01", "02", "03", "04"],
+}
+N_MS  = 7
+ALPHA = 0.05
+
+# ── Microstate labels ────────────────────────────────────
+_ap = MICROSTATES_DIR / ("assignments_" + SFREQ_TAG + ".json")
+if _ap.exists():
+    with open(str(_ap)) as _f:
+        _asgn = json.load(_f)
+    MS_LABELS = [_asgn.get(str(i), "MS" + str(i)) for i in range(N_MS)]
+else:
+    MS_LABELS = ["MS" + str(i) for i in range(N_MS)]
+print("Labels:", MS_LABELS)
+
+# ── Helpers ──────────────────────────────────────────────
+def cohens_d(a, b):
+    na, nb = len(a), len(b)
+    if na < 2 or nb < 2: return float("nan")
+    sp = np.sqrt(((na-1)*a.std(ddof=1)**2 + (nb-1)*b.std(ddof=1)**2) / (na+nb-2))
+    return 0.0 if sp == 0 else float((a.mean() - b.mean()) / sp)
+
+def bh_fdr(pvals):
+    pv = np.asarray(pvals, float)
+    n  = len(pv)
+    ix = np.argsort(pv)
+    rk = np.empty(n); rk[ix] = np.arange(1, n+1)
+    adj = pv * n / rk
+    adj = np.minimum.accumulate(adj[ix][::-1])[::-1]
+    out = np.empty(n); out[ix] = np.minimum(adj, 1.0)
+    return out
+
+def sig_stars(p):
+    return "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
+
+# ═══════════════════════════════════════════════════════════
+print()
+print("=" * 60)
+print("Loading data")
+print("=" * 60)
+
+# subj_data[subj] = dict(X=(N,7), y=(N,), task=list, run=list)
+subj_data = {}
+for subj in SUBJECTS:
+    Xl, yl, tl, rl = [], [], [], []
+    for task in TASK_RUNS:
+        for run in TASK_RUNS[task]:
+            if subj in MISSING_RUNS and (task, run) in MISSING_RUNS[subj]:
+                continue
+            fp = (FEATURES_DIR / (subj+"_task-"+task+"_run-"+run
+                                   +"_"+SFREQ_TAG+"_nohrf_features.npy"))
+            pp = (TARGETS_DIR  / (subj+"_task-"+task+"_run-"+run
+                                   +"_pda_direct.npy"))
+            if not fp.exists() or not pp.exists(): continue
+            feats = np.load(str(fp))
+            pda   = np.load(str(pp))
+            n = min(len(feats), len(pda))
+            Xl.append(feats[:n, :N_MS])
+            yl.append(pda[:n])
+            tl.extend([task]*n)
+            rl.extend([run]*n)
+    if Xl:
+        subj_data[subj] = dict(
+            X=np.concatenate(Xl),
+            y=np.concatenate(yl),
+            task=tl, run=rl,
+        )
+        print("  " + subj + "  N=" + str(len(tl)))
+
+print("Subjects loaded:", len(subj_data))
+
+# ═══════════════════════════════════════════════════════════
+print()
+print("=" * 60)
+print("PRIMARY: Two-stage t-test")
+print("=" * 60)
+
+ind_rows = []
+grp_rows = []
+
+for task_set in ("all", "feedback"):
+    grp_diffs = [[] for _ in range(N_MS)]   # subject-level mean diffs
+
+    for subj, sd in subj_data.items():
+        if task_set == "feedback":
+            mask = np.array([t == "feedback" for t in sd["task"]])
+        else:
+            mask = np.ones(len(sd["y"]), dtype=bool)
+        X = sd["X"][mask]
+        y = sd["y"][mask]
+        pos = y >= 0
+        neg = y <  0
+        if pos.sum() < 5 or neg.sum() < 5: continue
+
+        p_raws = []
+        for ms in range(N_MS):
+            a, b = X[pos, ms], X[neg, ms]
+            t, p = spstats.ttest_ind(a, b, equal_var=False)
+            d    = cohens_d(a, b)
+            md   = float(a.mean() - b.mean())
+            grp_diffs[ms].append(md)
+            p_raws.append(float(p))
+            ind_rows.append(dict(
+                subject=subj, task_set=task_set,
+                ms_idx=ms, label=MS_LABELS[ms],
+                n_pos=int(pos.sum()), n_neg=int(neg.sum()),
+                mean_diff=round(md, 5),
+                t_stat=round(float(t), 4),
+                p_raw=round(float(p), 6),
+                cohens_d=round(d, 4),
+                p_fdr=None, sig_fdr=None,
+            ))
+        p_fdrs = bh_fdr(p_raws)
+        for i, row in enumerate(ind_rows[-N_MS:]):
+            row["p_fdr"]   = round(float(p_fdrs[i]), 6)
+            row["sig_fdr"] = bool(p_fdrs[i] < ALPHA)
+
+    # Group t-test on mean diffs
+    grp_p_raws = []
+    for ms in range(N_MS):
+        d = np.array(grp_diffs[ms])
+        if len(d) < 3: grp_p_raws.append(1.0); continue
+        _, p = spstats.ttest_1samp(d, 0.0)
+        grp_p_raws.append(float(p))
+    grp_p_fdrs = bh_fdr(grp_p_raws)
+
+    for ms in range(N_MS):
+        d = np.array(grp_diffs[ms])
+        if len(d) < 3:
+            grp_rows.append(dict(task_set=task_set, analysis="ttest",
+                                  ms_idx=ms, label=MS_LABELS[ms],
+                                  n_subjects=len(d), beta=None, se=None,
+                                  t_or_z=None, p_raw=None, p_fdr=None,
+                                  ci_lo=None, ci_hi=None, cohens_d=None,
+                                  sig_fdr=False))
+            continue
+        t, p   = spstats.ttest_1samp(d, 0.0)
+        sem    = d.std(ddof=1) / np.sqrt(len(d))
+        cd     = d.mean() / d.std(ddof=1)
+        ci_lo  = d.mean() - 1.96 * sem
+        ci_hi  = d.mean() + 1.96 * sem
+        stars  = sig_stars(grp_p_fdrs[ms])
+        print("  [ttest " + task_set + "] " + MS_LABELS[ms]
+              + "  diff=" + str(round(d.mean(), 4))
+              + "  t=" + str(round(float(t), 3))
+              + "  p_fdr=" + str(round(float(grp_p_fdrs[ms]), 4))
+              + "  " + stars)
+        grp_rows.append(dict(
+            task_set=task_set, analysis="ttest",
+            ms_idx=ms, label=MS_LABELS[ms],
+            n_subjects=len(d),
+            beta=round(float(d.mean()), 5),
+            se=round(float(sem), 5),
+            t_or_z=round(float(t), 4),
+            p_raw=round(float(grp_p_raws[ms]), 6),
+            p_fdr=round(float(grp_p_fdrs[ms]), 6),
+            ci_lo=round(float(ci_lo), 5),
+            ci_hi=round(float(ci_hi), 5),
+            cohens_d=round(float(cd), 4),
+            sig_fdr=bool(grp_p_fdrs[ms] < ALPHA),
+        ))
+
+# ═══════════════════════════════════════════════════════════
+print()
+print("=" * 60)
+print("CONFIRMATORY: LMM")
+print("=" * 60)
+
+if not HAS_LMM:
+    print("Skipped — statsmodels not available")
+else:
+    # Build full DataFrame once
+    records = []
+    for subj, sd in subj_data.items():
+        for i in range(len(sd["y"])):
+            rec = dict(subject=subj,
+                       task=sd["task"][i],
+                       run=sd["run"][i],
+                       pda_sign=int(sd["y"][i] >= 0))
+            for ms in range(N_MS):
+                rec["T" + str(ms)] = float(sd["X"][i, ms])
+            records.append(rec)
+    df_all = pd.DataFrame(records)
+    df_fb  = df_all[df_all["task"] == "feedback"].copy()
+    print("DataFrame: " + str(len(df_all)) + " TRs")
+
+    for task_set, df_set in [("all", df_all), ("feedback", df_fb)]:
+        lmm_p_raws = []
+        lmm_cache  = []
+
+        for ms in range(N_MS):
+            col  = "T" + str(ms)
+            dms  = df_set[["subject", "task", "pda_sign", col]].copy()
+            dms  = dms.rename(columns={col: "y"}).dropna()
+            task_term = "" if task_set == "feedback" else " + C(task)"
+            formula   = "y ~ pda_sign" + task_term
+
+            result = None
+            used_re = None
+            for re_form in ["~pda_sign", "~1"]:
+                try:
+                    md = smf.mixedlm(formula, dms,
+                                      groups=dms["subject"],
+                                      re_formula=re_form)
+                    result = md.fit(reml=True, method="lbfgs", maxiter=300)
+                    used_re = re_form
+                    break
+                except Exception:
+                    continue
+
+            if result is None:
+                print("  [lmm " + task_set + "] " + MS_LABELS[ms] + ": FAILED")
+                lmm_p_raws.append(1.0)
+                lmm_cache.append(None)
+                continue
+
+            beta  = float(result.params.get("pda_sign", float("nan")))
+            se    = float(result.bse.get("pda_sign", float("nan")))
+            z_val = float(result.tvalues.get("pda_sign", float("nan")))
+            p_val = float(result.pvalues.get("pda_sign", float("nan")))
+            try:
+                ci    = result.conf_int()
+                ci_lo = float(ci.loc["pda_sign", 0])
+                ci_hi = float(ci.loc["pda_sign", 1])
+            except Exception:
+                ci_lo = beta - 1.96 * se
+                ci_hi = beta + 1.96 * se
+
+            # Interaction test: does effect differ by task?
+            int_p = None
+            if task_set == "all":
+                try:
+                    md_int = smf.mixedlm("y ~ pda_sign * C(task)",
+                                          dms, groups=dms["subject"],
+                                          re_formula=used_re)
+                    res_int = md_int.fit(reml=True, method="lbfgs",
+                                          maxiter=300)
+                    # p-value for pda_sign:C(task)[T.feedback]
+                    int_keys = [k for k in res_int.pvalues.index
+                                 if "pda_sign" in k and "C(task)" in k]
+                    if int_keys:
+                        int_p = min([float(res_int.pvalues[k])
+                                      for k in int_keys])
+                except Exception:
+                    int_p = None
+
+            lmm_p_raws.append(p_val if not np.isnan(p_val) else 1.0)
+            lmm_cache.append((beta, se, z_val, p_val, ci_lo, ci_hi, int_p, used_re))
+            print("  [lmm " + task_set + "] " + MS_LABELS[ms]
+                  + "  beta=" + str(round(beta, 4))
+                  + "  z=" + str(round(z_val, 3))
+                  + "  p=" + str(round(p_val, 4))
+                  + "  re=" + str(used_re)
+                  + ("  int_p=" + str(round(int_p, 4)) if int_p is not None else ""))
+
+        lmm_p_fdrs = bh_fdr(lmm_p_raws)
+
+        for ms, res in enumerate(lmm_cache):
+            if res is None:
+                grp_rows.append(dict(
+                    task_set=task_set, analysis="lmm",
+                    ms_idx=ms, label=MS_LABELS[ms],
+                    n_subjects=df_set["subject"].nunique(),
+                    beta=None, se=None, t_or_z=None,
+                    p_raw=None, p_fdr=None,
+                    ci_lo=None, ci_hi=None, cohens_d=None,
+                    sig_fdr=False,
+                ))
+                continue
+            beta, se, z_val, p_val, ci_lo, ci_hi, int_p, used_re = res
+            stars = sig_stars(lmm_p_fdrs[ms])
+            grp_rows.append(dict(
+                task_set=task_set, analysis="lmm",
+                ms_idx=ms, label=MS_LABELS[ms],
+                n_subjects=df_set["subject"].nunique(),
+                beta=round(beta, 5), se=round(se, 5),
+                t_or_z=round(z_val, 4),
+                p_raw=round(p_val, 6),
+                p_fdr=round(float(lmm_p_fdrs[ms]), 6),
+                ci_lo=round(ci_lo, 5), ci_hi=round(ci_hi, 5),
+                cohens_d=None,
+                interaction_p=round(int_p, 5) if int_p is not None else None,
+                sig_fdr=bool(lmm_p_fdrs[ms] < ALPHA),
+            ))
+
+# ═══════════════════════════════════════════════════════════
+print()
+print("=" * 60)
+print("COMBINATION: Logistic LORO CV (feedback)")
+print("=" * 60)
+
+log_rows = []
+if not HAS_SKL:
+    print("Skipped — sklearn not available")
+else:
+    for subj, sd in subj_data.items():
+        fb_mask = np.array([t == "feedback" for t in sd["task"]])
+        X_fb = sd["X"][fb_mask]
+        y_fb = (sd["y"][fb_mask] >= 0).astype(int)
+        runs = [sd["run"][i] for i in range(len(sd["run"])) if sd["task"][i] == "feedback"]
+        unique_runs = list(dict.fromkeys(runs))
+        if len(unique_runs) < 2: continue
+
+        aucs, accs, ws = [], [], []
+        for held in unique_runs:
+            te = np.array([r == held for r in runs])
+            tr = ~te
+            if tr.sum() < 10 or te.sum() < 4: continue
+            if len(np.unique(y_fb[tr])) < 2: continue
+            if len(np.unique(y_fb[te])) < 2: continue
+            sc  = StandardScaler()
+            Xtr = sc.fit_transform(X_fb[tr])
+            Xte = sc.transform(X_fb[te])
+            lr  = LogisticRegression(C=1.0, class_weight="balanced",
+                                      max_iter=1000, random_state=42)
+            lr.fit(Xtr, y_fb[tr])
+            prob = lr.predict_proba(Xte)[:, 1]
+            aucs.append(roc_auc_score(y_fb[te], prob))
+            accs.append((lr.predict(Xte) == y_fb[te]).mean())
+            ws.append(lr.coef_[0].copy())
+
+        if not aucs: continue
+        mw  = np.mean(ws, axis=0)
+        row = dict(subject=subj, n_folds=len(aucs),
+                   mean_auc=round(float(np.mean(aucs)), 4),
+                   mean_acc=round(float(np.mean(accs)), 4))
+        for ms in range(N_MS):
+            row["w_" + MS_LABELS[ms]] = round(float(mw[ms]), 5)
+        log_rows.append(row)
+        print("  " + subj + "  AUC=" + str(row["mean_auc"])
+              + "  acc=" + str(row["mean_acc"]))
+
+    if log_rows:
+        _a = [r["mean_auc"] for r in log_rows]
+        _t, _p = spstats.ttest_1samp(_a, 0.5)
+        print("  Group AUC " + str(round(float(np.mean(_a)), 3))
+              + " +/- " + str(round(float(np.std(_a, ddof=1)/np.sqrt(len(_a))), 3))
+              + "  t=" + str(round(float(_t), 3))
+              + "  p=" + str(round(float(_p), 4)) + " vs 0.5")
+
+# ═══════════════════════════════════════════════════════════
+print()
+print("Saving CSVs...")
+
+def write_csv(path, rows):
+    if not rows: return
+    # Union of all keys across all rows (handles rows with different schemas)
+    seen = {}
+    for r in rows:
+        for k in r: seen[k] = None
+    fields = list(seen.keys())
+    with open(str(path), "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        w.writeheader(); w.writerows(rows)
+    print("  " + path.name)
+
+write_csv(STATS_DIR / ("individual_stats_"     + SFREQ_TAG + ".csv"), ind_rows)
+write_csv(STATS_DIR / ("group_stats_"          + SFREQ_TAG + ".csv"), grp_rows)
+write_csv(STATS_DIR / ("combination_logistic_" + SFREQ_TAG + ".csv"), log_rows)
+
+# ═══════════════════════════════════════════════════════════
+print()
+print("Generating figure...")
+
+# Helpers to extract ordered arrays from grp_rows
+def _get(analysis, task_set, key):
+    rows = sorted([r for r in grp_rows
+                    if r["analysis"] == analysis
+                    and r["task_set"] == task_set],
+                   key=lambda r: r["ms_idx"])
+    out = []
+    for r in rows:
+        v = r.get(key)
+        out.append(float(v) if v is not None and not isinstance(v, bool) else float("nan"))
+    return np.array(out)
+
+x      = np.arange(N_MS)
+w_bar  = 0.38
+C_ALL  = "#5080D0"
+C_FB   = "#E07020"
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+fig.suptitle(
+    "Microstate selectivity for PDA+ vs PDA- epochs\n"
+    "(pda_direct, Benjamini-Hochberg FDR corrected)",
+    fontsize=12, fontweight="bold"
+)
+
+# ── Panel A: Two-stage t-test ─────────────────────────────
+ax = axes[0]
+m_all  = _get("ttest", "all",      "beta")
+se_all = _get("ttest", "all",      "se")
+p_all  = _get("ttest", "all",      "p_fdr")
+m_fb   = _get("ttest", "feedback", "beta")
+se_fb  = _get("ttest", "feedback", "se")
+p_fb   = _get("ttest", "feedback", "p_fdr")
+
+ax.bar(x - w_bar/2, m_all, w_bar, color=C_ALL, alpha=0.80,
+       label="all tasks", yerr=se_all, capsize=4,
+       error_kw={"elinewidth": 1.2})
+ax.bar(x + w_bar/2, m_fb,  w_bar, color=C_FB,  alpha=0.80,
+       label="feedback",  yerr=se_fb,  capsize=4,
+       error_kw={"elinewidth": 1.2})
+ax.axhline(0, color="black", lw=0.8, ls="--")
+
+_ymax = np.nanmax(np.abs(np.concatenate([m_all+se_all, m_fb+se_fb]))) * 1.3
+for i in range(N_MS):
+    s = sig_stars(p_all[i])
+    if s: ax.text(x[i]-w_bar/2, m_all[i]+se_all[i]+_ymax*.04, s,
+                   ha="center", va="bottom", fontsize=13,
+                   color=C_ALL, fontweight="bold")
+    s = sig_stars(p_fb[i])
+    if s: ax.text(x[i]+w_bar/2, m_fb[i]+se_fb[i]+_ymax*.04, s,
+                   ha="center", va="bottom", fontsize=13,
+                   color=C_FB, fontweight="bold")
+
+ax.set_xticks(x)
+ax.set_xticklabels(MS_LABELS, fontsize=10)
+ax.set_ylabel("Group mean T-hat (PDA+ - PDA-)", fontsize=10)
+ax.set_title("A   Two-stage t-test (primary)", fontsize=11,
+              fontweight="bold")
+ax.legend(fontsize=9)
+ax.tick_params(axis="y", labelsize=9)
+
+# ── Panel B: LMM fixed effects ───────────────────────────
+ax = axes[1]
+b_all  = _get("lmm", "all",      "beta")
+b_fb   = _get("lmm", "feedback", "beta")
+cl_all = _get("lmm", "all",      "ci_lo")
+ch_all = _get("lmm", "all",      "ci_hi")
+cl_fb  = _get("lmm", "feedback", "ci_lo")
+ch_fb  = _get("lmm", "feedback", "ci_hi")
+p_lm_all = _get("lmm", "all",      "p_fdr")
+p_lm_fb  = _get("lmm", "feedback", "p_fdr")
+
+if not np.all(np.isnan(b_all)):
+    e_all = [b_all - cl_all, ch_all - b_all]
+    e_fb  = [b_fb  - cl_fb,  ch_fb  - b_fb ]
+    ax.errorbar(x - 0.12, b_all, yerr=e_all, fmt="o", color=C_ALL,
+                capsize=5, markersize=8, label="all tasks", lw=1.8)
+    ax.errorbar(x + 0.12, b_fb,  yerr=e_fb,  fmt="s", color=C_FB,
+                capsize=5, markersize=8, label="feedback",  lw=1.8)
+    ax.axhline(0, color="black", lw=0.8, ls="--")
+
+    _ymax2 = np.nanmax(np.abs(np.concatenate([ch_all, ch_fb]))) * 1.3
+    for i in range(N_MS):
+        s = sig_stars(p_lm_all[i])
+        if s: ax.text(x[i]-0.12, b_all[i]+e_all[1][i]+_ymax2*.04, s,
+                       ha="center", va="bottom", fontsize=13,
+                       color=C_ALL, fontweight="bold")
+        s = sig_stars(p_lm_fb[i])
+        if s: ax.text(x[i]+0.12, b_fb[i]+e_fb[1][i]+_ymax2*.04, s,
+                       ha="center", va="bottom", fontsize=13,
+                       color=C_FB, fontweight="bold")
+else:
+    ax.text(0.5, 0.5, "LMM not available\n(statsmodels not installed)",
+            ha="center", va="center", transform=ax.transAxes,
+            fontsize=11, color="gray")
+
+ax.set_xticks(x)
+ax.set_xticklabels(MS_LABELS, fontsize=10)
+ax.set_ylabel("LMM beta (pda_sign fixed effect, +/- 95% CI)", fontsize=10)
+ax.set_title("B   LMM confirmatory (pda_sign | subject random slope)",
+              fontsize=11, fontweight="bold")
+ax.legend(fontsize=9)
+ax.tick_params(axis="y", labelsize=9)
+
+# Logistic AUC annotation on Panel B
+if log_rows:
+    _a = [r["mean_auc"] for r in log_rows]
+    _t, _p = spstats.ttest_1samp(_a, 0.5)
+    _txt = ("Logistic combo (feedback LORO)\n"
+            + "Group AUC = " + str(round(float(np.mean(_a)), 3))
+            + " +/- " + str(round(float(np.std(_a, ddof=1)/np.sqrt(len(_a))), 3))
+            + "\np = " + str(round(float(_p), 4)) + " vs chance (0.5)")
+    axes[1].text(0.99, 0.02, _txt, ha="right", va="bottom",
+                  transform=axes[1].transAxes, fontsize=8.5,
+                  bbox=dict(boxstyle="round,pad=0.3",
+                             facecolor="lightyellow", alpha=0.9))
+
+plt.tight_layout()
+_fig_path = STATS_DIR / ("group_stats_" + SFREQ_TAG + ".png")
+plt.savefig(str(_fig_path), dpi=150, bbox_inches="tight")
+plt.close(fig)
+print("  " + _fig_path.name)
+
+print()
+print("=" * 60)
+print("DONE")
+print("=" * 60)

@@ -1,0 +1,51 @@
+{
+  "n_channels": 31,
+  "eeg_sfreq": 200,
+  "fmri_tr": 1.2,
+  "n_parcels": 64,
+  "eeg_samples_per_tr": 240,
+  "dmn_parcels": [
+    3,
+    6,
+    22,
+    29,
+    35,
+    38,
+    58,
+    60
+  ],
+  "cen_parcels": [
+    4,
+    31,
+    47,
+    48,
+    50,
+    51
+  ],
+  "n_microstates": 4,
+  "n_kmeans_restarts": 20,
+  "kmeans_max_iter": 1000,
+  "min_microstate_dur": 30,
+  "task_train": "rest",
+  "task_test_near": "shortrest",
+  "task_test_far": "feedback",
+  "trs_train_per_run": 350,
+  "trs_test_near": 100,
+  "trs_test_far_per_run": 125,
+  "train_total_trs": 700,
+  "train_frac": 0.8,
+  "train_n_trs": 560,
+  "val_n_trs": 140,
+  "split_method": "contiguous_end",
+  "decoder_alphas": [
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0,
+    1000.0
+  ],
+  "z_score_features": true,
+  "z_score_target": true,
+  "psa_window_trs": 25
+}
