@@ -121,25 +121,26 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     
     sbatch_script = "\n".join(sbatch_lines)
     
-    # Save SBATCH script locally
-    sbatch_path = LOCAL_BASE / "scripts" / "fmri_pipeline_job.sh"
-    sbatch_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(sbatch_path, "w") as f:
+    # Save SBATCH script locally (to temp location)
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
         f.write(sbatch_script)
-    print(f"✓ Generated SBATCH script: {sbatch_path}\n")
+        local_temp_path = f.name
+    
+    print(f"✓ Generated SBATCH script: {local_temp_path}\n")
     
     # Upload to cluster and submit
     print("Uploading to cluster...")
-    remote_sbatch = CLUSTER_BASE + "/scripts/fmri_pipeline_job.sh"
+    remote_sbatch = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing/fmri_pipeline_job.sh"
     
     # Make sure deploy_scripts directory exists on cluster
     print("Creating cluster directories...")
     run_ssh("mkdir -p " + CLUSTER_BASE + "/logs")
     run_ssh("mkdir -p " + CLUSTER_BASE + "/deploy_scripts")
-    run_ssh("mkdir -p " + CLUSTER_BASE + "/scripts")
+    run_ssh("mkdir -p /projects/swglab/data/DMNELF/analysis/fmri_preprocessing")
     
     print("Uploading SBATCH script...")
-    scp_to(str(sbatch_path), remote_sbatch)
+    scp_to(local_temp_path, remote_sbatch)
     
     # Make executable and submit
     print("Making script executable...")
@@ -155,11 +156,11 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
         print("\n" + "=" * 60)
         print(f"✓ Job submitted successfully!")
         print(f"  Job ID: {job_id}")
-        print(f"  Command: sbatch {remote_sbatch}")
+        print(f"  Script: {remote_sbatch}")
         print("=" * 60)
         print("\nMonitor with:")
         print(f"  squeue -j {job_id}")
-        print(f"  tail -f {CLUSTER_BASE}/logs/fmri_pipeline_{job_id}.out")
+        print(f"  ssh cccbauer@explorer.northeastern.edu 'tail -f {CLUSTER_BASE}/logs/fmri_pipeline_{job_id}.out'")
     else:
         print("WARNING: Could not parse job ID from response")
         print("Response:", result)
