@@ -148,11 +148,18 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
     
     print("Submitting to SLURM...")
     result = run_ssh(f"sbatch {remote_sbatch}")
-    print(result)
+    
+    # Extract stdout if result is CompletedProcess
+    if hasattr(result, 'stdout'):
+        result_str = result.stdout
+    else:
+        result_str = str(result)
+    
+    print(result_str)
     
     # Extract job ID
-    if "Submitted batch job" in result:
-        job_id = result.split("Submitted batch job ")[-1].strip()
+    if "Submitted batch job" in result_str:
+        job_id = result_str.split("Submitted batch job ")[-1].strip()
         print("\n" + "=" * 60)
         print(f"✓ Job submitted successfully!")
         print(f"  Job ID: {job_id}")
@@ -163,7 +170,7 @@ def submit_fmri_pipeline(subjects=None, overwrite=False):
         print(f"  ssh cccbauer@explorer.northeastern.edu 'tail -f {CLUSTER_BASE}/logs/fmri_pipeline_{job_id}.out'")
     else:
         print("WARNING: Could not parse job ID from response")
-        print("Response:", result)
+        print("Response:", result_str)
 
 
 if __name__ == "__main__":
