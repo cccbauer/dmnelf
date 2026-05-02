@@ -15,19 +15,31 @@ CONFOUND_ROOT  = "/projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap"
 EEG_PREP_ROOT = Path("/projects/swglab/data/DMNELF/derivatives/eeg_preprocessed")
 FMRIPREP_ROOT = "/projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap"
 # ── Local paths (machine-agnostic) ─────────────────────────
+# On cluster: use cluster paths only
+# On local: use local paths if they exist
 import os
-_user = os.environ.get("USER", "")
-if _user == "anitya":
-    _dropbox = Path("/Users/anitya/MIT Dropbox/Clemen Bauer/00_2022/ResearchScientist"
-                    "/01_grants/01_R21-2021/Analysis/MNE")
-elif _user == "cccbauer":
-    _dropbox = Path("/Users/cccbauer/MIT Dropbox/Clemen Bauer/00_2022/ResearchScientist"
-                    "/01_grants/01_R21-2021/Analysis/MNE")
-else:
-    _dropbox = Path.home() / "microstate_pda_v3"
+import socket
+_hostname = socket.gethostname()
+_is_cluster = "explorer" in _hostname or "login" in _hostname
 
-LOCAL_BASE  = _dropbox / "microstate_pda_v3"
-SCRIPTS_DIR = LOCAL_BASE / "scripts"
+if _is_cluster:
+    # On cluster - use cluster paths
+    LOCAL_BASE = Path("/projects/swglab/data/DMNELF/analysis/fmri_preprocessing")
+    SCRIPTS_DIR = LOCAL_BASE / "deploy_scripts"
+else:
+    # On local machine
+    _user = os.environ.get("USER", "")
+    if _user == "anitya":
+        _dropbox = Path("/Users/anitya/MIT Dropbox/Clemen Bauer/00_2022/ResearchScientist"
+                        "/01_grants/01_R21-2021/Analysis/MNE")
+    elif _user == "cccbauer":
+        _dropbox = Path("/Users/cccbauer/MIT Dropbox/Clemen Bauer/00_2022/ResearchScientist"
+                        "/01_grants/01_R21-2021/Analysis/MNE")
+    else:
+        _dropbox = Path.home() / "microstate_pda_v3"
+
+    LOCAL_BASE  = _dropbox / "microstate_pda_v3"
+    SCRIPTS_DIR = LOCAL_BASE / "scripts"
 FIGURES_DIR = LOCAL_BASE / "figures"
 LOGS_DIR    = LOCAL_BASE / "logs"
 MODELS_DIR  = LOCAL_BASE / "models"
