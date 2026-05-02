@@ -8,7 +8,7 @@ CLUSTER_SSH    = CLUSTER_USER + "@" + CLUSTER_HOST
 SLURM_ACCOUNT  = "suewhit"
 PYTHON         = "/home/cccbauer/.conda/envs/eeg_preproc/bin/python"
 # ── Cluster paths ──────────────────────────────────────────
-CLUSTER_BASE   = "/projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3"
+CLUSTER_BASE   = "/projects/swglab/data/DMNELF/analysis/fmri_preprocessing"
 EEG_ROOT       = "/projects/swglab/data/DMNELF/derivatives/eeg_preprocessed"
 DIFUMO_ROOT    = "/projects/swglab/data/DMNELF/analysis/MNE/jupyter/neurobolt/difumo_timeseries"
 CONFOUND_ROOT  = "/projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap"
