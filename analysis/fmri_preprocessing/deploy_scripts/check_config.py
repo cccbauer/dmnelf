@@ -10,6 +10,9 @@ import os
 import sys
 from pathlib import Path
 
+# Add parent directory to path for utils/config imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 # ── Colour helpers ────────────────────────────────────────────
 def green(s):  return f"\033[32m{s}\033[0m"
 def red(s):    return f"\033[31m{s}\033[0m"

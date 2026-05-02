@@ -14,9 +14,12 @@
 #   difumo_timeseries/
 #     {subject}_ses-dmnelf_task-{task}_run-{run}_desc-difumo64_timeseries.tsv
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import py_compile
 import time
-from pathlib import Path
 from utils import run_ssh, scp_to, make_cluster_dirs
 from config import (
     CLUSTER_BASE, SLURM_ACCOUNT, PYTHON,
