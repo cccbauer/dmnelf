@@ -26,7 +26,7 @@ from utils import run_ssh, scp_to, make_cluster_dirs
 from config import (
     CLUSTER_BASE, SLURM_ACCOUNT, PYTHON,
     SUBJECTS_EEG_FMRI_ALL, EEG_ROOT,
-    TR, N_MICROSTATES, LOCAL_BASE,
+    TR, N_MICROSTATES,
     MISSING_RUNS
 )
 
@@ -223,13 +223,13 @@ lines = [
     'print("=" * 55)',
 ]
 
-# ── 2. Save cluster script locally ─────────────────────────
-script_name = "02_tess_features_" + SFREQ_TAG + "_cluster.py"
-script_path = LOCAL_BASE / "scripts" / script_name
-script_path.parent.mkdir(parents=True, exist_ok=True)
+# ── 2. Save cluster script to temp file ────────────────────
+import tempfile
+script_name = "02_tess_features_cluster.py"
 
-with open(script_path, "w") as f:
+with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
     f.write("\n".join(lines))
+    script_path = Path(f.name)
 
 # ── 3. Syntax check ────────────────────────────────────────
 print("Checking syntax...")

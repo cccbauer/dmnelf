@@ -23,7 +23,7 @@ import time
 from utils import run_ssh, scp_to, make_cluster_dirs
 from config import (
     CLUSTER_BASE, SLURM_ACCOUNT, PYTHON,
-    SUBJECTS, LOCAL_BASE
+    SUBJECTS
 )
 
 FMRIPREP_ROOT = "/projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap"
@@ -165,13 +165,13 @@ lines = [
     'print("=" * 55)',
 ]
 
-# ── 2. Save cluster script locally ─────────────────────────
+# ── 2. Save cluster script to temp file ────────────────────
+import tempfile
 script_name = "00_extract_difumo_cluster.py"
-script_path = LOCAL_BASE / "scripts" / script_name
-script_path.parent.mkdir(parents=True, exist_ok=True)
 
-with open(script_path, "w") as f:
+with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
     f.write("\n".join(lines))
+    script_path = Path(f.name)
 
 # ── 3. Syntax check ────────────────────────────────────────
 print("Checking syntax...")
@@ -198,9 +198,9 @@ sbatch_lines = [
 ]
 
 sbatch_name = "00_extract_difumo.sh"
-sbatch_path = LOCAL_BASE / "scripts" / sbatch_name
-with open(sbatch_path, "w") as f:
+with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
     f.write("\n".join(sbatch_lines))
+    sbatch_path = Path(f.name)
 
 # ── 5. Deploy ──────────────────────────────────────────────
 print("\nDeploying...")

@@ -22,7 +22,7 @@ from config import (
     CLUSTER_BASE, SLURM_ACCOUNT, PYTHON,
     SUBJECTS_EEG_FMRI_ALL, EEG_ROOT,
     N_MICROSTATES, N_KMEANS_RESTARTS,
-    KMEANS_MAX_ITER, GFP_OUTLIER_SD, LOCAL_BASE
+    KMEANS_MAX_ITER, GFP_OUTLIER_SD
 )
 
 parser = argparse.ArgumentParser()
@@ -345,13 +345,13 @@ lines = [
     'print("DONE  " + SFREQ_TAG)',
 ]
 
-# ── 2. Save cluster script locally ─────────────────────────
+# ── 2. Save cluster script to temp file ────────────────────
+import tempfile
 script_name = "01_fit_microstates_" + SFREQ_TAG + "_cluster.py"
-script_path = LOCAL_BASE / "scripts" / script_name
-script_path.parent.mkdir(parents=True, exist_ok=True)
 
-with open(script_path, "w") as f:
+with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
     f.write("\n".join(lines))
+    script_path = Path(f.name)
 
 # ── 3. Syntax check ────────────────────────────────────────
 print("Checking syntax...")
@@ -386,9 +386,9 @@ sbatch_lines = [
 ]
 
 sbatch_name = "01_fit_microstates_" + SFREQ_TAG + ".sh"
-sbatch_path = LOCAL_BASE / "scripts" / sbatch_name
-with open(sbatch_path, "w") as f:
+with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
     f.write("\n".join(sbatch_lines))
+    sbatch_path = Path(f.name)
 
 remote_sbatch = CLUSTER_BASE + "/scripts/" + sbatch_name
 scp_to(sbatch_path, remote_sbatch, verbose=False)

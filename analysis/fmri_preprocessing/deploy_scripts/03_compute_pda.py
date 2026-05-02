@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils import run_ssh, scp_to
 from config import (
     CLUSTER_BASE, SLURM_ACCOUNT, PYTHON,
-    SUBJECTS_EEG_FMRI_ALL, LOCAL_BASE,
+    SUBJECTS_EEG_FMRI_ALL,
     MISSING_RUNS, DMN_IDX, CEN_IDX
 )
 
@@ -177,13 +177,13 @@ lines = [
     'print("=" * 55)',
 ]
 
-# ── 2. Save cluster script locally ─────────────────────────
+# ── 2. Save cluster script to temp file ────────────────────
+import tempfile
 script_name = "03_compute_pda_cluster.py"
-script_path = LOCAL_BASE / "scripts" / script_name
-script_path.parent.mkdir(parents=True, exist_ok=True)
 
-with open(script_path, "w") as f:
+with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
     f.write("\n".join(lines))
+    script_path = Path(f.name)
 
 # ── 3. Syntax check ────────────────────────────────────────
 print("Checking syntax...")
@@ -214,9 +214,9 @@ sbatch_lines = [
 ]
 
 sbatch_name = "03_compute_pda.sh"
-sbatch_path = LOCAL_BASE / "scripts" / sbatch_name
-with open(sbatch_path, "w") as f:
+with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
     f.write("\n".join(sbatch_lines))
+    sbatch_path = Path(f.name)
 
 # ── 5. Deploy ──────────────────────────────────────────────
 print("\nDeploying...")
