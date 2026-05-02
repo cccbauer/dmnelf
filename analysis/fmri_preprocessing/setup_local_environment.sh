@@ -1,13 +1,14 @@
 #!/bin/bash
 # setup_local_environment.sh
-# Set up conda environment for fMRI preprocessing on local machine
+# Set up unified conda environment for EEG + fMRI preprocessing
 
 set -e
 
-CONDA_ENV="fmri_preproc"
+CONDA_ENV="dmnelf_preproc"
 
 echo "=========================================="
-echo "Setting up fMRI preprocessing environment"
+echo "Setting up DMNELF preprocessing environment"
+echo "EEG + fMRI + Microstate + PDA"
 echo "=========================================="
 
 # Check if conda is available
@@ -31,7 +32,9 @@ python -c "import numpy; print('  ✓ numpy')"
 python -c "import scipy; print('  ✓ scipy')"
 python -c "import pandas; print('  ✓ pandas')"
 python -c "import mne; print('  ✓ mne')"
+python -c "import neurokit2; print('  ✓ neurokit2')"
 python -c "import nilearn; print('  ✓ nilearn')"
+python -c "import nibabel; print('  ✓ nibabel')"
 python -c "import paramiko; print('  ✓ paramiko')"
 
 # Test utilities
@@ -46,5 +49,12 @@ echo "=========================================="
 echo ""
 echo "Usage:"
 echo "  conda activate $CONDA_ENV"
-echo "  python deploy_scripts/fmri_preproc_deploy.py --all"
+echo ""
+echo "EEG Preprocessing:"
+echo "  cd ../mne_eeg_preprocessing"
+echo "  python deploy_scripts/eeg_preproc_deploy.py --subject sub-dmnelf013"
+echo ""
+echo "fMRI Preprocessing:"
+echo "  cd ../fmri_preprocessing"
+echo "  python deploy_scripts/fmri_preproc_deploy.py --subject sub-dmnelf013"
 echo ""

@@ -1,4 +1,4 @@
-name: eeg_preproc
+name: dmnelf_preproc
 channels:
   - conda-forge
   - defaults
@@ -8,9 +8,12 @@ dependencies:
   - scipy
   - pandas
   - matplotlib
+  - scikit-learn
   - mne
+  - nilearn
+  - nibabel
   - pip
   - pip:
     - neurokit2
     - paramiko
-    - scikit-learn
+    - joblib

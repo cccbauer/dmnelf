@@ -1,11 +1,14 @@
 #!/bin/bash
 # setup_local_environment.sh
-# Sets up the local Python environment for EEG preprocessing
+# Sets up the unified Python environment for EEG + fMRI preprocessing
 
 set -e  # Exit on error
 
+CONDA_ENV="dmnelf_preproc"
+
 echo "==============================================="
-echo "Setting up EEG preprocessing environment"
+echo "Setting up DMNELF preprocessing environment"
+echo "EEG + fMRI + Microstate + PDA"
 echo "==============================================="
 
 # Get the directory where this script is located
@@ -21,14 +24,14 @@ fi
 echo "✓ conda found: $(conda --version)"
 
 echo ""
-echo "Step 2: Creating 'eeg_preproc' environment..."
-if conda env list | grep -q "eeg_preproc"; then
-    echo "Environment 'eeg_preproc' already exists."
+echo "Step 2: Creating '$CONDA_ENV' environment..."
+if conda env list | grep -q "$CONDA_ENV"; then
+    echo "Environment '$CONDA_ENV' already exists."
     read -p "Do you want to recreate it? (y/n) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Removing existing environment..."
-        conda env remove -n eeg_preproc -y
+        conda env remove -n "$CONDA_ENV" -y
         echo "Creating new environment..."
         conda env create -f environment.yml
     else
@@ -42,32 +45,34 @@ fi
 echo ""
 echo "Step 3: Activating environment..."
 eval "$(conda shell.bash hook)"
-conda activate eeg_preproc
+conda activate "$CONDA_ENV"
 echo "✓ Environment activated: $(python --version)"
 
 echo ""
 echo "Step 4: Verifying imports..."
 python -c "
 import sys
-try:
-    import mne
-    print('✓ mne OK')
-except ImportError as e:
-    print(f'✗ mne ERROR: {e}')
-    sys.exit(1)
-
-try:
-    import neurokit2
-    print('✓ neurokit2 OK')
-except ImportError as e:
-    print(f'✗ neurokit2 ERROR: {e}')
-    sys.exit(1)
-
-try:
-    import numpy, scipy, pandas, matplotlib
-    print('✓ numpy, scipy, pandas, matplotlib OK')
-except ImportError as e:
-    print(f'✗ ERROR: {e}')
+imports = {
+    'mne': 'EEG/fMRI preprocessing',
+    'neurokit2': 'EEG signal processing',
+    'nilearn': 'fMRI analysis',
+    'nibabel': 'Neuroimaging file I/O',
+    'numpy': 'Numerical computing',
+    'scipy': 'Scientific computing',
+    'pandas': 'Data analysis',
+    'matplotlib': 'Plotting',
+    'paramiko': 'SSH/SCP utilities',
+}
+failed = []
+for module, desc in imports.items():
+    try:
+        __import__(module)
+        print(f'✓ {module:15} ({desc})')
+    except ImportError as e:
+        print(f'✗ {module:15} ERROR: {e}')
+        failed.append(module)
+if failed:
+    print(f'\n❌ Failed imports: {failed}')
     sys.exit(1)
 "
 
@@ -90,6 +95,7 @@ print(f'✓ Config loaded OK')
 print(f'  LOCAL_BASE: {config.LOCAL_BASE}')
 print(f'  CLUSTER_SSH: {config.CLUSTER_SSH}')
 print(f'  EEG_ROOT: {config.EEG_ROOT}')
+print(f'  SUBJECTS: {config.SUBJECTS}')
 "
 
 echo ""
@@ -97,7 +103,17 @@ echo "==============================================="
 echo "✓ Environment setup complete!"
 echo "==============================================="
 echo ""
-echo "To activate the environment in future sessions, run:"
+echo "To activate in future sessions:"
+echo "  conda activate $CONDA_ENV"
+echo ""
+echo "EEG Preprocessing:"
+echo "  cd mne_eeg_preprocessing"
+echo "  python deploy_scripts/eeg_preproc_deploy.py --subject sub-dmnelf013"
+echo ""
+echo "fMRI Preprocessing:"
+echo "  cd fmri_preprocessing"
+echo "  python deploy_scripts/fmri_preproc_deploy.py --subject sub-dmnelf013"
+echo ""
 echo "  conda activate eeg_preproc"
 echo ""
 echo "To run preprocessing:"
