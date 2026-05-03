@@ -1,0 +1,133 @@
+project:
+  name: cyclic_transcoder_dmnelf
+  base_dir: /projects/swglab/data/DMNELF/analysis/fingerprint/cyclic_transcoder
+
+data:
+  bids_root: /projects/swglab/data/DMNELF
+  fmriprep_dir: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+  eeg_preproc_dir: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  personal_masks_dir: /projects/swglab/data/DMNELF/derivatives/network_masks
+  difumo_cache_dir: /projects/swglab/data/DMNELF/derivatives/difumo_atlas
+
+  session: ses-dmnelf   # all subjects use this single session name
+
+  subjects:
+    # Subjects with BOTH fMRI + EEG + masks — used for full paired training
+    paired:
+      - dmnelf001
+      - dmnelf004
+      - dmnelf005
+      - dmnelf006
+      - dmnelf007
+      - dmnelf008
+      - dmnelf009
+      - dmnelf010
+      - dmnelf011
+      - dmnelf1001
+      - dmnelf1002
+      - dmnelf1003
+
+    # fMRI + masks but NO EEG
+    no_eeg:
+      - dmnelf002
+      - dmnelf003
+      - dmnelf999
+
+    # fMRI + EEG but NO masks yet — add when masks are ready
+    no_masks:
+      - dmnelf012
+      - dmnelf013
+
+    # Default list used by all scripts = paired only
+    all:
+      - dmnelf001
+      - dmnelf004
+      - dmnelf005
+      - dmnelf006
+      - dmnelf007
+      - dmnelf008
+      - dmnelf009
+      - dmnelf010
+      - dmnelf011
+      - dmnelf1001
+      - dmnelf1002
+      - dmnelf1003
+
+    exclude: []
+
+  tasks:
+    train: [rest]           # 2 runs per subject (rest_run-01, rest_run-02)
+    validate: [shortrest]   # 1 run per subject
+    apply: [feedback]       # 4 runs per subject
+
+  fmri:
+    tr: 1.2
+    n_volumes_rest: 350
+    space: MNI152NLin6Asym  # confirmed from fMRIPrep output filenames
+    res: 2
+    confound_columns:
+      - trans_x
+      - trans_y
+      - trans_z
+      - rot_x
+      - rot_y
+      - rot_z
+      - white_matter
+      - csf
+    n_difumo_parcels: 64
+    n_personal_rois: 2      # [DMN_mean, CEN_mean] — indices 64 and 65
+    n_fmri_features: 66     # 64 + 2
+
+  eeg:
+    sfreq: 500.0
+    n_channels: 31
+    samples_per_tr: 600     # 500 Hz * 1.2 s
+    desc: preproc500Hz      # selects *_desc-preproc500Hz_eeg.fif
+
+  masks:
+    # Actual filenames: sub-{subject}_space-MNI152NLin6Asym_res-2_dmn_mask.nii.gz
+    space: MNI152NLin6Asym
+    res: 2
+    dmn_suffix: dmn_mask.nii.gz
+    cen_suffix: cen_mask.nii.gz
+
+  windowing:
+    window_trs: 120         # 144 s
+    stride_trs: 10          # ~23 windows per 350-vol run
+
+model:
+  latent_dim: 64
+  n_fmri_features: 66
+  n_eeg_channels: 31
+  eeg_n_layers: 4
+  eeg_n_features: 32
+  eeg_kernel_size: 3
+  fmri_n_layers: 6
+  fmri_n_features: 32
+  fmri_kernel_size: 27      # ~32 s at TR=1.2 s
+
+training:
+  batch_size: 8
+  n_epochs: 500
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  loss_weights:
+    eeg_cycle: 1.0
+    fmri_cycle: 1.0
+    eeg_transcoder: 1.0
+    fmri_transcoder: 1.0
+  checkpoint_dir: checkpoints
+  early_stopping_patience: 50
+  val_interval: 5
+
+cross_validation:
+  strategy: leave_one_subject_out
+
+slurm:
+  partition: gpu
+  gres: gpu:1
+  mem: 32G
+  time: "24:00:00"
+  cpus_per_task: 8
+  conda_env: microstate_pda

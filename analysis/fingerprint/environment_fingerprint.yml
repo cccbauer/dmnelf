@@ -1,0 +1,61 @@
+name: fingerprint
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+
+  # ── Core scientific stack ─────────────────────────────────────────────────
+  - numpy>=2.0.0
+  - scipy>=1.14.0
+  - pandas>=2.0.0
+  - matplotlib
+  - scikit-learn
+  - statsmodels
+  - seaborn
+  - h5py
+  - pyyaml
+  - tqdm
+  - joblib
+
+  # ── Neuroimaging ──────────────────────────────────────────────────────────
+  - nibabel>=5.3.0
+  - nilearn>=0.12.0
+  - mne>=1.5.0
+  - mne-icalabel
+  - autoreject
+  - pycrostates
+  - neurokit2
+
+  # ── Jupyter ───────────────────────────────────────────────────────────────
+  - jupyterlab
+  - ipywidgets
+  - ipympl
+
+  # ── Binary tools ─────────────────────────────────────────────────────────
+  - dcm2niix   # required by pineuro
+
+  # ── pip-only packages ─────────────────────────────────────────────────────
+  - pip:
+    # Deep learning (cyclic transcoder)
+    - "torch>=2.0.0"
+
+    # Registration (mask extraction)
+    - "antspyx>=0.6.1"
+
+    # Template/atlas fetching
+    - "templateflow"
+
+    # pineuro dependencies (GUI/feedback — needed at import time)
+    - "pydicom"
+    - "watchdog"
+    - "screeninfo>=0.8"
+    - "flet==0.80.5"
+    - "flet-charts>=0.1.0"
+    - "pygame>=2.6.0"
+
+    # pineuro itself (installed from local clone — see README)
+    # Run after env create:
+    #   GIT_SSL_NO_VERIFY=1 git clone https://github.com/marlvan/pineuro.git /tmp/pineuro
+    #   pip install /tmp/pineuro --no-deps
