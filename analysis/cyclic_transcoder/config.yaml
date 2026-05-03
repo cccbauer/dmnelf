@@ -1,0 +1,104 @@
+project:
+  name: cyclic_transcoder_dmnelf
+  base_dir: /work/gablab/dmnelf/analysis/fingerprint/cyclic_transcoder
+
+data:
+  bids_root: /work/gablab/dmnelf
+  fmriprep_dir: /work/gablab/dmnelf/derivatives/fmriprep_25.2.5_fmap
+  eeg_preproc_dir: /work/gablab/dmnelf/derivatives/eeg_preprocessed  # MNE .fif files
+  features_dir: /work/gablab/dmnelf/derivatives/cyclic_features       # extracted .npz, written by extract_features.py
+  personal_masks_dir: /work/gablab/dmnelf/derivatives/personal_masks  # sub-*/DMN.nii.gz, CEN.nii.gz
+  difumo_cache_dir: /work/gablab/dmnelf/derivatives/difumo_atlas      # downloaded once by nilearn
+
+  subjects:
+    all:
+      - dmnelf999
+      - dmnelf001
+      - dmnelf002
+      - dmnelf003
+      - dmnelf004
+      - dmnelf005
+      - dmnelf006
+      - dmnelf007
+      - dmnelf008
+      - dmnelf009
+      - dmnelf010
+      - dmnelf011
+      - dmnelf012
+      - dmnelf013
+      - dmnelf1001
+      - dmnelf1002
+      - dmnelf1003
+    exclude: []
+
+  tasks:
+    train: [rest]           # 350 vol long resting state
+    validate: [shortrest]
+    apply: [feedback]
+
+  fmri:
+    tr: 1.2                 # seconds
+    n_volumes_rest: 350
+    space: MNI152NLin2009cAsym
+    res: 2
+    confound_columns:       # from fMRIPrep confounds TSV
+      - trans_x
+      - trans_y
+      - trans_z
+      - rot_x
+      - rot_y
+      - rot_z
+      - white_matter
+      - csf
+    n_difumo_parcels: 64
+    n_personal_rois: 2      # [DMN_mean, CEN_mean] — indices 64 and 65 in fmri vector
+    n_fmri_features: 66     # difumo64 + personal2
+
+  eeg:
+    sfreq: 500.0
+    n_channels: 31
+    samples_per_tr: 600     # 500 Hz * 1.2 s
+
+  windowing:
+    window_trs: 120         # 144 s — captures full HRF dynamics
+    stride_trs: 10          # ~23 windows per 350-vol run
+
+model:
+  latent_dim: 64
+  n_fmri_features: 66
+  n_eeg_channels: 31
+
+  # EEG modules (spatial Conv1d — channel mixing)
+  eeg_n_layers: 4
+  eeg_n_features: 32
+  eeg_kernel_size: 3        # local channel neighbourhood
+
+  # fMRI modules (temporal Conv1d — HRF learning)
+  fmri_n_layers: 6
+  fmri_n_features: 32
+  fmri_kernel_size: 27      # ~32 s at TR=1.2 s — captures full HRF
+
+training:
+  batch_size: 8
+  n_epochs: 500
+  learning_rate: 1.0e-4
+  weight_decay: 1.0e-5
+  loss_weights:
+    eeg_cycle: 1.0          # R1(G1(E)) ≈ E
+    fmri_cycle: 1.0         # R2(G2(F)) ≈ F
+    eeg_transcoder: 1.0     # R1(G2(F)) ≈ E
+    fmri_transcoder: 1.0    # R2(G1(E)) ≈ F
+  checkpoint_dir: checkpoints
+  early_stopping_patience: 50
+  val_interval: 5           # validate every N epochs
+
+cross_validation:
+  strategy: leave_one_subject_out
+
+slurm:
+  partition: gpu
+  gres: gpu:1
+  mem: 32G
+  time: "24:00:00"
+  cpus_per_task: 8
+  conda_env: microstate_pda  # reuse existing env — add torch if not present
