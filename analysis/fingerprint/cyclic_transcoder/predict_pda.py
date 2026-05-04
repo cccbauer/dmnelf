@@ -102,7 +102,7 @@ def predict_subject(subject, cfg, task="feedback"):
             [batch["pda"].numpy().reshape(-1) for batch in loader]
         )
         if len(pda_true) == len(pda_arr):
-            r = np.corrcoef(pda_pred=pda_arr, pda_true=pda_true[:len(pda_arr)])[0, 1]
+            r = np.corrcoef(pda_arr, pda_true[:len(pda_arr)])[0, 1]
             print(f"  PDA correlation (pred vs true): r = {r:.4f}")
 
     out_path = out_dir / f"sub-{subject}_task-{task}_pda_prediction.npz"

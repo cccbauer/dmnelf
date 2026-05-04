@@ -93,7 +93,6 @@ def extract_difumo_timeseries(bold_img, conf_mat, cfg):
         dimension=64,
         resolution_mm=2,
         data_dir=cfg["data"]["difumo_cache_dir"],
-        legacy_format=False,
     )
     masker = maskers.NiftiMapsMasker(
         maps_img=atlas.maps,
@@ -264,6 +263,11 @@ def extract_subject(subject, cfg):
 
             # --- EEG ---
             raw = mne.io.read_raw_fif(str(eeg_path), preload=True, verbose=False)
+            # Drop non-EEG channels (ECG etc.)
+            exclude = cfg["data"]["eeg"].get("eeg_channels_exclude", ["ECG"])
+            existing_exclude = [c for c in exclude if c in raw.ch_names]
+            if existing_exclude:
+                raw.drop_channels(existing_exclude)
             eeg_block = eeg_block_mean(raw, tr, samples_per_tr, n_vols)  # (T, 31)
 
             # --- Save ---

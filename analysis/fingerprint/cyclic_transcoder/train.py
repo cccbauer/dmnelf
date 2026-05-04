@@ -122,7 +122,7 @@ def train(left_out_subject, cfg, resume=False):
         weight_decay=t_cfg["weight_decay"],
     )
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=20, verbose=True
+        optimizer, mode="min", factor=0.5, patience=20
     )
 
     weights = t_cfg["loss_weights"]

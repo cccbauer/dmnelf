@@ -55,7 +55,7 @@ def all_tasks(cfg):
 
 # ── fMRI checks ───────────────────────────────────────────────────────────────
 
-def find_bold(fprep_root, subject, task):
+def find_bold(cfg, subject, task):
     """
     Return list of (bold_path, confounds_path | None) found for subject/task.
     Uses ses-dmnelf and MNI152NLin6Asym from config.
@@ -144,10 +144,12 @@ def check_masks(cfg, subject):
 
 # ── Already-extracted features check ─────────────────────────────────────────
 
-def check_features(features_dir, subject, task):
+def check_features(features_dir, subject, task=None):
     sub_dir = Path(features_dir) / f"sub-{subject}"
-    npzs = list(sub_dir.glob(f"*task-{task}*_features.npz")) if sub_dir.exists() else []
-    return npzs
+    if not sub_dir.exists():
+        return []
+    pattern = f"*task-{task}*_features.npz" if task else "*_features.npz"
+    return list(sub_dir.glob(pattern))
 
 
 # ── Python environment check ──────────────────────────────────────────────────
@@ -304,9 +306,7 @@ def main():
             tsv_row[f"mask_{label}_voxels"] = n_vox if found else 0
 
         # Already-extracted features
-        feat_files = []
-        for task in tasks:
-            feat_files += check_features(features_dir, subj, task)
+        feat_files = check_features(features_dir, subj)
         n_feat = len(feat_files)
         row += f"  {green(str(n_feat)) if n_feat > 0 else yellow('0'):<15}"
         tsv_row["features_extracted"] = n_feat

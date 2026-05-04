@@ -1,16 +1,15 @@
 #!/bin/bash
-#SBATCH --job-name=cyclic_extract
+#SBATCH --job-name=cyclic_predict
 #SBATCH --account=suewhit
 #SBATCH --partition=short
-#SBATCH --array=0-13
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --time=02:00:00
-#SBATCH --output=logs/extract_%A_%a.out
-#SBATCH --error=logs/extract_%A_%a.err
-
-# Feature extraction — no GPU needed
-# Array index 0-16 covers all 17 subjects (including dmnelf999)
+#SBATCH --array=0-13
+#SBATCH --output=logs/predict_%A_%a.out
+#SBATCH --error=logs/predict_%A_%a.err
 
 SUBJECTS=(
     dmnelf001
@@ -32,18 +31,16 @@ SUBJECTS=(
 SUBJECT=${SUBJECTS[$SLURM_ARRAY_TASK_ID]}
 CONFIG=/projects/swglab/data/DMNELF/analysis/fingerprint/cyclic_transcoder/config.yaml
 
-echo "Extracting subject: $SUBJECT"
-echo "Config: $CONFIG"
+echo "Predicting PDA for: $SUBJECT"
 
 source /shared/EL9/explorer/anaconda3/2024.06-root/etc/profile.d/conda.sh
 conda activate fingerprint
 
 cd /projects/swglab/data/DMNELF/analysis/fingerprint/cyclic_transcoder
 
-python -c "import py_compile; py_compile.compile('data/extract_features.py')"
-
-python data/extract_features.py \
+python predict_pda.py \
     --subject "$SUBJECT" \
+    --task feedback \
     --config "$CONFIG"
 
 echo "Done: $SUBJECT"

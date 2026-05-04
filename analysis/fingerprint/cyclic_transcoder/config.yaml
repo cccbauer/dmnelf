@@ -28,18 +28,13 @@ data:
       - dmnelf1002
       - dmnelf1003
 
-    # fMRI + masks but NO EEG
+    # fMRI + masks but NO EEG — excluded from training
     no_eeg:
       - dmnelf002
       - dmnelf003
       - dmnelf999
 
-    # fMRI + EEG but NO masks yet — add when masks are ready
-    no_masks:
-      - dmnelf012
-      - dmnelf013
-
-    # Default list used by all scripts = paired only
+    # All subjects with complete EEG + fMRI + masks
     all:
       - dmnelf001
       - dmnelf004
@@ -50,6 +45,8 @@ data:
       - dmnelf009
       - dmnelf010
       - dmnelf011
+      - dmnelf012
+      - dmnelf013
       - dmnelf1001
       - dmnelf1002
       - dmnelf1003
@@ -58,8 +55,8 @@ data:
 
   tasks:
     train: [rest]           # 2 runs per subject (rest_run-01, rest_run-02)
-    validate: [shortrest]   # 1 run per subject
-    apply: [feedback]       # 4 runs per subject
+    validate: [rest]        # use rest for validation — shortrest only has 3 windows (too noisy)
+    apply: [feedback]       # 4 runs per subject — 125 vols fits 80-TR windows
 
   fmri:
     tr: 1.2
@@ -81,8 +78,11 @@ data:
 
   eeg:
     sfreq: 500.0
-    n_channels: 31
+    n_channels: 31          # 32 total minus ECG channel
+    eeg_channels_exclude:   # dropped before block-averaging
+      - ECG
     samples_per_tr: 600     # 500 Hz * 1.2 s
+    desc: preproc500Hz
     desc: preproc500Hz      # selects *_desc-preproc500Hz_eeg.fif
 
   masks:
@@ -93,8 +93,8 @@ data:
     cen_suffix: cen_mask.nii.gz
 
   windowing:
-    window_trs: 120         # 144 s
-    stride_trs: 10          # ~23 windows per 350-vol run
+    window_trs: 50          # 96 s — fits shortrest (100 vols) and feedback (125 vols)
+    stride_trs: 10          # ~22 windows per rest run, ~2 per shortrest
 
 model:
   latent_dim: 64
@@ -118,7 +118,7 @@ training:
     eeg_transcoder: 1.0
     fmri_transcoder: 1.0
   checkpoint_dir: checkpoints
-  early_stopping_patience: 50
+  early_stopping_patience: 100  # increased — val loss noisy with few windows
   val_interval: 5
 
 cross_validation:
@@ -128,6 +128,6 @@ slurm:
   partition: gpu
   gres: gpu:1
   mem: 32G
-  time: "24:00:00"
+  time: "08:00:00"
   cpus_per_task: 8
-  conda_env: microstate_pda
+  conda_env: fingerprint

@@ -1,11 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=cyclic_train
-#SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
-#SBATCH --array=0-16
+#SBATCH --account=suewhit
+#SBATCH --partition=short
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=24:00:00
+#SBATCH --array=0-13
 #SBATCH --output=logs/train_%A_%a.out
 #SBATCH --error=logs/train_%A_%a.err
 
@@ -14,10 +16,7 @@
 #   sbatch --dependency=afterok:<extract_jobid> slurm/train_job.sh
 
 SUBJECTS=(
-    dmnelf999
     dmnelf001
-    dmnelf002
-    dmnelf003
     dmnelf004
     dmnelf005
     dmnelf006
@@ -34,16 +33,16 @@ SUBJECTS=(
 )
 
 LEFT_OUT=${SUBJECTS[$SLURM_ARRAY_TASK_ID]}
-CONFIG=/work/gablab/dmnelf/analysis/fingerprint/cyclic_transcoder/config.yaml
+CONFIG=/projects/swglab/data/DMNELF/analysis/fingerprint/cyclic_transcoder/config.yaml
 
 echo "Training LOOCV, left-out: $LEFT_OUT"
 echo "GPU: $CUDA_VISIBLE_DEVICES"
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 
-source /home/$USER/.bashrc
-conda activate microstate_pda
+source /shared/EL9/explorer/anaconda3/2024.06-root/etc/profile.d/conda.sh
+conda activate fingerprint
 
-cd /work/gablab/dmnelf/analysis/fingerprint/cyclic_transcoder
+cd /projects/swglab/data/DMNELF/analysis/fingerprint/cyclic_transcoder
 
 mkdir -p logs
 
