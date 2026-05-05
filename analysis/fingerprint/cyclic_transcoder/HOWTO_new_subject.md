@@ -139,20 +139,23 @@ ssh cccbauer@explorer.northeastern.edu \
 
 ## Step 7 — Predict PDA on feedback runs
 
-Once training is complete, apply the model to predict PDA from EEG:
+Once training is complete, submit the prediction jobs to Explorer:
 
 ```bash
 ssh cccbauer@explorer.northeastern.edu \
-  'source /shared/EL9/explorer/anaconda3/2024.06-root/etc/profile.d/conda.sh && \
-   conda activate fingerprint && \
-   cd /projects/swglab/data/DMNELF/analysis/fingerprint/cyclic_transcoder && \
-   python predict_pda.py --subject dmnelfXXX --config config.yaml'
+  'cd /projects/swglab/data/DMNELF/analysis/fingerprint/cyclic_transcoder && \
+   sbatch predict_job.sh'
+```
+
+Monitor progress (~2h):
+```bash
+ssh cccbauer@explorer.northeastern.edu 'squeue -u cccbauer'
 ```
 
 Output saved to:
 ```
-/projects/swglab/data/DMNELF/derivatives/cyclic_features/sub-dmnelfXXX/predictions/
-  sub-dmnelfXXX_task-feedback_pda_prediction.npz
+/projects/swglab/data/DMNELF/derivatives/cyclic_features/sub-*/predictions/
+  sub-*_task-feedback_pda_prediction.npz
 ```
 
 ---
@@ -165,6 +168,7 @@ Output saved to:
 | Audit data | `bash scripts/deploy_and_run.sh --check` |
 | Extract features | `bash scripts/deploy_and_run.sh --extract` |
 | Train models | `bash scripts/deploy_and_run.sh --train` |
+| Predict PDA | `ssh cccbauer@explorer.northeastern.edu 'cd /projects/swglab/data/DMNELF/analysis/fingerprint/cyclic_transcoder && sbatch predict_job.sh'` |
 | Full pipeline | `bash scripts/deploy_and_run.sh --all` |
 | Monitor jobs | `ssh cccbauer@explorer.northeastern.edu 'squeue -u cccbauer'` |
 
