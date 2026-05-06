@@ -61,7 +61,7 @@ def load_prediction_npz(pred_path):
     
     # Use column slicing (matches evaluate_predictions.py load_predictions)
     # fmri_true shape is (n_parcels, n_timepoints), e.g., (50, 528)
-    # dmn_idx and cen_idx index into columns
+    # dmn_idx and cen_idx index into columns (timepoints)
     dmn_col = fmri_true[:, dmn_idx:dmn_idx+1].mean(axis=1)
     cen_col = fmri_true[:, cen_idx:cen_idx+1].mean(axis=1)
     pda_true = cen_col - dmn_col  # This gives r=-0.5320
