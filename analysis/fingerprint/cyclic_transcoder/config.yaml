@@ -6,7 +6,7 @@ data:
   bids_root: /projects/swglab/data/DMNELF
   fmriprep_dir: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
   eeg_preproc_dir: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
-  features_dir: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  features_dir: /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_local
   personal_masks_dir: /projects/swglab/data/DMNELF/derivatives/network_masks
   difumo_cache_dir: /projects/swglab/data/DMNELF/derivatives/difumo_atlas
 
