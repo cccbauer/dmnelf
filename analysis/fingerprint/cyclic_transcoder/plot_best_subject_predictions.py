@@ -100,20 +100,20 @@ def plot_timeseries(pda_true, pda_pred, subject, save_path=None):
     # Time axis (in seconds, assuming 1.2 s TR)
     tr = 1.2  # seconds
     time_sec = np.arange(len(pda_true)) * tr
-    time_min = time_sec / 60.0
     
     # ─────────────────────────────────────────────────────────────────────────
     # Panel 1: Full timeseries overlay
     # ─────────────────────────────────────────────────────────────────────────
     ax1 = fig.add_subplot(gs[0])
-    ax1.plot(time_min, pda_true, 'b-', linewidth=2, alpha=0.8, label='True PDA (from fMRI)')
-    ax1.plot(time_min, pda_pred, 'r--', linewidth=2, alpha=0.7, label='Predicted PDA (from EEG)')
+    ax1.plot(time_sec, pda_true, 'b-', linewidth=2, alpha=0.8, label='True PDA (from fMRI)')
+    ax1.plot(time_sec, pda_pred, 'r--', linewidth=2, alpha=0.7, label='Predicted PDA (from EEG)')
     ax1.set_ylabel('PDA (CEN - DMN)', fontsize=12, fontweight='bold')
     ax1.set_title(f'{subject} — True vs Predicted PDA\nPearson r = {r:.4f} (p = {p:.3e})', 
                   fontsize=14, fontweight='bold')
     ax1.legend(loc='upper right', fontsize=11)
     ax1.grid(True, alpha=0.3)
-    ax1.set_xlim(time_min[0], time_min[-1])
+    ax1.set_xlim(time_sec[0], time_sec[-1])
+    ax1.set_xlabel('Time (seconds)', fontsize=12, fontweight='bold')
     
     # ─────────────────────────────────────────────────────────────────────────
     # Panel 2: Prediction error
@@ -123,12 +123,13 @@ def plot_timeseries(pda_true, pda_pred, subject, save_path=None):
     mae = np.mean(np.abs(error))
     rmse = np.sqrt(np.mean(error ** 2))
     
-    ax2.fill_between(time_min, error, alpha=0.5, color='purple', label='Prediction Error')
+    ax2.fill_between(time_sec, error, alpha=0.5, color='purple', label='Prediction Error')
     ax2.axhline(0, color='black', linestyle='-', linewidth=1)
+    ax2.set_xlabel('Time (seconds)', fontsize=11, fontweight='bold')
     ax2.set_ylabel('Error (Pred - True)', fontsize=11, fontweight='bold')
     ax2.set_title(f'Prediction Error | MAE = {mae:.4f}, RMSE = {rmse:.4f}', fontsize=11)
     ax2.grid(True, alpha=0.3)
-    ax2.set_xlim(time_min[0], time_min[-1])
+    ax2.set_xlim(time_sec[0], time_sec[-1])
     
     # ─────────────────────────────────────────────────────────────────────────
     # Panel 3: Scatter plot (prediction vs true)
@@ -159,7 +160,7 @@ def plot_timeseries(pda_true, pda_pred, subject, save_path=None):
     # ─────────────────────────────────────────────────────────────────────────
     summary_text = (
         f"Subject: {subject}\n"
-        f"Duration: {time_min[-1]:.1f} min ({len(pda_true)} TRs × {tr}s)\n"
+        f"Duration: {time_sec[-1]:.1f} sec ({len(pda_true)} TRs × {tr}s)\n"
         f"Pearson r: {r:.4f}\n"
         f"R²: {1 - np.sum((pda_true - pda_pred)**2) / np.sum((pda_true - np.mean(pda_true))**2):.4f}\n"
         f"MAE: {mae:.4f}\n"
