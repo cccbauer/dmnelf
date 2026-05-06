@@ -7,6 +7,7 @@
 #   bash evaluate_locally.sh
 #   bash evaluate_locally.sh --plot       # include plots
 #   bash evaluate_locally.sh --force      # re-download
+#   bash evaluate_locally.sh --result-tag smooth_w11
 
 set -e
 
@@ -18,11 +19,36 @@ EVAL_SCRIPT="$SCRIPT_DIR/evaluate_predictions.py"
 
 PLOT=false
 FORCE=false
+SMOOTH_WINDOW=1
+SMOOTH_BOTH=false
+RESULT_TAG=""
 
-for arg in "$@"; do
-    case $arg in
-        --plot)   PLOT=true ;;
-        --force)  FORCE=true ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --plot)
+            PLOT=true
+            shift
+            ;;
+        --force)
+            FORCE=true
+            shift
+            ;;
+        --smooth-window)
+            SMOOTH_WINDOW="$2"
+            shift 2
+            ;;
+        --smooth-both)
+            SMOOTH_BOTH=true
+            shift
+            ;;
+        --result-tag)
+            RESULT_TAG="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            exit 1
+            ;;
     esac
 done
 
@@ -60,6 +86,15 @@ EVAL_ARGS="--config $TEMP_CONFIG"
 if [ "$PLOT" = "true" ]; then
     EVAL_ARGS="$EVAL_ARGS --plot"
 fi
+if [ "$SMOOTH_WINDOW" != "1" ]; then
+    EVAL_ARGS="$EVAL_ARGS --smooth-window $SMOOTH_WINDOW"
+fi
+if [ "$SMOOTH_BOTH" = "true" ]; then
+    EVAL_ARGS="$EVAL_ARGS --smooth-both"
+fi
+if [ -n "$RESULT_TAG" ]; then
+    EVAL_ARGS="$EVAL_ARGS --result-tag $RESULT_TAG"
+fi
 
 python "$EVAL_SCRIPT" $EVAL_ARGS
 
@@ -71,8 +106,16 @@ echo "════════════════════════�
 echo "✓ EVALUATION COMPLETE"
 echo ""
 echo "Results:"
-echo "  CSV: $(find $SCRIPT_DIR -name 'evaluation_results.csv' -type f)"
+if [ -n "$RESULT_TAG" ]; then
+    echo "  CSV: $SCRIPT_DIR/evaluation_results_${RESULT_TAG}.csv"
+else
+    echo "  CSV: $SCRIPT_DIR/evaluation_results.csv"
+fi
 if [ "$PLOT" = "true" ]; then
-    echo "  Plots: $SCRIPT_DIR/evaluation_plots/"
+    if [ -n "$RESULT_TAG" ]; then
+        echo "  Plots: $SCRIPT_DIR/evaluation_plots_${RESULT_TAG}/"
+    else
+        echo "  Plots: $SCRIPT_DIR/evaluation_plots/"
+    fi
 fi
 echo ""

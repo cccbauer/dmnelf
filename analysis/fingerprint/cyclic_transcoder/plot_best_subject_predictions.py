@@ -27,6 +27,22 @@ except ImportError:
     pass
 
 
+def moving_average(x, window):
+    """Centered moving-average with edge padding (reflects at edges)."""
+    if window <= 1 or len(x) < window:
+        return x
+    
+    # Pad edges by reflecting
+    pad_size = window // 2
+    x_padded = np.pad(x, (pad_size, pad_size), mode='reflect')
+    
+    # Apply centered moving average
+    kernel = np.ones(window) / window
+    x_smoothed = np.convolve(x_padded, kernel, mode='valid')
+    
+    return x_smoothed
+
+
 def load_config(path="config.yaml"):
     """Load YAML config."""
     with open(path) as f:
@@ -189,6 +205,10 @@ def main():
     parser.add_argument('--config', type=str, default='config.yaml',
                        help='Path to config.yaml for loading ground truth PDA')
     parser.add_argument('--save', action='store_true', help='Save plot to auto-named file in results/')
+    parser.add_argument('--result-tag', type=str, default='',
+                       help='Tag to append to result filenames (e.g., smooth_w11)')
+    parser.add_argument('--smooth-window', type=int, default=1,
+                       help='Moving average window size for smoothing (default: 1 = no smoothing)')
     args = parser.parse_args()
     
     # Load config
@@ -234,12 +254,21 @@ def main():
     
     print()
     
+    # Apply smoothing if requested
+    if args.smooth_window > 1:
+        pda_true = moving_average(pda_true, args.smooth_window)
+        pda_pred = moving_average(pda_pred, args.smooth_window)
+        print(f"✓ Applied moving-average smoothing (window={args.smooth_window})")
+        print()
+    
     # Auto-generate save path if requested
     save_path = None
     if args.save:
         save_dir = Path(args.prediction_dir)
         save_dir.mkdir(parents=True, exist_ok=True)
-        save_path = save_dir / f"{args.subject}_pda_comparison.png"
+        # Apply result-tag suffix if provided
+        suffix = f"_{args.result_tag}" if args.result_tag else ""
+        save_path = save_dir / f"{args.subject}_pda_comparison{suffix}.png"
     
     # Create plot
     fig, (r, p, mae, rmse) = plot_timeseries(

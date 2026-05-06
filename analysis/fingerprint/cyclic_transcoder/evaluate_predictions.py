@@ -54,7 +54,19 @@ def load_predictions(pred_path):
     }
 
 
-def compute_metrics(pda_pred, pda_true):
+def moving_average(x, window):
+    """Centered moving-average smoothing with edge padding."""
+    if window <= 1:
+        return x
+
+    kernel = np.ones(window, dtype=float) / float(window)
+    pad_left = window // 2
+    pad_right = window - 1 - pad_left
+    x_padded = np.pad(x, (pad_left, pad_right), mode="edge")
+    return np.convolve(x_padded, kernel, mode="valid")
+
+
+def compute_metrics(pda_pred, pda_true, smooth_window=1, smooth_both=False):
     """Compute evaluation metrics."""
     if pda_true is None or len(pda_pred) == 0:
         return None
@@ -63,6 +75,11 @@ def compute_metrics(pda_pred, pda_true):
     min_len = min(len(pda_pred), len(pda_true))
     pda_pred = pda_pred[:min_len]
     pda_true = pda_true[:min_len]
+
+    if smooth_window > 1:
+        pda_pred = moving_average(pda_pred, smooth_window)
+        if smooth_both:
+            pda_true = moving_average(pda_true, smooth_window)
     
     metrics = {}
     
@@ -83,7 +100,11 @@ def compute_metrics(pda_pred, pda_true):
     metrics["mae"] = mae
     
     # Normalize to [-1, 1] for ROC AUC
-    pda_pred_norm = (pda_pred - pda_pred.min()) / (pda_pred.max() - pda_pred.min())
+    pred_range = pda_pred.max() - pda_pred.min()
+    if pred_range == 0:
+        pda_pred_norm = np.zeros_like(pda_pred)
+    else:
+        pda_pred_norm = (pda_pred - pda_pred.min()) / pred_range
     pda_true_binary = (pda_true > np.median(pda_true)).astype(int)
     
     try:
@@ -101,7 +122,7 @@ def compute_metrics(pda_pred, pda_true):
     return metrics
 
 
-def evaluate_all_predictions(cfg):
+def evaluate_all_predictions(cfg, smooth_window=1, smooth_both=False, result_tag=""):
     """Evaluate all prediction files."""
     pred_base = Path(cfg["data"]["features_dir"])
     
@@ -133,7 +154,12 @@ def evaluate_all_predictions(cfg):
             else:
                 pda_true = pred_data["pda_true"]
             
-            metrics = compute_metrics(pred_data["pda_pred"], pda_true)
+            metrics = compute_metrics(
+                pred_data["pda_pred"],
+                pda_true,
+                smooth_window=smooth_window,
+                smooth_both=smooth_both,
+            )
             
             if metrics:
                 metrics_by_subject[subject] = metrics
@@ -183,7 +209,10 @@ def evaluate_all_predictions(cfg):
         try:
             import pandas as pd
             results_df = pd.DataFrame(results)
-            csv_path = Path(cfg["project"]["base_dir"]) / "evaluation_results.csv"
+            csv_name = "evaluation_results.csv"
+            if result_tag:
+                csv_name = f"evaluation_results_{result_tag}.csv"
+            csv_path = Path(cfg["project"]["base_dir"]) / csv_name
             results_df.to_csv(csv_path, index=False)
             print(f"\nResults saved to: {csv_path}")
         except ImportError:
@@ -192,7 +221,7 @@ def evaluate_all_predictions(cfg):
     return results, metrics_by_subject
 
 
-def plot_results(cfg, results, metrics_by_subject):
+def plot_results(cfg, results, metrics_by_subject, result_tag=""):
     """Generate evaluation plots."""
     try:
         import matplotlib.pyplot as plt
@@ -207,7 +236,10 @@ def plot_results(cfg, results, metrics_by_subject):
     pred_base = Path(cfg["data"]["features_dir"])
     
     # Create output directory
-    plot_dir = Path(cfg["project"]["base_dir"]) / "evaluation_plots"
+    plot_dir_name = "evaluation_plots"
+    if result_tag:
+        plot_dir_name = f"evaluation_plots_{result_tag}"
+    plot_dir = Path(cfg["project"]["base_dir"]) / plot_dir_name
     plot_dir.mkdir(parents=True, exist_ok=True)
     
     # 1. Correlation distribution
@@ -271,14 +303,39 @@ def main():
     parser.add_argument("--config", default="config.yaml", help="Config file")
     parser.add_argument("--plot", action="store_true", help="Generate plots")
     parser.add_argument("--subject", type=str, default=None, help="Evaluate single subject")
+    parser.add_argument(
+        "--smooth-window",
+        type=int,
+        default=1,
+        help="Centered moving-average window for PDA smoothing (1 = disabled)",
+    )
+    parser.add_argument(
+        "--smooth-both",
+        action="store_true",
+        help="Apply smoothing to both predicted and true PDA before metric calculation",
+    )
+    parser.add_argument(
+        "--result-tag",
+        type=str,
+        default="",
+        help="Optional suffix tag for output artifact names (e.g. smooth_w11)",
+    )
     args = parser.parse_args()
+
+    if args.smooth_window < 1:
+        raise ValueError("--smooth-window must be >= 1")
     
     cfg = load_config(args.config)
     
-    results, metrics_by_subject = evaluate_all_predictions(cfg)
+    results, metrics_by_subject = evaluate_all_predictions(
+        cfg,
+        smooth_window=args.smooth_window,
+        smooth_both=args.smooth_both,
+        result_tag=args.result_tag,
+    )
     
     if args.plot:
-        plot_results(cfg, results, metrics_by_subject)
+        plot_results(cfg, results, metrics_by_subject, result_tag=args.result_tag)
     
     print("\n" + "="*80)
     print("EVALUATION COMPLETE")

@@ -238,7 +238,7 @@ def print_summary(df, detailed=False):
     print(f"Consistency: {consistency}")
 
 
-def visualize_results(df, output_dir=None):
+def visualize_results(df, output_dir=None, result_tag=""):
     """Generate visualization plots."""
     try:
         import matplotlib.pyplot as plt
@@ -274,7 +274,10 @@ def visualize_results(df, output_dir=None):
     ax.grid(axis='x', alpha=0.3)
     
     plt.tight_layout()
-    plot_path = output_dir / 'summary_correlations.png'
+    plot_name = 'summary_correlations.png'
+    if result_tag:
+        plot_name = f'summary_correlations_{result_tag}.png'
+    plot_path = output_dir / plot_name
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     print(f"\n✓ Plot saved: {plot_path}")
     plt.close()
@@ -286,13 +289,14 @@ def main():
     parser.add_argument('--detailed', action='store_true', help='Show detailed stats')
     parser.add_argument('--visualize', action='store_true', help='Generate plots')
     parser.add_argument('--output-dir', type=str, default='results', help='Output directory for plots (default: results/)')
+    parser.add_argument('--result-tag', type=str, default='', help='Optional suffix tag for output artifact names')
     args = parser.parse_args()
     
     df = load_results(args.csv)
     print_summary(df, detailed=args.detailed)
     
     if args.visualize:
-        visualize_results(df, output_dir=args.output_dir)
+        visualize_results(df, output_dir=args.output_dir, result_tag=args.result_tag)
     
     print("\n" + "="*80)
 

@@ -26,6 +26,22 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+def moving_average(x, window):
+    """Centered moving-average with edge padding (reflects at edges)."""
+    if window <= 1 or len(x) < window:
+        return x
+    
+    # Pad edges by reflecting
+    pad_size = window // 2
+    x_padded = np.pad(x, (pad_size, pad_size), mode='reflect')
+    
+    # Apply centered moving average
+    kernel = np.ones(window) / window
+    x_smoothed = np.convolve(x_padded, kernel, mode='valid')
+    
+    return x_smoothed
+
+
 def load_prediction_npz(pred_path):
     """
     Load prediction NPZ. Note: ground truth PDA computation limited.
@@ -221,6 +237,10 @@ def main():
                        help='Path to config file')
     parser.add_argument('--save', action='store_true',
                        help='Save plots and data to disk')
+    parser.add_argument('--result-tag', type=str, default='',
+                       help='Tag to append to result filenames (e.g., smooth_w11)')
+    parser.add_argument('--smooth-window', type=int, default=1,
+                       help='Moving average window size for smoothing (default: 1 = no smoothing)')
     
     args = parser.parse_args()
     

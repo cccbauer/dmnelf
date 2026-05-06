@@ -20,11 +20,36 @@ CONFIG_FILE="config.yaml"
 
 PLOT=false
 DOWNLOAD=false
+SMOOTH_WINDOW=1
+SMOOTH_BOTH=false
+RESULT_TAG=""
 
-for arg in "$@"; do
-    case $arg in
-        --plot)     PLOT=true ;;
-        --download) DOWNLOAD=true ;;
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --plot)
+            PLOT=true
+            shift
+            ;;
+        --download)
+            DOWNLOAD=true
+            shift
+            ;;
+        --smooth-window)
+            SMOOTH_WINDOW="$2"
+            shift 2
+            ;;
+        --smooth-both)
+            SMOOTH_BOTH=true
+            shift
+            ;;
+        --result-tag)
+            RESULT_TAG="$2"
+            shift 2
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            exit 1
+            ;;
     esac
 done
 
@@ -49,6 +74,15 @@ EVAL_ARGS="--config $CONFIG_FILE"
 if [ "$PLOT" = "true" ]; then
     EVAL_ARGS="$EVAL_ARGS --plot"
 fi
+if [ "$SMOOTH_WINDOW" != "1" ]; then
+    EVAL_ARGS="$EVAL_ARGS --smooth-window $SMOOTH_WINDOW"
+fi
+if [ "$SMOOTH_BOTH" = "true" ]; then
+    EVAL_ARGS="$EVAL_ARGS --smooth-both"
+fi
+if [ -n "$RESULT_TAG" ]; then
+    EVAL_ARGS="$EVAL_ARGS --result-tag $RESULT_TAG"
+fi
 
 ssh "$EXPLORER" << EOF
 source /shared/EL9/explorer/anaconda3/2024.06-root/etc/profile.d/conda.sh
@@ -67,15 +101,22 @@ mkdir -p "$RESULTS_DIR"
 if [ "$DOWNLOAD" = "true" ]; then
     echo ""
     echo "[3/3] Downloading results..."
+
+    RESULTS_FILE="evaluation_results.csv"
+    PLOTS_DIR="evaluation_plots"
+    if [ -n "$RESULT_TAG" ]; then
+        RESULTS_FILE="evaluation_results_${RESULT_TAG}.csv"
+        PLOTS_DIR="evaluation_plots_${RESULT_TAG}"
+    fi
     
     # Download results CSV
-    scp "$EXPLORER:$REMOTE_BASE/evaluation_results.csv" "$RESULTS_DIR/" 2>/dev/null && \
-        echo "  ✓ evaluation_results.csv downloaded" || echo "  [skip] evaluation_results.csv not found"
+    scp "$EXPLORER:$REMOTE_BASE/$RESULTS_FILE" "$RESULTS_DIR/" 2>/dev/null && \
+        echo "  ✓ $RESULTS_FILE downloaded" || echo "  [skip] $RESULTS_FILE not found"
     
     # Download plots if they exist
     if [ "$PLOT" = "true" ]; then
-        scp -r "$EXPLORER:$REMOTE_BASE/evaluation_plots" "$RESULTS_DIR/" 2>/dev/null && \
-            echo "  ✓ evaluation_plots/ downloaded" || echo "  [skip] evaluation_plots/ not found"
+        scp -r "$EXPLORER:$REMOTE_BASE/$PLOTS_DIR" "$RESULTS_DIR/" 2>/dev/null && \
+            echo "  ✓ $PLOTS_DIR/ downloaded" || echo "  [skip] $PLOTS_DIR/ not found"
     fi
     
     echo ""
@@ -91,16 +132,30 @@ echo "✓ COMPLETE"
 echo ""
 echo "Results:"
 if [ "$DOWNLOAD" = "true" ]; then
+    RESULTS_FILE="evaluation_results.csv"
+    PLOTS_DIR="evaluation_plots"
+    if [ -n "$RESULT_TAG" ]; then
+        RESULTS_FILE="evaluation_results_${RESULT_TAG}.csv"
+        PLOTS_DIR="evaluation_plots_${RESULT_TAG}"
+    fi
+
     echo "  Location: $RESULTS_DIR/"
-    echo "  CSV: $RESULTS_DIR/evaluation_results.csv"
+    echo "  CSV: $RESULTS_DIR/$RESULTS_FILE"
     if [ "$PLOT" = "true" ]; then
-        echo "  Plots: $RESULTS_DIR/evaluation_plots/"
+        echo "  Plots: $RESULTS_DIR/$PLOTS_DIR/"
     fi
 else
+    RESULTS_FILE="evaluation_results.csv"
+    PLOTS_DIR="evaluation_plots"
+    if [ -n "$RESULT_TAG" ]; then
+        RESULTS_FILE="evaluation_results_${RESULT_TAG}.csv"
+        PLOTS_DIR="evaluation_plots_${RESULT_TAG}"
+    fi
+
     echo "  Remote: $REMOTE_BASE/"
-    echo "  CSV: $REMOTE_BASE/evaluation_results.csv"
+    echo "  CSV: $REMOTE_BASE/$RESULTS_FILE"
     if [ "$PLOT" = "true" ]; then
-        echo "  Plots: $REMOTE_BASE/evaluation_plots/"
+        echo "  Plots: $REMOTE_BASE/$PLOTS_DIR/"
     fi
     echo ""
     echo "To download results:"
