@@ -20,7 +20,7 @@ Replace `YOUR_USERNAME` and `CLUSTER_HOST` in the commands below, then copy and 
 ### Full Dataset (All Subjects - ~1 GB)
 ```bash
 # Download all prediction files with full 66-feature data
-scp -r YOUR_USERNAME@CLUSTER_HOST:/projects/swglab/data/DMNELF/derivatives/cyclic_features/sub-*/predictions/ \
+scp -r cccbauer@explorer.northeastern.edu:/projects/swglab/data/DMNELF/derivatives/cyclic_features/sub-*/predictions/ \
     /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_full/
 
 # Verify download
