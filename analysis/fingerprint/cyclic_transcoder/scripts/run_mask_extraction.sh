@@ -39,11 +39,14 @@ sbatch \\
   --error=$LOG_DIR/mask_ext_${SUBJECT}_%j.err \\
   --wrap="
     source /shared/EL9/explorer/anaconda3/2024.06-root/etc/profile.d/conda.sh
-    conda activate fingerprint
-    echo 'Python: '\$(which python)
-    echo 'Conda env: '\$CONDA_DEFAULT_ENV
+    conda activate pineuro
+    # NOTE: this --wrap string is double-quoted, so any \$VAR is expanded by the
+    # login shell at submit time, not at job runtime. FSL also prepends its own
+    # python to PATH. So we call the pineuro env python by absolute literal path
+    # (no variable) to guarantee the right interpreter is used.
+    echo 'Python: /home/cccbauer/.conda/envs/pineuro/bin/python'
     cd $REMOTE_DIR
-    python mask_extraction.py --subject $SUBJECT --config config.yaml $OVERWRITE
+    /home/cccbauer/.conda/envs/pineuro/bin/python mask_extraction.py --subject $SUBJECT --config config.yaml $OVERWRITE
   "
 EOF
 

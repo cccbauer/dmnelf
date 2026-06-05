@@ -34,7 +34,19 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 def load_config(path):
     with open(path) as f:
-        return yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
+    _resolve_features_dir(cfg)
+    return cfg
+
+
+def _resolve_features_dir(cfg):
+    # Machine-aware features_dir: cluster + compute nodes have /projects/swglab,
+    # the Mac does not. Lets one committed config work on both machines.
+    d = cfg.get("data", {})
+    if "features_dir_cluster" in d and "features_dir_local" in d:
+        d["features_dir"] = (d["features_dir_cluster"]
+                             if Path("/projects/swglab").exists()
+                             else d["features_dir_local"])
 
 
 def subject_list(cfg):

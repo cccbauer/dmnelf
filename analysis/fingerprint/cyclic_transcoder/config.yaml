@@ -6,7 +6,11 @@ data:
   bids_root: /projects/swglab/data/DMNELF
   fmriprep_dir: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
   eeg_preproc_dir: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
-  features_dir: /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_local
+  # Machine-aware: load_config() picks _cluster when /projects/swglab exists
+  # (Explorer + compute nodes), otherwise _local (Mac). Keeps one committed
+  # config working on both, and rsync no longer clobbers the cluster path.
+  features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  features_dir_local: /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_local
   personal_masks_dir: /projects/swglab/data/DMNELF/derivatives/network_masks
   difumo_cache_dir: /projects/swglab/data/DMNELF/derivatives/difumo_atlas
 
@@ -47,6 +51,8 @@ data:
       - dmnelf011
       - dmnelf012
       - dmnelf013
+      - dmnelf014
+      - dmnelf015
       - dmnelf1001
       - dmnelf1002
       - dmnelf1003
