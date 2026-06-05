@@ -87,45 +87,56 @@ def get_bids_filename(subject: str, task: str, run: Optional[str] = None,
     return "_".join(parts)
 
 
-def organize_eeg_files(source_dir: Path, target_dir: Path, 
-                       dry_run: bool = True, verbose: bool = True) -> Dict:
+def organize_eeg_files(source_dir: Path, target_dir: Path,
+                       dry_run: bool = True, verbose: bool = True,
+                       subjects: Optional[list] = None) -> Dict:
     """
     Organize EEG files from source to target BIDS structure.
-    
+
+    Parameters:
+        subjects: optional list of subject IDs (e.g. ['sub-dmnelf014']) to
+                  restrict processing to. If None, all parseable files are used.
+
     Returns:
         Dictionary with counts: {'moved': N, 'failed': N, 'skipped': N}
     """
-    
+
     source_dir = Path(source_dir)
     target_dir = Path(target_dir)
-    
+
     if not source_dir.exists():
         raise FileNotFoundError(f"Source directory not found: {source_dir}")
-    
+
     results = {'moved': 0, 'failed': 0, 'skipped': 0, 'files': []}
-    
+
     # Find all EDF files
     edf_files = list(source_dir.glob("*Segment 1.edf")) + list(source_dir.glob("*.edf"))
     edf_files = list(set(edf_files))  # Remove duplicates
-    
+
     print(f"\nFound {len(edf_files)} EDF files to organize\n")
+    if subjects:
+        print(f"Restricting to subjects: {', '.join(subjects)}\n")
     print("=" * 80)
-    
+
     for source_file in sorted(edf_files):
         filename = source_file.name
-        
+
         # Parse filename
         parsed = parse_bv_filename(filename)
-        
+
         if parsed is None:
             print(f"⚠ SKIPPED (couldn't parse): {filename}")
             results['skipped'] += 1
             continue
-        
+
         subject = parsed['subject']
         task = parsed['task']
         run = parsed['run']
-        
+
+        if subjects and subject not in subjects:
+            results['skipped'] += 1
+            continue
+
         if task is None:
             print(f"⚠ SKIPPED (no task): {filename}")
             results['skipped'] += 1
@@ -210,6 +221,13 @@ if __name__ == "__main__":
         help="Actually move/copy files (disables dry-run)"
     )
     parser.add_argument(
+        "--subject",
+        type=str,
+        nargs="+",
+        default=None,
+        help="Restrict to one or more subject IDs (e.g. sub-dmnelf014 sub-dmnelf015)"
+    )
+    parser.add_argument(
         "--quiet",
         action="store_true",
         help="Suppress verbose output"
@@ -233,7 +251,8 @@ if __name__ == "__main__":
             Path(args.source),
             Path(args.target),
             dry_run=dry_run,
-            verbose=not args.quiet
+            verbose=not args.quiet,
+            subjects=args.subject,
         )
         
         if dry_run:

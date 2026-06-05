@@ -164,15 +164,21 @@ python 05_evaluate_decoder.py
 
 ## When New Subjects Are Added
 
-1. Run `data_available.sh` to identify what's missing
-2. Rerun fMRIPrep for incomplete subjects
-3. Rerun `00_extract_difumo.py` — skips already-processed files
-4. Update `SUBJECTS` in `config.py`
-5. Rerun `01_fit_microstates.py` with expanded subject list
-6. Rerun `02_tess_features.py` — skips already-processed files
-7. Rerun `03_compute_pda.py` — skips already-processed files
-8. Rerun `04_train_decoder.py`
-9. Rerun `05_evaluate_decoder.py`
+1. Update `SUBJECTS` in **both** `mne_eeg_preprocessing/config.py` and
+   `fmri_preprocessing/config.py`
+2. **Organize raw EEG** — copy/rename the BVA export into `rawdata_eeg`
+   (see *Step 0a2* below). EEG preprocessing fails with `MISSING EDF`
+   if this is skipped.
+3. Run `data_available.sh` to identify what fMRI is missing
+4. Rerun fMRIPrep for incomplete subjects
+5. Deploy EEG preprocessing: `python eeg_preproc_deploy.py --subject sub-dmnelfNNN`
+6. Deploy fMRI pipeline: `python fmri_preproc_deploy.py --all`
+7. Rerun `00_extract_difumo.py` — skips already-processed files
+8. Rerun `01_fit_microstates.py` with expanded subject list
+9. Rerun `02_tess_features.py` — skips already-processed files
+10. Rerun `03_compute_pda.py` — skips already-processed files
+11. Rerun `04_train_decoder.py`
+12. Rerun `05_evaluate_decoder.py`
 
 ---
 
@@ -274,6 +280,7 @@ Cluster environments:
 Full pipeline run order
 
   0a  BVA preprocessing          (manual, done once per subject)
+  0a2 Organize raw EEG           python organize_raw_eeg.py (BVA export → rawdata_eeg)
   0b  EEG full preprocessing     python eeg_preproc_deploy.py
   0c  DiFuMo extraction          python 00_extract_difumo.py
   0d  Personalized masks         python 00b_extract_personal_masks.py
@@ -283,6 +290,43 @@ Full pipeline run order
   3   Compute PDA                python 03_compute_pda.py
   4   Train decoder              python 04_train_decoder.py
   5   Evaluate decoder           python 05_evaluate_decoder.py
+
+
+Step 0a2 — Organize raw EEG (BVA export → rawdata_eeg)
+
+  The BrainVision Analyzer export lands in sourcedata with names like
+    sub-dmnelf014_task_rest-run01_Segment 1.edf
+  but eeg_preproc.py reads from rawdata_eeg expecting BIDS names:
+    sub-dmnelf014/ses-dmnelf/eeg/sub-dmnelf014_ses-dmnelf_task-rest_run-01_desc-bvaAC1kHz_eeg.edf
+  If this step is skipped, the EEG deploy reports "MISSING EDF" and OK=0.
+
+  organize_raw_eeg.py copies + renames the EDFs. It runs on the cluster
+  (paths are absolute cluster paths), so deploy it first, then run there.
+
+  Source: /projects/swglab/data/DMNELF/sourcedata/eeg_data/eeg_preprocessed/
+  Target: /projects/swglab/data/DMNELF/rawdata_eeg/
+
+  # 1. Deploy the script to the cluster
+  scp organize_raw_eeg.py \
+    cccbauer@explorer.northeastern.edu:/projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3/scripts/
+
+  # 2. Dry-run first (default; previews the mapping, copies nothing)
+  ssh cccbauer@explorer.northeastern.edu 'bash -l -c "
+    /home/cccbauer/.conda/envs/eeg_preproc/bin/python \
+    /projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3/scripts/organize_raw_eeg.py \
+    --subject sub-dmnelf014 sub-dmnelf015"'
+
+  # 3. Copy for real with --move (omit --subject to process every subject in sourcedata)
+  ssh cccbauer@explorer.northeastern.edu 'bash -l -c "
+    /home/cccbauer/.conda/envs/eeg_preproc/bin/python \
+    /projects/swglab/data/DMNELF/analysis/MNE/jupyter/microstate_pda_v3/scripts/organize_raw_eeg.py \
+    --subject sub-dmnelf014 sub-dmnelf015 --move"'
+
+  Notes:
+    - --subject takes one or more IDs; without it, all parseable EDFs are copied.
+    - experiencesampling runs are copied too but ignored by the pipeline
+      (only rest 01/02, shortrest 01, feedback 01-04 are used = 7 runs/subject).
+    - Files are copied (shutil.copy2), so sourcedata is preserved.
 
 
 Step 0b — EEG preprocessing (250Hz and 500Hz run in parallel)

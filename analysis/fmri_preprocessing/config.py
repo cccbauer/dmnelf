@@ -46,10 +46,11 @@ MODELS_DIR  = LOCAL_BASE / "models"
 RESULTS_DIR = LOCAL_BASE / "results"
 
 # ── Subjects ───────────────────────────────────────────────
-# Deployment limited to sub-dmnelf012 and sub-dmnelf013
 SUBJECTS = [
     "sub-dmnelf012",
     "sub-dmnelf013",
+    "sub-dmnelf014",
+    "sub-dmnelf015",
 ]
 
 # Runs with no raw data (never acquired) — excluded from pipeline
