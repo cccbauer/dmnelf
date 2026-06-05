@@ -84,7 +84,7 @@ https://doi.org/10.1006/nimg.2000.0599
 
 **Two parallel pipelines:**
 - **Version 1:** 250 Hz resampling (higher signal quality, lower computational cost)
-- **Version 2:** 500 Hz resampling (better temporal resolution for microstate dynamics)
+- **Version 2:** 500 Hz resampling (higher temporal precision for TR-level EEG aggregation)
 
 #### Substep 1: Load Data and Identify ECG Channel
 
@@ -157,7 +157,7 @@ The ECG channel is automatically identified by checking channel names for patter
 
 **Zero-phase processing:**
 - Apply filter forward, then backward to cancel phase distortion
-- Prevents temporal smearing of microstate transitions (critical for TESS features)
+- Preserves temporal alignment for run-level EEG-to-fMRI mapping
 
 #### Substep 6: Ballistocardiogram (BCG) Correction via ECG Epochs
 
@@ -199,7 +199,7 @@ https://doi.org/10.1016/j.neuroimage.2008.06.032
 
 **Rationale:**
 - 250 Hz sufficient for EEG analysis (Nyquist for ~100 Hz signals)
-- 500 Hz preserves higher-frequency dynamics for microstate analysis
+- 500 Hz preserves higher temporal precision before TR block-averaging
 - Lower rate reduces storage (0.5–1 GB → 125–250 MB per run) and computation
 
 **With TR=1.2s:**
@@ -453,8 +453,12 @@ CEN_personal(t) = sum(cen_weights[p] × DiFuMo_parcel[p, t] for all p)
 ```
 
 **Output:** Two additional columns appended to DiFuMo TSV:
-- Column 67: DMN_personal
-- Column 68: CEN_personal
+- Full TSV indexing (including metadata columns `volume`, `time`):
+   - Column 67: DMN_personal
+   - Column 68: CEN_personal
+- Signal-only indexing (excluding `volume`, `time`):
+   - Feature 65: DMN_personal
+   - Feature 66: CEN_personal
 
 **Design rationale:**
 - Option C (64 parcels + 2 composites) chosen because:
@@ -464,143 +468,30 @@ CEN_personal(t) = sum(cen_weights[p] × DiFuMo_parcel[p, t] for all p)
 
 ---
 
-## STAGE 2: MICROSTATE ANALYSIS FROM EEG
+## STAGE 2: EEG FEATURE EXTRACTION (DIRECT TR BLOCKS)
 
-### Step 1: Microstate Map Fitting
+### Step 1: TR-Aligned EEG Block Features
 
-**Objective:** Learn 7 canonical EEG scalp topographies from resting-state data across all subjects.
+**Objective:** Convert continuous preprocessed EEG to run-aligned, TR-level features for direct decoding.
 
-**Why microstates?**
+**Method:**
+1. Load preprocessed 500 Hz EEG FIF for each run.
+2. Remove non-EEG channels and keep 31 EEG channels.
+3. Compute samples per TR:
+   - TR = 1.2 s
+   - sfreq = 500 Hz
+   - samples_per_tr = 600
+4. Reshape EEG into blocks per fMRI volume and average within each block.
+5. Z-score each channel across TR blocks for that run.
 
-EEG scalp topography changes on a ~100 ms timescale. Rather than analyzing every waveform, we identify a set of recurring "microstate" maps representing different spatially coherent configurations. These microstates reflect distinct neural generators and are functionally meaningful (Lehmann et al. 1987).
+This yields one value per EEG channel per TR.
 
-**Data preparation:**
+**Output:** EEG block feature matrix with shape `(n_volumes, 31)`.
 
-1. Load preprocessed FIF files from rest run-01 and run-02 for all subjects
-2. Compute Global Field Power (GFP):
-   ```
-   GFP(t) = std(EEG across channels, axis=0)
-   ```
-   GFP measures the overall magnitude of the scalp field
-
-3. **Extract GFP peaks** using scipy's `argrelmax()`:
-   - Peaks are local maxima in GFP
-   - At GFP peaks, the topography is most clearly defined (highest signal-to-noise)
-   - Reject outliers: peaks > 3 SD above mean of all peaks
-
-4. Pool all GFP peak samples across all subjects (typically ~200,000 samples total)
-
-**Clustering algorithm — Polarity-Invariant k-Means:**
-
-```
-k = 7
-n_restarts = 20
-method = 'kmeans' with polarity invariance
-```
-
-**What is polarity invariance?**
-
-EEG oscillates. The same neural current source produces both positive and negative polarity within ~50 ms. A microstate and its opposite (negated) represent the same neural process. Therefore:
-- Compute kmeans normally
-- For each cluster, check if flipping polarity brings samples closer to centroid
-- If so, flip
-- Result: Each microstate is polarity-invariant
-
-**Why k=7?**
-
-Literature review justifies 7 microstates:
-- k=4 conflates DMN and salience networks (too coarse)
-- k=7 provides good separation: separate C (DMN) and E (salience), while preserving frontoparietal (D), sensory (A, B, G), and anterior DMN (F)
-- Empirically, k=7 achieves ~57% Global Explained Variance (GEV) on this data (lower than literature's 68–88% due to lower channel count and residual BCG)
-
-Reference:  
-Lehmann D, Strikwerda W, Srensen BL (1987). Head field correlations of bursts of 40 Hz activity. *Electroencephalography and Clinical Neurophysiology*, 66(2), 169-180.  
-https://doi.org/10.1016/0013-4694(87)90087-9
-
-Custo A et al. (2017). Electroencephalographic resting-state networks: source localization of microstates. *Brain Connectivity*, 7(9), 671-682.  
-https://doi.org/10.1089/brain.2016.0476
-
-**Output:** 7 microstate templates, each a 31-element vector (scalp topography)
-
-### Step 2: TESS Features (Continuous Microstate Projection + Hemodynamic Convolution)
-
-**Objective:** Convert continuous EEG into 9-dimensional features aligned to fMRI TR, combining:
-1. **Microstate projections** (continuous, not binary labeling)
-2. **Hemodynamic convolution** (accounting for neurovascular delay)
-3. **Global field properties** (GFP, GMD)
-
-#### Substep 1: Compute Continuous T-hat Coefficients
-
-For each EEG sample t (at 250 Hz or 500 Hz), project onto the 7 microstate templates:
-
-```
-T-hat(t) = Templates^T × normalized_topography(t)
-           where normalized_topography(t) = data(t) / GFP(t)
-```
-
-**Result:** 7 continuous coefficients T-hat_A through T-hat_G for every sample.
-
-**Advantages over binary microstate labeling:**
-- **Preserves amplitude:** Binary labeling loses the "strength" of the current microstate
-- **Captures transitions:** Time spent between states (reflected in intermediate T-hat values)
-- **Uses all sample data:** At 250 Hz with TR=1.2s, each volume contains 300 EEG samples — all utilized
-
-#### Substep 2: Hemodynamic Response Convolution
-
-**Problem:** EEG reflects neural activity at millisecond timescale, but fMRI BOLD reflects blood flow changes with ~6s delay.
-
-**Solution:** Convolve each T-hat timecourse with a canonical hemodynamic response function (HRF):
-
-```
-HRF(t) = Glover double-gamma function
-T-hat_convolved(t) = T-hat(t) ⊗ HRF(t)
-```
-
-**Glover HRF (1999):**
-- Double-gamma function (2 peaks at ~6s and ~15s)
-- Captures delayed rise and slow fall of BOLD response
-- Aligned to account for ~6s neurovascular delay
-
-Reference:  
-Glover GH (1999). Deconvolution of impulse response in event-related BOLD fMRI. *NeuroImage*, 9(4), 416-429.  
-https://doi.org/10.1006/nimg.1998.0419
-
-#### Substep 3: Downsample to fMRI TR
-
-For each fMRI volume at time t_TR, average the convolved T-hat within that TR window:
-
-```
-T-hat_TR[i] = mean(T-hat_convolved[i*TR*sfreq : (i+1)*TR*sfreq])
-```
-
-**Result:** 7 features per TR
-
-#### Substep 4: Compute Global Field Power (GFP) and Global Map Dissimilarity (GMD)
-
-For each fMRI volume:
-
-```
-GFP(t_TR) = mean(GFP(t) for all EEG samples in TR window)
-            = mean(std(EEG channels) for all samples in TR)
-            
-GMD(t_TR) = mean(|topography(t) - topography(t-1)| for all samples in TR)
-          = rate of topographic change (microstate transition marker)
-```
-
-**Interpretation:**
-- **GFP:** Overall signal strength, neuronal synchronization
-- **GMD:** How rapidly the scalp field configuration is changing (high at microstate transitions)
-
-#### Final Feature Matrix
-
-Per fMRI volume: (T-hat_A, T-hat_B, T-hat_C, T-hat_D, T-hat_E, T-hat_F, T-hat_G, GFP, GMD) = 9 features
-
-Reference for TESS:  
-Custo A et al. (2014). Generalized TESS for EEG source localization. *Brain Topography*, 27(1), 95-105.  
-https://doi.org/10.1007/s10548-013-0319-5
-
-Britz J et al. (2010). BOLD correlates of EEG topography reveal rapid resting-state network dynamics. *NeuroImage*, 52(4), 1162-1170.  
-https://doi.org/10.1016/j.neuroimage.2010.05.052
+**Rationale:**
+- Matches EEG and fMRI on the same temporal grid (TR-level supervision).
+- Uses all EEG samples while avoiding additional model assumptions.
+- Faster and simpler than intermediate feature-transformation pipelines.
 
 ---
 
@@ -659,7 +550,7 @@ https://doi.org/10.1186/s12888-023-05241-2
 
 ### Step 4: Decoder Training (ElasticNet Regression)
 
-**Objective:** Learn a linear mapping from 9 EEG features → 1 PDA target per subject.
+**Objective:** Learn a linear mapping from 31 EEG features → 1 PDA target per subject.
 
 **Algorithm — ElasticNet:**
 
@@ -672,7 +563,7 @@ where:
 ```
 
 **Why ElasticNet?**
-- EEG features (especially T-hat coefficients) are correlated
+- EEG channel features are correlated
 - L1 alone (Lasso) would arbitrarily select one correlated feature, dropping others
 - L2 alone (Ridge) would keep all features, making interpretation hard
 - ElasticNet balances: L1 encourages sparsity, L2 stabilizes correlated features
@@ -697,16 +588,9 @@ Final score = average across 4 held-out predictions
 - Z-score target: (PDA - mean(PDA)) / std(PDA)
 - Prevents scale dependence on units
 
-**Expected Weight Pattern (from Microstate Functional Anatomy):**
+**Expected Weight Pattern (channel-level model):**
 
-Based on Custo et al. (2017) and Tarailis et al. (2023):
-- **T-hat_C:** Negative (DMN microstate, drives ball down)
-- **T-hat_D:** Positive (FPN/CEN microstate, drives ball up)
-- **T-hat_E:** Negative (salience network, typically anti-DMN)
-- **T-hat_F:** Negative (anterior DMN)
-- **T-hat_A, B, G:** ~Zero (sensory networks, orthogonal to DMN/CEN)
-- **GFP:** Positive or neutral (higher sync → higher CEN activity?)
-- **GMD:** Neutral (state transitions, not network-specific)
+In this direct channel-based model, weights are interpreted empirically at the electrode level. We expect a distributed multichannel pattern reflecting DMN/CEN-related variance, with stability assessed by cross-validation and held-out performance.
 
 ### Step 5: Evaluation Metrics
 
@@ -808,12 +692,11 @@ The complete pipeline is orchestrated via shell scripts:
 2. **00_extract_difumo.py** → Runs Step 0c (fMRI parcel extraction)
 3. **00b_extract_personal_masks.py** → Runs Step 0d (personalized DMN/CEN)
 4. **00c_add_personal_parcels.py** → Runs Step 0e (append composites)
-5. **01_fit_microstates.py** → Runs Step 1 (microstate fitting)
-6. **02_tess_features.py** → Runs Step 2 (TESS feature extraction)
-7. **03_compute_pda.py** → Runs Step 3 (PDA target computation)
-8. **04_train_decoder.py** → Runs Step 4 (decoder training)
-9. **evaluate_predictions.py** → Runs Step 5 with smoothing + result-tag
-10. **plot_best_subject_predictions.py** → Per-subject comparison plots with smoothing + result-tag
+5. **data/extract_features.py** → Runs Step 1 and Step 3 (EEG block features + PDA targets)
+6. **train.py** → Runs Step 4 (decoder training)
+7. **evaluate_predictions.py** → Runs Step 5 with smoothing + result-tag
+8. **summarize_results.py** → Group summaries and plots
+9. **plot_best_subject_predictions.py** → Per-subject comparison plots with smoothing + result-tag
 
 ---
 
@@ -826,22 +709,20 @@ The complete pipeline is orchestrated via shell scripts:
 | 0c | fMRI parcellation | BOLD | 64-parcel timeseries | DiFuMo atlas | Dadi et al. 2020 |
 | 0d | Personalized masks | Rest BOLD | DMN/CEN masks | CanICA + Yeo-7 | Yeo et al. 2011, Hacker et al. 2013 |
 | 0e | Network composites | 64 parcels | 2 weighted signals | Overlap weights | — |
-| 1 | Microstate fitting | Rest EEG | 7 templates | k-means, polarity-invariant | Lehmann et al. 1987, Custo et al. 2017 |
-| 2 | TESS features | Continuous EEG | 9 features/TR | Projection, convolution | Custo et al. 2014, Glover 1999 |
+| 1 | EEG block features | Preprocessed EEG | 31 features/TR | TR block averaging + z-scoring | — |
 | 3 | PDA target | DiFuMo + EEG | PDA timeseries | Z-scored difference | Bloom et al. 2023 |
-| 4 | Decoder training | 9 features + PDA | Linear decoder | ElasticNet LORO CV | Zou & Hastie 2005 |
+| 4 | Decoder training | 31 features + PDA | Linear decoder | ElasticNet LORO CV | Zou & Hastie 2005 |
 | 5 | Evaluation | Predictions + true | Metrics | Pearson r + smoothing | — |
 
 ---
 
 ## Key Innovations in This Pipeline
 
-1. **Polarity-invariant microstates (k=7):** Ensures DMN/salience separation, critical for real-time neurofeedback
+1. **Direct TR-level EEG features:** Uses run-aligned channel block averages for simple, robust EEG-to-fMRI supervision
 2. **Personalized DMN/CEN masks:** Subject-specific anatomy improves individual decoder performance
-3. **TESS with HRF convolution:** Bridges millisecond EEG dynamics to second-scale fMRI via hemodynamic modeling
-4. **Cardiac-synchronized BCG correction:** Direct use of ECG timing instead of generic ICA, reducing over-correction
-5. **Three-method ICA artifact detection:** Consensus approach (ICLabel + cardiac + EOG) improves robustness
-6. **Result-tag versioning:** Enables systematic comparison of preprocessing variants without file collision
+3. **Cardiac-synchronized BCG correction:** Direct use of ECG timing instead of generic ICA, reducing over-correction
+4. **Three-method ICA artifact detection:** Consensus approach (ICLabel + cardiac + EOG) improves robustness
+5. **Result-tag versioning:** Enables systematic comparison of preprocessing variants without file collision
 
 ---
 
@@ -856,20 +737,9 @@ https://doi.org/10.1006/nimg.2000.0599
 Bloom PA et al. (2023). Mindfulness-based real-time fMRI neurofeedback. *BMC Psychiatry*, 23, 757.  
 https://doi.org/10.1186/s12888-023-05241-2
 
-Britz J et al. (2010). BOLD correlates of EEG topography reveal rapid resting-state network dynamics. *NeuroImage*, 52(4), 1162-1170.  
-https://doi.org/10.1016/j.neuroimage.2010.05.052
-
-Custo A et al. (2014). Generalized TESS for EEG source localization. *Brain Topography*, 27(1), 95-105.  
-https://doi.org/10.1007/s10548-013-0319-5
-
-Custo A et al. (2017). Electroencephalographic resting-state networks: source localization of microstates. *Brain Connectivity*, 7(9), 671-682.  
-https://doi.org/10.1089/brain.2016.0476
 
 Dadi K et al. (2020). Fine-grain atlases of functional modes for fMRI analysis. *NeuroImage*, 221, 117126.  
 https://doi.org/10.1016/j.neuroimage.2020.117126
-
-Glover GH (1999). Deconvolution of impulse response in event-related BOLD fMRI. *NeuroImage*, 9(4), 416-429.  
-https://doi.org/10.1006/nimg.1998.0419
 
 Gramfort A et al. (2013). MEG and EEG data analysis with MNE-Python. *Frontiers in Neuroscience*, 7, 267.  
 https://doi.org/10.3389/fnins.2013.00267
@@ -880,14 +750,8 @@ https://doi.org/10.1016/j.neuroimage.2013.05.108
 Hinds O et al. (2011). Computing moment-to-moment BOLD activation for real-time neurofeedback. *NeuroImage*, 54(1), 361-368.  
 https://doi.org/10.1016/j.neuroimage.2010.07.060
 
-Lehmann D, Strikwerda W, Srensen BL (1987). Head field correlations of bursts of 40 Hz activity. *Electroencephalography and Clinical Neurophysiology*, 66(2), 169-180.  
-https://doi.org/10.1016/0013-4694(87)90087-9
-
 Meir-Hasson Y et al. (2016). An EEG finger-print of fMRI deep regional activation. *NeuroImage*, 131, 120-128.  
 https://doi.org/10.1016/j.neuroimage.2015.11.053
-
-Michel CM, Koenig T (2018). EEG microstates as a tool for studying the temporal dynamics of whole-brain neuronal networks: a review. *NeuroImage*, 180, 577-593.  
-https://doi.org/10.1016/j.neuroimage.2017.11.062
 
 Murphy K, Birn RM, Handwerker DA, Jones TB, Bandettini PA (2009). The impact of global signal regression on resting state correlations. *Journal of Neuroscience*, 29(38), 13513-13531.  
 https://doi.org/10.1523/JNEUROSCI.3090-09.2009
@@ -897,9 +761,6 @@ https://doi.org/10.1016/0013-4694(89)90180-6
 
 Pion-Tonachini L, Kreutz-Delgado K, Makeig S (2019). ICLabel: An automated electroencephalographic independent component classifier, dataset, and website. *NeuroImage*, 198, 181-197.  
 https://doi.org/10.1016/j.neuroimage.2019.05.026
-
-Tarailis P et al. (2023). The functional aspects of resting EEG microstates: a systematic review. *Brain Topography*, 37, 181-217.  
-https://doi.org/10.1007/s10548-023-01006-2
 
 Varoquaux G et al. (2010). A group model for stable multi-subject ICA on fMRI datasets. *NeuroImage*, 51(1), 288-299.  
 https://doi.org/10.1016/j.neuroimage.2009.12.091
