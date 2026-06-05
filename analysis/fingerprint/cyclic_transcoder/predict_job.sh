@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --time=02:00:00
-#SBATCH --array=0-13
+#SBATCH --array=0-15
 #SBATCH --output=logs/predict_%A_%a.out
 #SBATCH --error=logs/predict_%A_%a.err
 
@@ -26,6 +26,8 @@ SUBJECTS=(
     dmnelf1001
     dmnelf1002
     dmnelf1003
+    dmnelf014
+    dmnelf015
 )
 
 SUBJECT=${SUBJECTS[$SLURM_ARRAY_TASK_ID]}

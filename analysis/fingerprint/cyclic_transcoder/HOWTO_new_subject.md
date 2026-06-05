@@ -139,6 +139,14 @@ ssh cccbauer@explorer.northeastern.edu \
 
 ## Step 7 — Predict PDA on feedback runs
 
+> **IMPORTANT:** `predict_job.sh` has a hardcoded `SUBJECTS=(...)` array and a
+> matching `#SBATCH --array=0-N`. It does **not** read `config.yaml`. When you
+> add a subject you must append it to the `SUBJECTS` array **and** bump the
+> `--array` upper bound, then re-deploy the script to Explorer (`scp`). If you
+> skip this, `sbatch predict_job.sh` silently re-predicts only the old subjects
+> and writes nothing for the new one. After deploying, you can predict just the
+> new indices, e.g. `sbatch --array=14,15 predict_job.sh`.
+
 Once training is complete, submit the prediction jobs to Explorer:
 
 ```bash
