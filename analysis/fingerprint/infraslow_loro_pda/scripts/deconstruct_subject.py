@@ -89,9 +89,11 @@ def main():
     X_all = np.vstack([X for _, X in runs])
     bounds = np.cumsum([len(y) for y, _ in runs])[:-1]
 
+    true_s = np.concatenate([moving_average(t, w) for t, _ in per_run])  # reference only
     r_raw = pearsonr(pred, true)[0]
     r_smo = pearsonr(pred_s, true)[0]
-    print(f"  r_raw={r_raw:+.3f}  r_smooth={r_smo:+.3f}")
+    r_both = pearsonr(pred_s, true_s)[0]   # smooth-both = inflated, NOT the honest metric
+    print(f"  r_raw={r_raw:+.3f}  r_smooth(pred only)={r_smo:+.3f}  r_smooth-both(inflated)={r_both:+.3f}")
     print(f"  alphas={np.round(alphas,4)}  l1_ratios={l1s}")
 
     # ---------- FIG 1: inputs + decode, aligned in time ----------
@@ -108,9 +110,13 @@ def main():
     ax[2].plot(true, lw=0.7, color="k", alpha=0.5, label="true")
     ax[2].plot(pred, lw=0.8, color="C3", label=f"pred raw (r={r_raw:+.3f})")
     ax[2].legend(loc="upper right", fontsize=8); ax[2].set_ylabel("PDA")
-    ax[3].plot(true, lw=0.7, color="k", alpha=0.5, label="true")
+    ax[3].plot(true, lw=0.7, color="k", alpha=0.5, label="true (raw)")
+    ax[3].plot(true_s, lw=1.0, color="k", ls="--",
+               label=f"true smoothed w={w} (reference only)")
     ax[3].plot(pred_s, lw=1.0, color="C0", label=f"pred smoothed w={w} (r={r_smo:+.3f})")
     ax[3].legend(loc="upper right", fontsize=8); ax[3].set_ylabel("PDA")
+    ax[3].set_title(f"honest r uses pred-smoothed vs true-RAW (r={r_smo:+.3f}); "
+                    f"smoothing BOTH inflates to r={r_both:+.3f}")
     # raw vs smoothed prediction overlaid (no true) - what the w=11 smoothing does
     ax[4].plot(pred, lw=0.7, color="C3", alpha=0.6, label=f"pred raw (r={r_raw:+.3f})")
     ax[4].plot(pred_s, lw=1.2, color="C0", label=f"pred smoothed w={w} (r={r_smo:+.3f})")
