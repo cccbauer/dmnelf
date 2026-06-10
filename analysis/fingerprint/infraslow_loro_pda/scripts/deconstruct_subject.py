@@ -97,7 +97,7 @@ def main():
     print(f"  alphas={np.round(alphas,4)}  l1_ratios={l1s}")
 
     # ---------- FIG 1: inputs + decode, aligned in time ----------
-    fig, ax = plt.subplots(5, 1, figsize=(14, 13.5), sharex=True)
+    fig, ax = plt.subplots(4, 1, figsize=(14, 11), sharex=True)
     im = ax[0].imshow(X_all.T, aspect="auto", cmap="RdBu_r", vmin=-3, vmax=3,
                       interpolation="nearest")
     ax[0].set_ylabel("EEG ch"); ax[0].set_yticks(range(0, nch, 4))
@@ -110,19 +110,12 @@ def main():
     ax[2].plot(true, lw=0.7, color="k", alpha=0.5, label="true")
     ax[2].plot(pred, lw=0.8, color="C3", label=f"pred raw (r={r_raw:+.3f})")
     ax[2].legend(loc="upper right", fontsize=8); ax[2].set_ylabel("PDA")
-    ax[3].plot(true, lw=0.7, color="k", alpha=0.5, label="true (raw)")
-    ax[3].plot(true_s, lw=1.0, color="k", ls="--",
-               label=f"true smoothed w={w} (reference only)")
-    ax[3].plot(pred_s, lw=1.0, color="C0", label=f"pred smoothed w={w} (r={r_smo:+.3f})")
+    ax[3].plot(true_s, lw=1.2, color="k", label=f"PDA smoothed w={w}")
+    ax[3].plot(pred_s, lw=1.2, color="C0", label=f"pred smoothed w={w}")
     ax[3].legend(loc="upper right", fontsize=8); ax[3].set_ylabel("PDA")
-    ax[3].set_title(f"honest r uses pred-smoothed vs true-RAW (r={r_smo:+.3f}); "
-                    f"smoothing BOTH inflates to r={r_both:+.3f}")
-    # raw vs smoothed prediction overlaid (no true) - what the w=11 smoothing does
-    ax[4].plot(pred, lw=0.7, color="C3", alpha=0.6, label=f"pred raw (r={r_raw:+.3f})")
-    ax[4].plot(pred_s, lw=1.2, color="C0", label=f"pred smoothed w={w} (r={r_smo:+.3f})")
-    ax[4].legend(loc="upper right", fontsize=8); ax[4].set_ylabel("pred PDA")
-    ax[4].set_title("prediction: raw vs smoothed")
-    ax[4].set_xlabel("TR (feedback runs concatenated; dashed = run boundary)")
+    ax[3].set_title(f"smoothed PDA vs smoothed pred  (r={r_both:+.3f}; "
+                    f"honest r vs true-RAW={r_smo:+.3f})")
+    ax[3].set_xlabel("TR (feedback runs concatenated; dashed = run boundary)")
     for axi in ax:
         for b in bounds:
             axi.axvline(b, color="0.6", ls="--", lw=0.8)
