@@ -95,7 +95,7 @@ def main():
     print(f"  alphas={np.round(alphas,4)}  l1_ratios={l1s}")
 
     # ---------- FIG 1: inputs + decode, aligned in time ----------
-    fig, ax = plt.subplots(4, 1, figsize=(14, 11), sharex=True)
+    fig, ax = plt.subplots(5, 1, figsize=(14, 13.5), sharex=True)
     im = ax[0].imshow(X_all.T, aspect="auto", cmap="RdBu_r", vmin=-3, vmax=3,
                       interpolation="nearest")
     ax[0].set_ylabel("EEG ch"); ax[0].set_yticks(range(0, nch, 4))
@@ -111,7 +111,12 @@ def main():
     ax[3].plot(true, lw=0.7, color="k", alpha=0.5, label="true")
     ax[3].plot(pred_s, lw=1.0, color="C0", label=f"pred smoothed w={w} (r={r_smo:+.3f})")
     ax[3].legend(loc="upper right", fontsize=8); ax[3].set_ylabel("PDA")
-    ax[3].set_xlabel("TR (feedback runs concatenated; dashed = run boundary)")
+    # raw vs smoothed prediction overlaid (no true) - what the w=11 smoothing does
+    ax[4].plot(pred, lw=0.7, color="C3", alpha=0.6, label=f"pred raw (r={r_raw:+.3f})")
+    ax[4].plot(pred_s, lw=1.2, color="C0", label=f"pred smoothed w={w} (r={r_smo:+.3f})")
+    ax[4].legend(loc="upper right", fontsize=8); ax[4].set_ylabel("pred PDA")
+    ax[4].set_title("prediction: raw vs smoothed")
+    ax[4].set_xlabel("TR (feedback runs concatenated; dashed = run boundary)")
     for axi in ax:
         for b in bounds:
             axi.axvline(b, color="0.6", ls="--", lw=0.8)
