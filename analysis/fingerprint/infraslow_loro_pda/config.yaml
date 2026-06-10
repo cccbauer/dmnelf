@@ -1,0 +1,59 @@
+project:
+  name: infraslow_loro_pda_dmnelf
+  base_dir: /projects/swglab/data/DMNELF/analysis/fingerprint/infraslow_loro_pda
+
+# Within-subject, WITHIN-FEEDBACK decoder of PDA (CEN-DMN) from infraslow EEG.
+# Feature: per-TR block-mean over 600 samples/channel of the DC-coupled 0.01-40Hz
+# EEG (desc-preproc500HzISp01) -> [N_TR x 31], z-scored per channel.
+# Model: ElasticNet (alpha * [rho*||w||_1 + (1-rho)*0.5*||w||^2]).
+# CV: leave-one-run-out over the 4 feedback runs, per participant.
+# Post-hoc centered moving-average smoothing (window=11) on predictions.
+#
+# PDA target reused from cyclic_features npz (fMRI CEN-DMN per TR).
+
+data:
+  eeg_preproc_dir: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  features_dir_local: /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_local
+
+  session: ses-dmnelf
+
+  subjects:
+    all:
+      - dmnelf001
+      - dmnelf004
+      - dmnelf005
+      - dmnelf006
+      - dmnelf007
+      - dmnelf008
+      - dmnelf009
+      - dmnelf010
+      - dmnelf011
+      - dmnelf012
+      - dmnelf013
+      - dmnelf014
+      - dmnelf015
+      - dmnelf1001
+      - dmnelf1002
+      - dmnelf1003
+    exclude: []
+
+  task: feedback           # LORO over this task's runs
+
+  fmri:
+    tr: 1.2
+
+  eeg:
+    sfreq: 500.0
+    samples_per_tr: 600          # 500 Hz * 1.2 s
+    desc: preproc500Hz           # 1-40 Hz baseline (control)
+    desc_infraslow: preproc500HzISp01   # 0.01-40 Hz infraslow (the feature)
+
+model:
+  l1_ratios: [0.1, 0.5, 0.7, 0.9, 0.95]   # rho candidates for ElasticNetCV
+  n_alphas: 50
+  cv_inner: 3                  # inner CV (within training runs) to pick alpha/rho
+  max_iter: 5000
+
+smoothing:
+  window: 11                   # centered moving-average TRs, applied per run to predictions
