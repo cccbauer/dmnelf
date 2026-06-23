@@ -1,0 +1,2 @@
+subject,target,model,mean_cv_r,p_circ_shift,n_features,n_trs,cv_folds,cv_type,n_shuffles,alpha,fold0_r,fold1_r,fold2_r,fold3_r
+dmnelf008,PDA,elasticnet,0.5593892381460397,9.999000099990002e-05,155,500,4,loro,10000,1.0,0.6445242365622188,0.42460304790724146,0.6888798648687409,0.4795498032459576

@@ -1,0 +1,2 @@
+subject,target,model,mean_cv_r,p_circ_shift,n_features,n_trs,cv_folds,cv_type,n_shuffles,alpha,fold0_r,fold1_r,fold2_r,fold3_r
+dmnelf005,GSR_CEN,elasticnet,0.27888537395273677,0.007499250074992501,155,500,4,loro,10000,1.0,0.07737523173606067,0.2761302260976731,0.44619558943238985,0.31584044854482335

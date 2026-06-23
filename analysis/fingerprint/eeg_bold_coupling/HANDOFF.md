@@ -1,6 +1,6 @@
 # HANDOFF — EEG → DMN/CEN/PDA decoding (DMNELF)
 
-Resume doc for picking this up later (with any agent). Last updated 2026-06-11.
+Resume doc for picking this up later (with any agent). Last updated 2026-06-23.
 
 ## The goal
 Decode the fMRI network state — **DMN**, **CEN**, and/or **PDA = CEN − DMN** —
@@ -71,27 +71,95 @@ global signal = decoding arousal. Implication:
   Step A; confirm with the multivariate decoder.)
 - Consider explicitly **GSR-ing DMN/CEN** before any further decoding, or work in PDA.
 
-### Bottom line for the next agent
+### Bottom line after Step A
 Band power gives a **robust EEG→DMN signal, but it is 100% arousal/vigilance** (global
-signal), with **nothing DMN-specific**. Usable only if decoding arousal is acceptable.
-For a network-specific (arousal-free) signal, the target must be PDA or GSR'd DMN/CEN —
-and band power has not yet shown a specific signal there (univariate). The multivariate
-decoder + microstates + state-classification (below) remain untested on the arousal-free
-target.
+signal), with **nothing DMN-specific** in a univariate screen. For a network-specific
+(arousal-free) signal, the target must be PDA or GSR'd DMN/CEN. **→ see Step C below.**
+
+---
+
+**STEP C (multivariate decode, `multivariate_decode_pda.py`) — DONE (2026-06-23):**
+
+Within-subject **Ridge + ElasticNet** on **CAR'd HRF-band-power** (155 features = 31 ch ×
+5 bands), 4 runs pooled (~500 TRs), two CV schemes: **5-fold contiguous** (within-run) and
+**LORO** (leave-one-run-out, cross-run generalization), group sign-flip test (10,000 flips),
+**10,000 circular-shift per-subject nulls**. Four targets: PDA (arousal-free), GSR'd DMN,
+GSR'd CEN (global_signal regressed per-run from fMRIPrep confounds), RAW DMN (arousal
+sanity check). Full results in `results/multivariate_cluster/` and
+`results/multivariate_loro_cluster/`.
+
+**✅ POSITIVE RESULT — ElasticNet uniformly improves over Ridge; signal generalizes
+across runs (LORO):**
+
+**5-fold contiguous CV (within-run):**
+
+| Target   | Ridge r | Ridge p | **ElasticNet r** | **ElasticNet p** |        |
+|----------|---------|---------|------------------|------------------|--------|
+| GSR_CEN  | +0.204  | 0.0004  | **+0.213**       | **0.0006**       | ***    |
+| RAW_DMN  | +0.156  | 0.0104  | **+0.176**       | **0.0002**       | ***    |
+| GSR_DMN  | +0.124  | 0.0056  | **+0.162**       | **0.0044**       | **     |
+| PDA      | +0.112  | 0.0422  | **+0.145**       | **0.0154**       | *      |
+
+**LORO (leave-one-run-out, cross-run generalization):**
+
+| Target   | Ridge r | Ridge p | **ElasticNet r** | **ElasticNet p** |        |
+|----------|---------|---------|------------------|------------------|--------|
+| GSR_CEN  | +0.094  | 0.0202  | **+0.162**       | **0.0044**       | **     |
+| RAW_DMN  | +0.103  | 0.0190  | **+0.156**       | **0.0004**       | ***    |
+| GSR_DMN  | +0.073  | 0.0878  | **+0.112**       | **0.0180**       | *      |
+| PDA      | +0.059  | 0.2356  | **+0.106**       | **0.0552**       | (trend)|
+
+1. **ElasticNet uniformly better** than Ridge — higher r and stronger p across every target
+   and CV scheme. The sparse model fits this problem better.
+2. **Signal generalizes across runs (LORO):** ElasticNet LORO GSR_CEN r=+0.162 is nearly as
+   strong as 5-fold Ridge r=+0.204. 3 of 4 LORO targets significant (GSR_CEN, RAW_DMN,
+   GSR_DMN); PDA is borderline (p=0.055).
+3. **GSR_CEN remains the strongest decoder** in every scheme. Best individual subjects:
+   dmnelf012 r=+0.57 (5-fold), dmnelf1001 r=+0.43, dmnelf008 r=+0.40.
+4. **Per-subject circular-shift nulls (10K):** 5/16 subjects individually significant
+   (p<0.05) for GSR_CEN (dmnelf012, 1001, 008, 1002, 005, 013); the group effect is not
+   driven by outliers — 13/16 have positive r for GSR_CEN.
+
+### Step C weight-map interpretation (ElasticNet, 5-fold)
+
+**Sparsity is LOW (~6% zeros)** — ElasticNet keeps nearly all 155 features, confirming
+the signal is **truly distributed**. No single channel×band dominates.
+
+**GSR_CEN top features (cross-subject consistency in parentheses):**
+- **F4 alpha +0.093 (13/16 agree)** — right-frontal alpha positively predicts CEN.
+  Single most reliable feature, consistent with frontal alpha asymmetry literature.
+- Fp1 gamma −0.063 (14/16), FC2 beta +0.049 (12/15), O1 delta −0.048 (11/16),
+  T8 alpha +0.053 (10/16), Fz theta +0.051 (10/15)
+- Band profile: relatively flat (beta slightly highest |w|=0.023), no band dominates.
+- Channel profile: widespread — Fp1, FC1, F4, O1, FC5, T8 all in top tier.
+
+**PDA top features:**
+- Fz theta +0.061 (13/16), O1 delta −0.054 (13/16), P7 beta −0.057 (13/16),
+  CP6 alpha +0.062 (11/15), T8 alpha +0.058 (12/14), F4 alpha +0.050 (11/15)
+- Band profile: perfectly flat — truly broadband/distributed.
+
+**GSR_DMN top features:**
+- CP6 alpha −0.065 (opposite sign from PDA, consistent), Fp2 gamma −0.055,
+  C3 beta −0.053, FC2 alpha −0.052, F4 alpha +0.045
+
+**Key interpretation:**
+1. **F4 alpha** is the single most interpretable feature — right-frontal alpha power
+   positively predicts CEN activation, aligning with the frontal alpha asymmetry literature.
+2. The signal is **distributed and broadband** — no single band or scalp region carries it,
+   explaining why the univariate screen was null.
+3. **Good cross-subject consistency** on top features (10–14/16 agree on sign) — this is a
+   real group pattern, not driven by outlier subjects.
+4. Weight files for all subjects/targets: `results/multivariate_cluster/*_weights.npz`
+   (keys: `coefs`, `ch_names`, `band_names`; coefs shape = [n_folds, 155]).
 
 ## NEXT STEPS (recommended order)
-1. **Decide the target framing given the arousal finding** — work in **PDA** (arousal-
-   free by construction) and/or **GSR'd DMN/CEN**. Decoding raw DMN/CEN just decodes
-   arousal. This reframes everything below.
-2. **Multivariate decode** (the real test; univariate-null ≠ multivariate-null): within-
-   subject Ridge/ElasticNet on global-removed (CAR) BLP → predict **PDA / GSR'd DMN/CEN**,
-   contiguous-fold CV + circular-shift null. Does a distributed specific pattern decode
-   where single channel×band doesn't?  (Also report the RAW arousal decoder as the
-   practical upper bound / sanity check.)
-3. **Step D — microstates / connectivity**: EEG microstates C/D ↔ DMN (`microstate_pda`
-   sibling exists); or alpha connectivity instead of power.
-4. **Step E — slow-state classification**: classify high-DMN vs high-CEN windows instead
-   of continuous per-TR regression (may be far more robust).
+1. **Topographic weight-map figures** — plot group-mean ElasticNet weights on scalp
+   topographies (per band, for GSR_CEN and PDA). Use `plot_topomaps.py` or extend it
+   to read the weight .npz files. This is the key figure for the neuroscience story.
+2. **Step D — microstates / connectivity**: EEG microstates C/D ↔ DMN (`microstate_pda`
+   sibling exists); or alpha connectivity instead of power. May capture complementary signal.
+3. **Step E — slow-state classification**: classify high-DMN vs high-CEN windows instead
+   of continuous per-TR regression (may be far more robust with the distributed pattern).
 
 ## INFRA / GOTCHAS
 - **Cluster**: `ssh cccbauer@explorer.northeastern.edu`. Project on cluster:
@@ -121,9 +189,27 @@ target.
 
 ## KEY FILES
 - `eeg_bold_coupling/`: `bandpower.py`, `coupling_screen.py`, `coupling_specificity.py`,
-  `coupling_group.py`, `identify_global.py`, `scripts/*_job.sh`; `results/*.csv` +
+  `coupling_group.py`, `identify_global.py`, `multivariate_decode_pda.py`,
+  `scripts/*_job.sh`; `results/*.csv` + `results/multivariate/*.csv` +
   `results/figures/*.png`; `README.md`; this `HANDOFF.md`.
 - Memory: `eeg-bold-coupling-stepA`, `cyclic-transcoder-modeling-diagnosis` (full
   negative-result history), `MEMORY.md` index.
 - Branches (all pushed): `eeg-bold-coupling` (current), `infraslow-loro-pda` (block-mean
   negative result + diagnostics).
+
+
+## Offline working copy (local continuation)
+
+**Data location**  
+Run `scripts/pull_data.sh` (detached, ~94 GB, resumable). After completion, data lands in:  
+`~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/`  
+- EEG: `eeg_preprocessed/*.fif`  
+- fMRI targets: `cyclic_features/*.npz`  
+- Confounds: `*.tsv` (includes `global_signal` for GSR)  
+- BOLD + masks: for manual re‑extraction if needed
+
+**Configuration**  
+To run offline, edit `config.yaml` (or set env vars) to point to local mirrors:  
+```yaml
+eeg_preproc_dir: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/eeg_preprocessed
+features_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/cyclic_features

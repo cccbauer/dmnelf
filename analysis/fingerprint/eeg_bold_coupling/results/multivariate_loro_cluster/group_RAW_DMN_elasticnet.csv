@@ -1,0 +1,2 @@
+target,model,mean_subject_r,t_stat,n_subjects,p_right_tailed,p_two_tailed
+RAW_DMN,elasticnet,0.16247342402361592,3.10151973359897,11,0.0016998300169983002,0.0033996600339966003
