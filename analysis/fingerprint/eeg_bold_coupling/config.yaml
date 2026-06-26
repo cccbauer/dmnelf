@@ -2,24 +2,19 @@ project:
   name: eeg_bold_coupling_dmnelf
   base_dir: /projects/swglab/data/DMNELF/analysis/fingerprint/eeg_bold_coupling
 
-# Decode DMN / CEN (and PDA = CEN-DMN) from EEG BAND-LIMITED POWER (BLP), the
-# standard EEG-fMRI coupling feature, instead of the failed per-TR amplitude
-# block-mean (infraslow_loro_pda / cyclic_transcoder lineage).
-#
-# Feature: per channel, per band, log power per TR (Hilbert envelope averaged
-#   over the 600 samples of each 1.2s TR), then convolved with a canonical HRF
-#   to model the ~5-6s neurovascular lag. -> [N_TR x 31 x n_band].
-# Targets (from cyclic_features npz): DMN (parcel idx 64), CEN (idx 65),
-#   PDA = CEN-DMN. 64 DiFuMo parcels (idx 0-63) used for the alpha positive
-#   control (alpha power should anti-correlate with visual/posterior BOLD).
-#
-# STEP A = within-subject univariate coupling SCREEN + alpha positive control,
-# with honest stats (max-statistic circular-shift null). Decoders come later.
-
 data:
-  eeg_preproc_dir: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  # CLUSTER paths (used without --offline)
+  eeg_preproc_dir_cluster: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
   features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
-  features_dir_local: /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_local
+
+  # OFFLINE paths (used with --offline flag)
+  eeg_preproc_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/cyclic_features
+
+  # Confounds (fMRIPrep) — needed for global_signal regression
+  confounds_dir_cluster: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+  confounds_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+
   session: ses-dmnelf
   task: feedback
 
@@ -27,21 +22,22 @@ data:
     all: [dmnelf001, dmnelf004, dmnelf005, dmnelf006, dmnelf007, dmnelf008,
           dmnelf009, dmnelf010, dmnelf011, dmnelf012, dmnelf013, dmnelf014,
           dmnelf015, dmnelf1001, dmnelf1002, dmnelf1003]
+    validation: [dmnelf016]
     exclude: []
 
   fmri:
     tr: 1.2
     dmn_idx: 64
     cen_idx: 65
-    n_difumo: 64        # parcels 0..63 are the DiFuMo atlas (for the control)
+    n_difumo: 64
 
   eeg:
     sfreq: 500.0
     samples_per_tr: 600
-    desc: preproc500Hz          # 1-40 Hz baseline (clean for band power)
-    occipital: [O1, O2, Oz, POz, PO3, PO4]   # alpha positive-control channels
+    desc: preproc500Hz
+    occipital: [O1, O2, Oz, POz, PO3, PO4]
 
-bands:                          # name: [low_hz, high_hz]
+bands:
   delta: [1, 4]
   theta: [4, 8]
   alpha: [8, 13]
@@ -50,8 +46,8 @@ bands:                          # name: [low_hz, high_hz]
 
 hrf:
   length_s: 32
-  delay: 6                      # canonical double-gamma peak (s)
+  delay: 6
   undershoot: 16
 
 stats:
-  nperm: 2000                   # circular-shift permutations (max-statistic null)
+  nperm: 2000

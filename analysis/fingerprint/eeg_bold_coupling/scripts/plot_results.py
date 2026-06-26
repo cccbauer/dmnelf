@@ -33,7 +33,7 @@ FIG_DIR.mkdir(parents=True, exist_ok=True)
 SUBJECTS = [
     "dmnelf001", "dmnelf004", "dmnelf005", "dmnelf006", "dmnelf007", "dmnelf008",
     "dmnelf009", "dmnelf010", "dmnelf011", "dmnelf012", "dmnelf013", "dmnelf014",
-    "dmnelf015", "dmnelf1001", "dmnelf1002", "dmnelf1003",
+    "dmnelf015", "dmnelf016", "dmnelf1001", "dmnelf1002", "dmnelf1003",
 ]
 TARGETS = ["RAW_DMN", "GSR_DMN", "GSR_CEN", "PDA"]
 TARGET_LABELS = {"RAW_DMN": "RAW\nDMN", "GSR_DMN": "GSR'd\nDMN",
@@ -157,7 +157,7 @@ def plot_group_bars():
     axes[0].legend(loc="upper left", fontsize=10, framealpha=0.9)
 
     fig.suptitle("Multivariate EEG Band Power → fMRI Network Decoding\n"
-                 "(n=16, group sign-flip test, 10K nulls)",
+                 "(n=17, group sign-flip test, 10K nulls)",
                  fontsize=14, fontweight="bold")
     fig.tight_layout(rect=[0, 0, 1, 0.91])
     out = FIG_DIR / "group_bar_ridge_vs_enet.png"
