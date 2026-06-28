@@ -1,0 +1,64 @@
+project:
+  name: rtbpd_replication
+  base_dir: /projects/swglab/data/rtBPD/analysis/fingerprint/rtbpd_replication
+
+data:
+  # rtBPD cluster paths
+  eeg_preproc_dir_cluster: /projects/swglab/data/rtBPD/derivatives/eeg_preprocessed
+  features_dir_cluster: /projects/swglab/data/rtBPD/derivatives/cyclic_features
+  confounds_dir_cluster: /projects/swglab/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+  fmriprep_dir_cluster: /projects/swglab/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+  masks_dir_cluster: /projects/swglab/data/rtBPD/derivatives/network_masks
+
+  # Local paths (if needed)
+  eeg_preproc_dir_local: ~/Documents/GitHub/dmnelf/data/rtBPD/derivatives/eeg_preprocessed
+  features_dir_local: ~/Documents/GitHub/dmnelf/data/rtBPD/derivatives/cyclic_features
+  confounds_dir_local: ~/Documents/GitHub/dmnelf/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+
+  # Session naming: EEG uses ses-nf, fMRI uses ses-nf1 (same physical session)
+  session_eeg: ses-nf
+  session_fmri: ses-nf1
+  session: ses-nf1
+  task: feedback
+
+  subjects:
+    pilot: [rtbpd002, rtbpd003, rtbpd004]
+    all: [rtbpd002, rtbpd003, rtbpd004]
+    exclude: []
+
+  fmri:
+    tr: 1.2
+    dmn_idx: 64
+    cen_idx: 65
+    n_difumo: 64
+    space: MNI152NLin6Asym
+    res: 2
+
+  eeg:
+    sfreq: 500.0
+    samples_per_tr: 600
+    desc: preproc500Hz
+    occipital: [O1, O2, Oz, POz, PO3, PO4]
+
+bands:
+  delta: [1, 4]
+  theta: [4, 8]
+  alpha: [8, 13]
+  beta:  [13, 30]
+  gamma: [30, 40]
+
+hrf:
+  length_s: 32
+  delay: 6
+  undershoot: 16
+
+# DMNELF training data paths (for cross-cohort prediction)
+dmnelf:
+  eeg_preproc_dir: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  confounds_dir: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+  session: ses-dmnelf
+  bandpower_cache: /projects/swglab/data/DMNELF/analysis/fingerprint/wavelet_coupling/results/cache
+  subjects: [dmnelf001, dmnelf004, dmnelf005, dmnelf006, dmnelf007, dmnelf008,
+             dmnelf009, dmnelf010, dmnelf011, dmnelf012, dmnelf013, dmnelf014,
+             dmnelf015, dmnelf016, dmnelf1001, dmnelf1002, dmnelf1003]

@@ -1,0 +1,7 @@
+data:
+  fmriprep_dir: /projects/swglab/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+  masks_dir: /projects/swglab/data/rtBPD/derivatives/network_masks
+  session: ses-nf1
+  fmri:
+    space: MNI152NLin6Asym
+    res: 2
