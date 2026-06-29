@@ -1,0 +1,76 @@
+project:
+  name: sret_calibration
+  description: Use SRET (self-referential encoding task) for EEG-based calibration
+
+data:
+  # rtBPD paths
+  eeg_preproc_dir_cluster: /projects/swglab/data/rtBPD/derivatives/eeg_preprocessed
+  features_dir_cluster: /projects/swglab/data/rtBPD/derivatives/cyclic_features
+  confounds_dir_cluster: /projects/swglab/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+  fmriprep_dir_cluster: /projects/swglab/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+  masks_dir_cluster: /projects/swglab/data/rtBPD/derivatives/network_masks
+  events_dir_cluster: /projects/swglab/data/rtBPD/sourcedata/task_outputs
+
+  session_eeg: ses-nf
+  session_fmri: ses-nf1
+  task_feedback: feedback
+  task_sret: selfref
+
+  subjects:
+    pilot: [rtbpd002, rtbpd003, rtbpd004]
+
+  fmri:
+    tr: 1.2
+    dmn_idx: 64
+    cen_idx: 65
+    n_difumo: 64
+
+  eeg:
+    sfreq: 500.0
+    samples_per_tr: 600
+    desc: preproc500Hz
+
+  sret:
+    # Block design: self/other/semantic blocks of ~28s, separated by rest
+    # DMN activation: self > other > semantic > rest
+    contrasts:
+      # Contrast A: self vs rest (original)
+      self_vs_rest:
+        self: 1.0
+        other: 0.5
+        semantic: 0.0
+      # Contrast B: self vs semantic (cleanest DMN localizer)
+      self_vs_semantic:
+        self: 1.0
+        other: 0.0
+        semantic: -1.0
+      # Contrast C: graded (literature-based)
+      graded:
+        self: 1.0
+        other: 0.5
+        semantic: -0.5
+    block_duration_s: 28
+    n_runs: 4
+    n_trs_per_run: 335
+
+bands:
+  delta: [1, 4]
+  theta: [4, 8]
+  alpha: [8, 13]
+  beta:  [13, 30]
+  gamma: [30, 40]
+
+hrf:
+  length_s: 32
+  delay: 6
+  undershoot: 16
+
+# DMNELF training data
+dmnelf:
+  eeg_preproc_dir: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  confounds_dir: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+  session: ses-dmnelf
+  subjects: [dmnelf001, dmnelf004, dmnelf005, dmnelf006, dmnelf007, dmnelf008,
+             dmnelf009, dmnelf010, dmnelf011, dmnelf012, dmnelf013, dmnelf014,
+             dmnelf015, dmnelf016, dmnelf1001, dmnelf1002, dmnelf1003]
