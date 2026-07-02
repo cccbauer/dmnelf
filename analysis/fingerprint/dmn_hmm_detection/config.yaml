@@ -1,0 +1,48 @@
+project:
+  name: dmn_hmm_detection
+  description: Replicate Cooray et al. 2024 TIDE-HMM DMN detection, validated against simultaneous fMRI
+
+data:
+  eeg_preproc_dir_cluster: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  confounds_dir_cluster: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+
+  eeg_preproc_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/cyclic_features
+  confounds_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+
+  session: ses-dmnelf
+  task_rest: rest
+  task_feedback: feedback
+
+  subjects:
+    all: [dmnelf001, dmnelf004, dmnelf005, dmnelf006, dmnelf007, dmnelf008,
+          dmnelf009, dmnelf010, dmnelf011, dmnelf012, dmnelf013, dmnelf014,
+          dmnelf015, dmnelf016, dmnelf1001, dmnelf1002, dmnelf1003]
+    pilot: [dmnelf008, dmnelf012]
+
+  fmri:
+    tr: 1.2
+    dmn_idx: 64
+    cen_idx: 65
+    n_difumo: 64
+
+  eeg:
+    sfreq_raw: 500.0
+    sfreq_hmm: 250.0   # paper downsamples to 250 Hz for HMM
+    desc: preproc500Hz
+    bandpass: [1, 45]  # paper uses 1-45 Hz
+
+hmm:
+  n_states: 12         # matches paper (K=12)
+  # Real-time variant: causal embedding (current + previous timepoints only)
+  embedding_lag: 7     # paper: l=7 samples for real-time variant
+  pca_variance: 0.90   # paper: Q set to explain 90% of embedded variance
+  learning_rate: 0.01
+  n_epochs: 20
+  sequence_length: 250  # ~1s windows at 250 Hz for batching
+
+hrf:
+  length_s: 32
+  delay: 6
+  undershoot: 16
