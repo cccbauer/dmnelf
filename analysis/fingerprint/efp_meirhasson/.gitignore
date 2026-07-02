@@ -1,0 +1,5 @@
+# Regenerable on the cluster — not tracked
+__pycache__/
+logs/
+results/features_cache/
+*.npz
