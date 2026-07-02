@@ -163,6 +163,19 @@ img(s, RES / "paper_fig_r_topomap_PDA_tr.png", left=8.7, top=1.4, width=3.2)
 img(s, RES / "paper_fig_predictor_CEN_tr.png", left=0.3, top=4.3, width=8.1)
 img(s, RES / "paper_fig_r_topomap_CEN_tr.png", left=8.7, top=4.2, width=3.2)
 
+# Paper Fig 2 analog — post-processing schematic
+s = prs.slides.add_slide(BLANK)
+title(s, "Paper-style figures III — post-processing (Fig 2 analog)",
+      "EEG → S-transform → 4 Hz → data-driven bands → band-averaged TF → sliding window; fMRI ROI → 4 Hz + normalized")
+img(s, RES / "paper_fig2_schematic_PDA_tr.png", left=0.5, top=1.4, width=12.3)
+
+# Paper Fig 3 analog — prediction input & output, one slide per target
+for _t in ["PDA", "CEN", "GSR_CEN"]:
+    s = prs.slides.add_slide(BLANK)
+    title(s, f"Paper-style figures IV — prediction I/O, {_t} (Fig 3 analog)",
+          "a) ROI signal + ROI mask  b) bottom/top-25% EEG TF  c) EFP  d) predictor vs fMRI  e) per-electrode r")
+    img(s, RES / f"paper_fig3_composite_{_t}_tr.png", left=0.4, top=1.4, width=12.5)
+
 # 9 verdict
 s = prs.slides.add_slide(BLANK); title(s, "Verdict")
 bullets(s, [

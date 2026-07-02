@@ -36,8 +36,9 @@ def load_config(p=CONFIG_PATH):
     cfg = yaml.safe_load(open(p))
     d = cfg["data"]
     suffix = "_cluster" if Path("/projects/swglab").exists() else "_local"
-    for key in ("features_dir", "eeg_preproc_dir", "confounds_dir"):
-        d[key] = str(Path(d[key + suffix]).expanduser())
+    for key in ("features_dir", "eeg_preproc_dir", "confounds_dir", "network_masks_dir"):
+        if (key + suffix) in d:
+            d[key] = str(Path(d[key + suffix]).expanduser())
     return cfg
 
 

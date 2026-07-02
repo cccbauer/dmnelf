@@ -9,10 +9,12 @@ data:
   eeg_preproc_dir_cluster: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
   features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
   confounds_dir_cluster: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+  network_masks_dir_cluster: /projects/swglab/data/DMNELF/derivatives/network_masks
 
   eeg_preproc_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/eeg_preprocessed
   features_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/cyclic_features
   confounds_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+  network_masks_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/network_masks
 
   session: ses-dmnelf
   task: feedback
