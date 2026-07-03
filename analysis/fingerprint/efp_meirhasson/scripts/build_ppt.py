@@ -119,6 +119,13 @@ bullets(s, [("Replicates the paper's ordering across every target; strongest for
              "GSR_CEN, GSR_PDA (r≈0.25–0.28). GSR_DMN weakest (r≈0.11–0.17), consistent with our other pipelines.", 0)],
         top=6.4, size=13)
 
+# 3b per-subject scatter (individual variability)
+s = prs.slides.add_slide(BLANK)
+title(s, "Substantial individual variability",
+      "Per-subject EFP r by target (bar = group mean, band = 95% CI). Every target's CI excludes zero, "
+      "but spread is wide — motivates the subject-specific electrode selection.")
+img(s, RES / "paper_fig_persubject_scatter_tr.png", left=1.4, top=1.7, width=10.5)
+
 # 4 fingerprints
 s = prs.slides.add_slide(BLANK); title(s, "Interpretable fingerprints — a learned HRF per frequency")
 img(s, RES / "efp_group_fingerprint_PDA_tr.png", left=0.3, top=1.4, width=6.4)

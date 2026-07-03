@@ -3,3 +3,6 @@ __pycache__/
 logs/
 results/features_cache/
 *.npz
+
+# MS Office lock/temp files
+~$*
