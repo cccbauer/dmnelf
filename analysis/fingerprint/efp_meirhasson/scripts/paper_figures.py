@@ -105,7 +105,9 @@ def render_r_topomap(ax, cfg, sub, r_by_ch, best_ch, vmax=None):
     have_chs = [raw.ch_names[i] for i in have]
     if best_ch in have_chs:
         bi = have_chs.index(best_ch)
-        ax.plot(pos2d[bi, 0], pos2d[bi, 1], "k*", markersize=14)
+        ax.plot(pos2d[bi, 0], pos2d[bi, 1], marker="*", markersize=20,
+                markerfacecolor="#39FF14", markeredgecolor="white",
+                markeredgewidth=1.6, linestyle="none", zorder=10)
     return im
 
 
