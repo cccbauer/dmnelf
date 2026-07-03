@@ -47,10 +47,13 @@ def sign_flip_test(r_vals, n_flips=10000, seed=42):
 
 
 def aggregate(out_dir):
-    csvs = sorted(out_dir.glob("efp_persubject_*.csv"))
+    # exclude our own aggregate output, else re-runs re-concatenate it -> duplicates
+    csvs = [c for c in sorted(out_dir.glob("efp_persubject_*.csv"))
+            if c.name != "efp_persubject_all.csv"]
     if not csvs:
         raise SystemExit(f"No per-subject CSVs in {out_dir}")
     df = pd.concat([pd.read_csv(c) for c in csvs], ignore_index=True)
+    df = df.drop_duplicates(subset=["subject", "target", "resolution", "method"])
     df.to_csv(out_dir / "efp_persubject_all.csv", index=False)
 
     rows = []

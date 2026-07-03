@@ -73,6 +73,18 @@ def run_ids(cfg, sub):
     return ids
 
 
+def _load_visual_sphere(sub, run, n_tr):
+    """Load the precomputed calcarine-sphere VIS timeseries for one run, or None."""
+    f = PROJ_DIR / "results" / "visual_sphere" / f"{sub}.npz"
+    if not f.exists():
+        return None
+    z = np.load(f, allow_pickle=True)
+    key = str(run)
+    if key not in z.files:
+        return None
+    return np.asarray(z[key], float)[:n_tr]
+
+
 def load_targets_run(cfg, sub, run):
     """DMN/CEN/PDA + GSR variants at native TR for one run. Returns (dict, n_tr)."""
     d = cfg["data"]
@@ -90,6 +102,11 @@ def load_targets_run(cfg, sub, run):
     dmn = fm[:, d["fmri"]["dmn_idx"]]; cen = fm[:, d["fmri"]["cen_idx"]]
     n_tr = fm.shape[0]
     out = dict(DMN=dmn, CEN=cen, PDA=cen - dmn)
+    # visual-cortex positive control: focal 6mm calcarine sphere (paper Fig 5a),
+    # precomputed by extract_visual_sphere.py -> results/visual_sphere/{sub}.npz
+    vis = _load_visual_sphere(sub, run, n_tr)
+    if vis is not None:
+        out["VIS"] = vis
     gs = load_confounds_run(cfg, sub, run)
     if gs is not None:
         gs = gs[:n_tr]
@@ -245,10 +262,40 @@ def load_subject_features(cache_dir, sub):
     return list(z["runs"]), list(z["ch_names"])
 
 
+def refresh_targets_in_cache(cfg, sub, cache_dir):
+    """Recompute the fMRI targets (incl. any newly-added ones like VIS) from
+    cyclic_features and update an existing cache in place — WITHOUT recomputing
+    the EEG band power. Cheap way to add a target to already-built caches."""
+    cache = cache_dir / f"{sub}_efp.npz"
+    if not cache.exists():
+        print(f"  {sub}: no cache to refresh")
+        return
+    z = np.load(cache, allow_pickle=True)
+    runs = list(z["runs"]); ch_names = list(z["ch_names"])
+    changed = 0
+    for rd in runs:
+        tgt, n_tr = load_targets_run(cfg, sub, rd["run"])
+        if tgt is None:
+            continue
+        m = min(n_tr, rd["n_tr"])
+        t_src = np.linspace(0, 1, rd["n_tr"]); t_dst = np.linspace(0, 1, rd["n_hz4"])
+        rd["tgt_tr"] = {k: v[:rd["n_tr"]] for k, v in tgt.items()}
+        rd["tgt_hz4"] = {k: interp1d(t_src, v[:rd["n_tr"]], kind="cubic")(t_dst)
+                         for k, v in tgt.items()}
+        changed += 1
+    np.savez_compressed(cache, runs=np.array(runs, dtype=object),
+                        ch_names=np.array(ch_names))
+    print(f"  {sub}: refreshed targets in {changed} runs "
+          f"({', '.join(runs[0]['tgt_tr'].keys()) if runs else ''})")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--subjects", nargs="+", default=None)
     ap.add_argument("--group", action="store_true")
+    ap.add_argument("--refresh-targets", action="store_true",
+                    help="update fMRI targets in existing caches (e.g. add VIS) "
+                         "without recomputing EEG band power")
     ap.add_argument("--cache", default=str(PROJ_DIR / "results" / "features_cache"))
     args = ap.parse_args()
     cfg = load_config()
@@ -261,7 +308,10 @@ def main():
     cache_dir = Path(args.cache)
     for sub in subs:
         print(f"[{sub}]")
-        build_subject_features(cfg, sub, cache_dir)
+        if args.refresh_targets:
+            refresh_targets_in_cache(cfg, sub, cache_dir)
+        else:
+            build_subject_features(cfg, sub, cache_dir)
 
 
 if __name__ == "__main__":

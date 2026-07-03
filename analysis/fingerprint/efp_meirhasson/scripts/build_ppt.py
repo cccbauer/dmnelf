@@ -176,6 +176,15 @@ for _t in ["PDA", "CEN", "GSR_CEN"]:
           "a) ROI signal + ROI mask  b) bottom/top-25% EEG TF  c) EFP  d) predictor vs fMRI  e) per-electrode r")
     img(s, RES / f"paper_fig3_composite_{_t}_tr.png", left=0.4, top=1.4, width=12.5)
 
+# Positive control — visual cortex (Fig 5 analog): the blind EFP pipeline
+# recovers the known posterior/occipital-alpha signature on a focal V1 ROI.
+s = prs.slides.add_slide(BLANK)
+title(s, "Positive control — visual cortex (Fig 5 analog)",
+      "Focal 6mm calcarine sphere (MNI -1,-86,13 ~ V1). Blind EFP localizes posteriorly "
+      "(group-mean peak Pz; LOSO best O2) with alpha modulation — recovers occipital topography, validating the method")
+img(s, RES / "paper_fig3_composite_VIS_tr.png", left=0.3, top=1.5, width=9.4)
+img(s, RES / "paper_fig_group_topomap_VIS_tr.png", left=9.9, top=1.9, width=3.2)
+
 # 9 verdict
 s = prs.slides.add_slide(BLANK); title(s, "Verdict")
 bullets(s, [

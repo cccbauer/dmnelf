@@ -10,4 +10,4 @@
 PYTHON=/home/cccbauer/.conda/envs/eeg_preproc/bin/python
 BASE=/projects/swglab/data/DMNELF/analysis/fingerprint/efp_meirhasson
 cd $BASE/scripts
-${PYTHON} paper_figures.py --res tr --targets PDA CEN GSR_CEN
+${PYTHON} paper_figures.py --res tr --targets PDA CEN GSR_CEN VIS --group-topo VIS CEN PDA

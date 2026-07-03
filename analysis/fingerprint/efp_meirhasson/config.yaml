@@ -30,6 +30,12 @@ data:
     dmn_idx: 64
     cen_idx: 65
     n_difumo: 64
+    # visual-cortex positive control ROI — faithful to Meir-Hasson 2014 Fig 5:
+    # a single 6 mm sphere at the calcarine (MNI [-1,-86,13] ~ V1). Extracted from
+    # BOLD by extract_visual_sphere.py (NiftiSpheresMasker, standardize+detrend),
+    # matching how the DMN/CEN mask timeseries are extracted.
+    vis_sphere_mni: [-1, -86, 13]
+    vis_sphere_radius_mm: 6
 
   eeg:
     sfreq: 250.0        # paper downsamples to 250 Hz (load resamples from source desc)
@@ -51,7 +57,7 @@ efp:
   alpha_grid_lo: 0.01
   alpha_grid_hi: 10000.0
 
-targets: [DMN, CEN, PDA, GSR_DMN, GSR_CEN, GSR_PDA]
+targets: [DMN, CEN, PDA, GSR_DMN, GSR_CEN, GSR_PDA, VIS]
 
 # canonical HRF (baselines only: T/A and fixed-HRF predictors)
 hrf:

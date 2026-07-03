@@ -41,6 +41,8 @@ JET = "jet"
 # network ROI overlay colors (match 00b_extract_personal_masks.py)
 _CMAP_DMN = LinearSegmentedColormap.from_list("dmn", ["#0077FF", "#0077FF"])
 _CMAP_CEN = LinearSegmentedColormap.from_list("cen", ["#FF1A00", "#FF1A00"])
+_CMAP_VIS = LinearSegmentedColormap.from_list("vis", ["#00A000", "#00A000"])
+VIS_MASK = PROJ / "results" / "visual_sphere_mask.nii.gz"  # 6mm calcarine sphere (paper Fig 5a)
 
 
 # ── small shared helpers ─────────────────────────────────────────────────────
@@ -116,6 +118,23 @@ def render_roi_masks(ax, cfg, sub, target, cut_coords=5):
     d = cfg["data"]
     mroot = d.get("network_masks_dir")
     base_t = target.replace("GSR_", "")
+
+    # VIS is a group ROI (same mask for all subjects)
+    if base_t == "VIS":
+        try:
+            from nilearn import plotting
+            if VIS_MASK.exists():
+                plotting.plot_roi(str(VIS_MASK), axes=ax, display_mode="z",
+                                  cut_coords=5, cmap=_CMAP_VIS, colorbar=False,
+                                  annotate=False)
+                ax.set_title("visual ROI: 6mm calcarine sphere (V1)", fontsize=10, fontweight="bold")
+                return
+        except Exception as ex:
+            print(f"  render_roi_masks VIS failed: {ex}")
+        ax.text(0.5, 0.5, "visual ROI N/A", ha="center", va="center",
+                fontsize=9, transform=ax.transAxes); ax.axis("off")
+        return
+
     show_dmn = base_t in ("DMN", "PDA")
     show_cen = base_t in ("CEN", "PDA")
     roi_title = {"DMN": "DMN ROI", "CEN": "CEN ROI",
@@ -436,11 +455,50 @@ def fig3_composite(cfg, target, res="tr", metric="r"):
     fig.savefig(out, dpi=150, bbox_inches="tight"); plt.close(fig); print("saved", out)
 
 
+def fig_group_electrode_topomap(cfg, target, res="tr"):
+    """Group-averaged per-electrode CV r across all subjects (paper Fig 5b analog).
+
+    The definitive electrode-topography test: unlike the single-best-subject topomap,
+    this averages every electrode's CV r over subjects, so it shows where the signal
+    lives on the scalp on average (e.g. occipital for a visual ROI)."""
+    alphas = alphas_from(cfg)
+    n_delays = n_delays_for(cfg, res)
+    acc, n_used, ref_sub = {}, 0, None
+    for sub in cfg["data"]["subjects"]["all"]:
+        try:
+            runs, chs = load_subject_features(CACHE, sub)
+        except Exception:
+            continue
+        rbc, _, _ = per_channel_r(cfg, runs, chs, target, res, n_delays, alphas, chs[0])
+        if not rbc:
+            continue
+        if ref_sub is None:
+            ref_sub = sub
+        n_used += 1
+        for ch, rr in rbc.items():
+            if np.isfinite(rr):
+                acc.setdefault(ch, []).append(rr)
+    gmap = {ch: float(np.mean(v)) for ch, v in acc.items() if len(v) >= 10}
+    if not gmap:
+        print(f"  group topomap {target}: no data"); return
+    best_ch = max(gmap, key=gmap.get)
+    fig, ax = plt.subplots(figsize=(5.4, 5))
+    im = render_r_topomap(ax, cfg, ref_sub, gmap, best_ch)
+    ax.set_title(f"{target}: group-mean per-electrode CV r (n={n_used})\n"
+                 f"(peak: {best_ch}, red=better)", fontsize=11, fontweight="bold")
+    fig.colorbar(im, ax=ax, fraction=0.046, label="mean CV r")
+    fig.tight_layout()
+    out = RES / f"paper_fig_group_topomap_{target}_{res}.png"
+    fig.savefig(out, dpi=150); plt.close(fig); print("saved", out)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--res", default="tr")
     ap.add_argument("--targets", nargs="+", default=["PDA", "CEN", "GSR_CEN"])
     ap.add_argument("--fig2-target", default="PDA")
+    ap.add_argument("--group-topo", nargs="*", default=None,
+                    help="targets to also render a group-averaged electrode topomap for")
     args = ap.parse_args()
     cfg = load_config()
     fig_fingerprints(cfg, args.res)
@@ -449,6 +507,8 @@ def main():
     fig2_postprocessing_schematic(cfg, args.fig2_target, args.res)
     for t in args.targets:
         fig3_composite(cfg, t, args.res)
+    for t in (args.group_topo or []):
+        fig_group_electrode_topomap(cfg, t, args.res)
 
 
 if __name__ == "__main__":
