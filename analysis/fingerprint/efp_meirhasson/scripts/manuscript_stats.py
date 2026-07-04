@@ -64,6 +64,40 @@ def loso_table(lo, res="tr"):
     return "\n".join(rows)
 
 
+def crosscohort_table(res="tr"):
+    """Combine the nf1 (and nf2 if present) cross-cohort summaries into one table."""
+    import numpy as np
+    arms = [("nf1", RES.parent / f"cross_cohort_efp_summary_{res}.csv"),
+            ("nf2", RES.parent / f"cross_cohort_efp_summary_{res}_nf2.csv")]
+    frames = {}
+    for name, p in arms:
+        if p.exists():
+            frames[name] = pd.read_csv(p).set_index("target")
+    if not frames:
+        return "_(cross-cohort results pending)_"
+    hdr = "| Target | Electrode |"
+    sub = "|---|---|"
+    for name in frames:
+        hdr += f" {name} r | {name} p |"; sub += "---|---|"
+    rows = [hdr, sub]
+    for t in ORDER:
+        any_arm = next((f for f in frames.values() if t in f.index), None)
+        if any_arm is None:
+            continue
+        el = any_arm.loc[t, "electrode"]
+        line = f"| {t} | {el} |"
+        for name, f in frames.items():
+            if t in f.index:
+                r = f.loc[t, "mean_r"]; p = f.loc[t, "sign_flip_p"]
+                star = " *" if p < 0.05 else ""
+                line += f" {r:+.3f}{star} | {p:.3f} |"
+            else:
+                line += " — | — |"
+        rows.append(line)
+    ntxt = ", ".join(f"{name} n={f['n_test'].iloc[0]}" for name, f in frames.items())
+    return "\n".join(rows) + f"\n\n*Transfer electrode = DMNELF LOSO modal channel; {ntxt}. `*` p<0.05.*"
+
+
 def scatter(df, res="tr", out=RES / "paper_fig_persubject_scatter_tr.png"):
     d = df[(df.resolution == res) & (df.method == "EFP")]
     fig, ax = plt.subplots(figsize=(9, 4.6))
@@ -104,6 +138,7 @@ def main():
         txt = MD.read_text()
         txt = inject(txt, "table1", table1(df))
         txt = inject(txt, "loso", loso_table(lo))
+        txt = inject(txt, "crosscohort", crosscohort_table())
         MD.write_text(txt)
         print("updated", MD)
 
