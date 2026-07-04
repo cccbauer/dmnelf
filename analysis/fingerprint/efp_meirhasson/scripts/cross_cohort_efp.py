@@ -87,6 +87,7 @@ def main():
     ap.add_argument("--rtbpd-cache", default=str(PROJ / "results" / "features_cache_rtbpd"))
     ap.add_argument("--loso", default=str(RES / "efp_group_loso.csv"))
     ap.add_argument("--res", default="tr")
+    ap.add_argument("--tag", default="", help="suffix for output CSVs, e.g. _nf2")
     args = ap.parse_args()
 
     dcfg = load_config(args.dmnelf_config) if args.dmnelf_config else load_config()
@@ -139,9 +140,9 @@ def main():
               f"mean_r={mean_r:+.3f} p={p:.3f}")
 
     out = PROJ / "results"
-    pd.DataFrame(rows).to_csv(out / f"cross_cohort_efp_persubject_{res}.csv", index=False)
-    pd.DataFrame(summ).to_csv(out / f"cross_cohort_efp_summary_{res}.csv", index=False)
-    print(f"\nSaved {out}/cross_cohort_efp_summary_{res}.csv")
+    pd.DataFrame(rows).to_csv(out / f"cross_cohort_efp_persubject_{res}{args.tag}.csv", index=False)
+    pd.DataFrame(summ).to_csv(out / f"cross_cohort_efp_summary_{res}{args.tag}.csv", index=False)
+    print(f"\nSaved {out}/cross_cohort_efp_summary_{res}{args.tag}.csv")
 
 
 if __name__ == "__main__":

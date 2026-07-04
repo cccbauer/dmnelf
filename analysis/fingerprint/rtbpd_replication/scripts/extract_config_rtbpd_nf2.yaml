@@ -1,0 +1,40 @@
+data:
+  fmriprep_dir: /projects/swglab/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+  features_dir_cluster: /projects/swglab/data/rtBPD/derivatives/cyclic_features_nf2
+  features_dir_local: /projects/swglab/data/rtBPD/derivatives/cyclic_features_nf2
+  eeg_preproc_dir: /projects/swglab/data/rtBPD/derivatives/eeg_preprocessed
+  personal_masks_dir: /projects/swglab/data/rtBPD/derivatives/network_masks
+  difumo_cache_dir: /projects/swglab/data/DMNELF/derivatives/difumo_atlas
+
+  # nf2: EEG + fMRI both under ses-nf2 (personal masks reused from nf1)
+  session: ses-nf2
+  session_eeg: ses-nf2
+
+  subjects:
+    all: [rtbpd002, rtbpd003, rtbpd009, rtbpd010, rtbpd011, rtbpd015, rtbpd018,
+          rtbpd022, rtbpd026, rtbpd027, rtbpd028, rtbpd030]
+    exclude: []
+
+  tasks:
+    train: [rest]
+    validate: []
+    apply: [feedback]
+
+  masks:
+    space: MNI152NLin6Asym
+    res: 2
+    dmn_suffix: dmn_mask.nii.gz
+    cen_suffix: cen_mask.nii.gz
+
+  fmri:
+    tr: 1.2
+    space: MNI152NLin6Asym
+    res: 2
+    confound_columns: [trans_x, trans_y, trans_z, rot_x, rot_y, rot_z, white_matter, csf]
+    n_difumo_parcels: 64
+    n_personal_rois: 2
+
+  eeg:
+    sfreq: 500.0
+    samples_per_tr: 600
+    desc: preproc500Hz

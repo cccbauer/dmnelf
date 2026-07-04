@@ -74,9 +74,14 @@ def run_ids(cfg, sub):
     return ids
 
 
-def _load_visual_sphere(sub, run, n_tr):
+def visual_sphere_dir(cfg):
+    d = cfg["data"].get("visual_sphere_dir")
+    return Path(d).expanduser() if d else PROJ_DIR / "results" / "visual_sphere"
+
+
+def _load_visual_sphere(cfg, sub, run, n_tr):
     """Load the precomputed calcarine-sphere VIS timeseries for one run, or None."""
-    f = PROJ_DIR / "results" / "visual_sphere" / f"{sub}.npz"
+    f = visual_sphere_dir(cfg) / f"{sub}.npz"
     if not f.exists():
         return None
     z = np.load(f, allow_pickle=True)
@@ -105,7 +110,7 @@ def load_targets_run(cfg, sub, run):
     out = dict(DMN=dmn, CEN=cen, PDA=cen - dmn)
     # visual-cortex positive control: focal 6mm calcarine sphere (paper Fig 5a),
     # precomputed by extract_visual_sphere.py -> results/visual_sphere/{sub}.npz
-    vis = _load_visual_sphere(sub, run, n_tr)
+    vis = _load_visual_sphere(cfg, sub, run, n_tr)
     if vis is not None:
         out["VIS"] = vis
     gs = load_confounds_run(cfg, sub, run)

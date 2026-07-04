@@ -62,7 +62,8 @@ def main():
     cfg = load_config(args.config) if args.config else load_config()
     subs = (cfg["data"]["subjects"]["all"] if args.group
             else (args.subjects or cfg["data"]["subjects"]["pilot"]))
-    out_dir = PROJ_DIR / "results" / "visual_sphere"
+    _vsd = cfg["data"].get("visual_sphere_dir")
+    out_dir = Path(_vsd).expanduser() if _vsd else PROJ_DIR / "results" / "visual_sphere"
     for sub in subs:
         print(f"[{sub}]")
         extract_subject(cfg, sub, out_dir)
