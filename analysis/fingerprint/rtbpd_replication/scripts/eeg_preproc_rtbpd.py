@@ -44,6 +44,7 @@ SUBJECTS_EEG = [
 TASKS = {
     "rest":      ["01", "02", "03", "04"],
     "feedback":  ["01", "02", "03", "04", "05"],
+    "selfref":   ["01", "02", "03", "04"],
 }
 
 MISSING_RUNS = {}
@@ -71,8 +72,13 @@ EDGE_THRESH     = 3.0
 # ═══════════════════════════════════════════════════════════════════════════
 
 def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0,
-                   neural_highpass=None):
+                   neural_highpass=None, raw_session="ses-nf", out_session=None):
     """Preprocess one run.
+
+    raw_session / out_session
+        rtBPD raw EEG is under ses-nf (pilot) or ses-nf1 (later subjects). Read the
+        EDF from raw_session and write the FIF to out_session (default = raw_session)
+        so all derivatives can be unified under one session label.
 
     neural_highpass : float | None
         If set (e.g. 0.01), fit bad-channel/BCG/ICA on a 1 Hz-high-passed copy
@@ -83,14 +89,15 @@ def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0,
     import mne
     mne.set_log_level('WARNING')
 
-    session  = "ses-nf"
-    eeg_dir  = EEG_RAW_ROOT / subject / session / "eeg"
+    session_raw = raw_session
+    session     = out_session or raw_session      # label used for outputs + QC
+    eeg_dir  = EEG_RAW_ROOT / subject / session_raw / "eeg"
     out_dir  = EEG_OUT_ROOT / subject / session / "eeg"
     qc_dir   = out_dir / "qc"
     out_dir.mkdir(parents=True, exist_ok=True)
     qc_dir.mkdir(parents=True, exist_ok=True)
 
-    edf_file   = eeg_dir / (subject + "_" + session
+    edf_file   = eeg_dir / (subject + "_" + session_raw
                             + "_task-" + task + "_run-" + run
                             + "_desc-bvaAC1kHz_eeg.edf")
     sfreq_tag  = str(int(sfreq_target)) + "Hz"
@@ -625,8 +632,15 @@ def main():
                              "to a NEURAL_HIGHPASS-40 Hz copy, save with IS desc.")
     parser.add_argument("--neural-highpass", type=float, default=NEURAL_HIGHPASS,
                         help="High-pass (Hz) for the infraslow copy (default: %(default)s)")
+    parser.add_argument("--raw-session", default="ses-nf",
+                        help="Session label of the raw EDFs (ses-nf or ses-nf1)")
+    parser.add_argument("--out-session", default=None,
+                        help="Session label for outputs (default = raw-session)")
+    parser.add_argument("--tasks", nargs="+", default=None,
+                        help="Restrict to these tasks (default: all in TASKS)")
     args = parser.parse_args()
     neural_hp = args.neural_highpass if args.infraslow else None
+    tasks = {t: TASKS[t] for t in args.tasks} if args.tasks else TASKS
 
     if args.all or (args.subject and not args.task) or \
        (not args.subject and not args.task and not args.run):
@@ -634,14 +648,16 @@ def main():
         n_ok = 0
         n_fail = 0
         for subject in subjects:
-            for task, runs in TASKS.items():
+            for task, runs in tasks.items():
                 for run in runs:
                     if subject in MISSING_RUNS:
                         if (task, run) in MISSING_RUNS[subject]:
                             continue
                     ok = preprocess_run(subject, task, run,
                                         args.overwrite, args.sfreq,
-                                        neural_highpass=neural_hp)
+                                        neural_highpass=neural_hp,
+                                        raw_session=args.raw_session,
+                                        out_session=args.out_session)
                     if ok:
                         n_ok += 1
                     else:
@@ -652,7 +668,8 @@ def main():
 
     elif args.subject and args.task and args.run:
         preprocess_run(args.subject, args.task, args.run, args.overwrite, args.sfreq,
-                       neural_highpass=neural_hp)
+                       neural_highpass=neural_hp,
+                       raw_session=args.raw_session, out_session=args.out_session)
     else:
         parser.print_help()
 

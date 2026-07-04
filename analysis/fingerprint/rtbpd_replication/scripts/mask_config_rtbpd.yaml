@@ -3,7 +3,9 @@ data:
   personal_masks_dir: /projects/swglab/data/rtBPD/derivatives/network_masks
   session: ses-nf1
   subjects:
-    all: [rtbpd002, rtbpd003, rtbpd004]
+    all: [rtbpd002, rtbpd003, rtbpd004, rtbpd009, rtbpd010, rtbpd011, rtbpd012,
+          rtbpd013, rtbpd015, rtbpd018, rtbpd020, rtbpd021, rtbpd022, rtbpd024,
+          rtbpd026, rtbpd027, rtbpd028, rtbpd030, rtbpd034, rtbpd038, rtbpd040]
     exclude: []
   fmri:
     space: MNI152NLin6Asym

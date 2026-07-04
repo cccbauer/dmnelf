@@ -51,8 +51,9 @@ def residualize(y, confound):
 
 def load_confounds_run(cfg, sub, run):
     d = cfg["data"]
-    tsv = (Path(d["confounds_dir"]) / f"sub-{sub}" / d["session"] / "func" /
-           f"sub-{sub}_{d['session']}_task-{d['task']}_run-{int(run):02d}_desc-confounds_timeseries.tsv")
+    ses = d.get("session_fmri", d["session"])   # rtBPD: fMRI in ses-nf1
+    tsv = (Path(d["confounds_dir"]) / f"sub-{sub}" / ses / "func" /
+           f"sub-{sub}_{ses}_task-{d['task']}_run-{int(run):02d}_desc-confounds_timeseries.tsv")
     if not tsv.exists():
         return None
     df = pd.read_csv(tsv, sep="\t")
@@ -118,8 +119,9 @@ def load_targets_run(cfg, sub, run):
 def load_eeg_run(cfg, sub, run):
     """Load preprocessed 250 Hz EEG for one run. Returns (data (n_ch, n_samp), ch_names)."""
     d = cfg["data"]
-    fif = (Path(d["eeg_preproc_dir"]) / f"sub-{sub}" / d["session"] / "eeg" /
-           f"sub-{sub}_{d['session']}_task-{d['task']}_run-{int(run):02d}_desc-{d['eeg']['desc']}_eeg.fif")
+    ses = d.get("session_eeg", d["session"])    # rtBPD: EEG in ses-nf
+    fif = (Path(d["eeg_preproc_dir"]) / f"sub-{sub}" / ses / "eeg" /
+           f"sub-{sub}_{ses}_task-{d['task']}_run-{int(run):02d}_desc-{d['eeg']['desc']}_eeg.fif")
     if not fif.exists():
         return None, None
     raw = mne.io.read_raw_fif(str(fif), preload=True, verbose=False)
@@ -297,8 +299,9 @@ def main():
                     help="update fMRI targets in existing caches (e.g. add VIS) "
                          "without recomputing EEG band power")
     ap.add_argument("--cache", default=str(PROJ_DIR / "results" / "features_cache"))
+    ap.add_argument("--config", default=str(CONFIG_PATH))
     args = ap.parse_args()
-    cfg = load_config()
+    cfg = load_config(args.config)
     if args.group:
         subs = cfg["data"]["subjects"]["all"]
     elif args.subjects:

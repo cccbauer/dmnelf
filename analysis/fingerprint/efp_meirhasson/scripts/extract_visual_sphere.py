@@ -24,9 +24,10 @@ from efp_features import load_config, run_ids, PROJ_DIR
 
 def bold_path(cfg, sub, run):
     d = cfg["data"]
+    ses = d.get("session_fmri", d["session"])   # rtBPD: fMRI in ses-nf1
     # confounds_dir is the fMRIPrep derivatives root (also holds preproc BOLD)
-    return (Path(d["confounds_dir"]) / f"sub-{sub}" / d["session"] / "func" /
-            f"sub-{sub}_{d['session']}_task-{d['task']}_run-{int(run):02d}"
+    return (Path(d["confounds_dir"]) / f"sub-{sub}" / ses / "func" /
+            f"sub-{sub}_{ses}_task-{d['task']}_run-{int(run):02d}"
             f"_space-MNI152NLin6Asym_res-2_desc-preproc_bold.nii.gz")
 
 
@@ -56,8 +57,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--subjects", nargs="+", default=None)
     ap.add_argument("--group", action="store_true")
+    ap.add_argument("--config", default=None)
     args = ap.parse_args()
-    cfg = load_config()
+    cfg = load_config(args.config) if args.config else load_config()
     subs = (cfg["data"]["subjects"]["all"] if args.group
             else (args.subjects or cfg["data"]["subjects"]["pilot"]))
     out_dir = PROJ_DIR / "results" / "visual_sphere"
