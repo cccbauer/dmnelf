@@ -18,6 +18,7 @@ Outputs (results/<outdir>/):
   efp_<sub>_<target>_<res>.npz       best-electrode EFP matrix [n_bands x n_delays] + band_hz
 """
 import argparse
+from collections import Counter
 from pathlib import Path
 import numpy as np, pandas as pd, yaml
 from scipy.stats import gamma, pearsonr, zscore
@@ -79,6 +80,54 @@ def cv_score(X, y, alphas, folds):
     if not r_list:
         return np.nan, np.nan
     return float(np.mean(r_list)), float(np.mean(nmse_list))
+
+
+def nested_cv_r(X_list, y, alphas, k, m, cand, inner_m=1):
+    """Nested-CV electrode selection to REMOVE selection bias.
+
+    Outer m×k contiguous block folds (shared across candidates). Within each outer
+    training set, an inner CV (k folds, inner_m repeats) picks the candidate electrode
+    with min NMSE; that electrode is refit on the full outer-training set and predicts
+    the held-out outer-test fold. The reported r/NMSE come from the concatenated
+    out-of-fold predictions — the electrode is NEVER scored on data used to select it.
+
+    X_list : list of (n, p) design matrices (one per electrode; None allowed).
+    cand   : iterable of candidate indices into X_list.
+    Returns (r, nmse, chosen_indices_per_outer_fold).
+    """
+    n = len(y)
+    oof = np.full(n, np.nan)
+    chosen = []
+    for tr, te in mk_block_folds(n, k, m):
+        inner = mk_block_folds(len(tr), k, inner_m)
+        if not inner:
+            continue
+        best_ci, best_nm = None, np.inf
+        for ci in cand:
+            X = X_list[ci]
+            if X is None:
+                continue
+            nms = []
+            for itr, ite in inner:
+                a, b = tr[itr], tr[ite]
+                mu, sd = X[a].mean(0), X[a].std(0) + 1e-12
+                mdl = RidgeCV(alphas=alphas).fit((X[a] - mu) / sd, y[a])
+                p = mdl.predict((X[b] - mu) / sd)
+                if np.std(p) > 1e-9 and np.std(y[b]) > 1e-9:
+                    nms.append(nmse(y[b], p))
+            if nms and np.mean(nms) < best_nm:
+                best_nm, best_ci = np.mean(nms), ci
+        if best_ci is None:
+            continue
+        X = X_list[best_ci]
+        mu, sd = X[tr].mean(0), X[tr].std(0) + 1e-12
+        mdl = RidgeCV(alphas=alphas).fit((X[tr] - mu) / sd, y[tr])
+        oof[te] = mdl.predict((X[te] - mu) / sd)
+        chosen.append(best_ci)
+    ok = ~np.isnan(oof)
+    if ok.sum() < 3 or np.std(oof[ok]) < 1e-9:
+        return np.nan, np.nan, chosen
+    return float(pearsonr(y[ok], oof[ok])[0]), float(nmse(y[ok], oof[ok])), chosen
 
 
 # ── assemble design per channel/target/resolution ───────────────────────────
@@ -144,51 +193,62 @@ def process_subject(cfg, sub, cache_dir, out_dir):
         n_out_total = sum((rd["n_tr"] if res == "tr" else rd["n_hz4"]) for rd in runs)
         folds = mk_block_folds(n_out_total - len(runs) * (n_delays - 1),
                                e["cv_outer_k"], e["cv_outer_m"])
+        k, m = e["cv_outer_k"], e["cv_outer_m"]
         for target in cfg["targets"]:
-            # ---- EFP: scan electrodes ----
-            best = dict(ch=None, r=-np.inf, nmse=np.inf, ci=None)
-            per_ch = []
+            # ---- EFP: nested-CV electrode selection (unbiased) ----
+            X_list, y = [], None
             for ci in range(len(ch_names)):
-                X, y = assemble(runs, ci, target, res, n_delays)
-                if X is None:
-                    continue
-                folds_ch = mk_block_folds(len(y), e["cv_outer_k"], e["cv_outer_m"])
-                r, nm = cv_score(X, y, alphas, folds_ch)
-                per_ch.append((ch_names[ci], r, nm))
-                if not np.isnan(nm) and nm < best["nmse"]:
-                    best = dict(ch=ch_names[ci], r=r, nmse=nm, ci=ci)
-            if best["ci"] is None:
+                X, yc = assemble(runs, ci, target, res, n_delays)
+                X_list.append(X)
+                if X is not None and y is None:
+                    y = yc
+            if y is None:
                 continue
-            # refit best electrode on all data for the EFP coefficient matrix
-            X, y = assemble(runs, best["ci"], target, res, n_delays)
-            mu, sd = X.mean(0), X.std(0) + 1e-12
-            model = RidgeCV(alphas=alphas).fit((X - mu) / sd, y)
+            cand = [ci for ci, X in enumerate(X_list) if X is not None]
+            if not cand:
+                continue
+            r_efp, nm_efp, chosen = nested_cv_r(X_list, y, alphas, k, m, cand)
+            if not chosen:
+                continue
+            best_ci = Counter(chosen).most_common(1)[0][0]   # modal selected electrode
+            best_ch = ch_names[best_ci]
+
+            # descriptive EFP coefficient matrix: refit modal electrode on all data
+            Xb = X_list[best_ci]; mu, sd = Xb.mean(0), Xb.std(0) + 1e-12
+            model = RidgeCV(alphas=alphas).fit((Xb - mu) / sd, y)
             n_bands = cfg["efp"]["n_bands"]
             efp = model.coef_.reshape(n_delays, n_bands).T  # [bands x delays]
             band_hz = runs[0]["band_hz"]
             np.savez_compressed(out_dir / f"efp_{sub}_{target}_{res}.npz",
-                                efp=efp, band_hz=np.array(band_hz), best_ch=best["ch"],
+                                efp=efp, band_hz=np.array(band_hz), best_ch=best_ch,
                                 n_delays=n_delays, tr=tr, res=res)
             rows.append(dict(subject=sub, target=target, resolution=res, method="EFP",
-                             best_ch=best["ch"], mean_r=best["r"], mean_nmse=best["nmse"]))
+                             best_ch=best_ch, mean_r=r_efp, mean_nmse=nm_efp))
 
-            # ---- HRF baseline (best EFP electrode) ----
-            Xh, yh = assemble_hrf(runs, best["ci"], target, res, hrf)
-            rh, nmh = cv_score(Xh, yh, alphas, mk_block_folds(len(yh), e["cv_outer_k"], e["cv_outer_m"]))
+            # ---- HRF baseline: fixed at the modal EFP electrode (no selection) ----
+            Xh, yh = assemble_hrf(runs, best_ci, target, res, hrf)
+            rh, nmh = cv_score(Xh, yh, alphas, mk_block_folds(len(yh), k, m))
             rows.append(dict(subject=sub, target=target, resolution=res, method="HRF",
-                             best_ch=best["ch"], mean_r=rh, mean_nmse=nmh))
+                             best_ch=best_ch, mean_r=rh, mean_nmse=nmh))
 
-            # ---- T/A baseline (best occipital electrode) ----
-            best_ta = dict(r=-np.inf, nmse=np.inf, ch=None)
+            # ---- T/A baseline: nested-CV over occipital electrodes ----
+            Xta_list = [None] * len(ch_names)
+            yta = None
             for ci in occ_idx:
                 Xt, yt = assemble_ta(runs, ci, target, res, hrf)
-                rt, nmt = cv_score(Xt, yt, alphas, mk_block_folds(len(yt), e["cv_outer_k"], e["cv_outer_m"]))
-                if not np.isnan(nmt) and nmt < best_ta["nmse"]:
-                    best_ta = dict(r=rt, nmse=nmt, ch=ch_names[ci])
+                Xta_list[ci] = Xt
+                if yta is None:
+                    yta = yt
+            ta_cand = [ci for ci in occ_idx if Xta_list[ci] is not None]
+            if yta is not None and ta_cand:
+                rt, nmt, ta_chosen = nested_cv_r(Xta_list, yta, alphas, k, m, ta_cand)
+                ta_ch = ch_names[Counter(ta_chosen).most_common(1)[0][0]] if ta_chosen else None
+            else:
+                rt, nmt, ta_ch = np.nan, np.nan, None
             rows.append(dict(subject=sub, target=target, resolution=res, method="TA",
-                             best_ch=best_ta["ch"], mean_r=best_ta["r"], mean_nmse=best_ta["nmse"]))
-            print(f"  {sub} {target} {res}: EFP r={best['r']:+.3f} (ch {best['ch']}) | "
-                  f"HRF r={rh:+.3f} | TA r={best_ta['r']:+.3f}")
+                             best_ch=ta_ch, mean_r=rt, mean_nmse=nmt))
+            print(f"  {sub} {target} {res}: EFP r={r_efp:+.3f} (ch {best_ch}) | "
+                  f"HRF r={rh:+.3f} | TA r={rt:+.3f}")
     return rows
 
 

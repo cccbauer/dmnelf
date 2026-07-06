@@ -2,7 +2,7 @@
 #SBATCH --job-name=efp
 #SBATCH --output=/projects/swglab/data/DMNELF/analysis/fingerprint/efp_meirhasson/logs/efp_%a.out
 #SBATCH --error=/projects/swglab/data/DMNELF/analysis/fingerprint/efp_meirhasson/logs/efp_%a.err
-#SBATCH --time=01:30:00
+#SBATCH --time=06:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --partition=short

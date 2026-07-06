@@ -37,48 +37,68 @@ detrended:
 
 Following Meir-Hasson et al. (2014), each electrode was processed independently.
 The single-channel signal was decomposed with the Stockwell (S-) transform at 1 Hz
-resolution over 1–40 Hz, yielding an instantaneous time–frequency power
+frequency resolution over 1–40 Hz, yielding an instantaneous time–frequency power
 representation. To reduce dimensionality in a data-driven manner, the spectrum was
-partitioned into **10 contiguous frequency bands of equal cumulative (log) power**,
-and power was averaged within each band. Band-power timeseries were downsampled to
-the fMRI sampling grid; all analyses were run at both the native TR (1.2 s) and a
-4 Hz cubic-spline upsampling, which the original method uses to expose sub-TR
-temporal detail.
+partitioned into **10 contiguous frequency bands of equal cumulative (log) power** (an
+energy-uniformity constraint, as in the original), and power was averaged within each
+band. Band power was standardized before fitting (per-fold z-scoring; the original
+zero-means each band).
+
+We analysed at two temporal resolutions. **Native TR (1.2 s) is our primary analysis**
+(it avoids any interpolation artefact). We additionally report the original's **native
+4 Hz** resolution — where the EEG band power is down-sampled to 4 Hz and the fMRI target
+is cubic-spline up-sampled to 4 Hz and normalized — as a **supplementary** result;
+because the 4 Hz target is interpolated, its autocorrelation can inflate correlations, so
+we validate it against a null-target upsampling control (see Results) and do not lead
+with it.
 
 The predictor for a given target was built as a **[frequency band × sliding
-time-delay]** design matrix: for each fMRI timepoint, the 10 band powers were taken
-at delays spanning 0 to −12 s (11 lags at TR; 49 at 4 Hz). Ridge regression thus
-learns a separate weight for every band and every lag, so the hemodynamic delay is
-estimated from the data rather than imposed by a canonical HRF. The resulting
-coefficient matrix is the EFP.
+time-delay]** design matrix: for each fMRI timepoint, the 10 band powers were taken at
+delays spanning 0 to −12 s (11 lags at TR; 49 at 4 Hz). Ridge regression thus learns a
+separate weight for every band and every lag, so the hemodynamic delay is estimated from
+the data rather than imposed by a canonical HRF. The resulting coefficient matrix is the
+EFP.
 
 ### Cross-validated decoding
 
-For every electrode we performed **double cross-validation**: an outer
-contiguous-block *m×k*-fold scheme (k = 5 folds, m = 2 rolled repeats) provided
-out-of-fold predictions, while an inner RidgeCV selected the ridge penalty λ on each
-training split (30-point log grid, 10⁻² to 10⁴). Performance was quantified by the
-out-of-fold Pearson correlation (r) and normalized mean-squared error (NMSE). The
-best electrode per subject and target was chosen by minimum CV NMSE and refit on all
-data to obtain that subject's EFP coefficient map.
+Decoding used **nested double cross-validation**, following Meir-Hasson et al. (2014):
+electrode/model selection is performed *on the training folds* and accuracy is measured
+*on the held-out test folds*. The outer loop is an **m×k-fold contiguous-block CV**
+(k = 5, m = 2 rolled repeats); each test block spans a different portion of the
+continuous timeseries. Within each outer-training set, an **inner CV** (same block
+scheme) selects, for each candidate electrode, the ridge model minimizing NMSE, and the
+single best electrode is chosen; that electrode is then refit on the full outer-training
+set and predicts the held-out outer-test fold. The reported per-subject r and NMSE are
+computed from the **concatenated out-of-fold predictions**, so the electrode is never
+scored on data used to select it — this removes the in-sample electrode-selection
+optimism that would otherwise inflate within-subject accuracy. The ridge penalty λ is
+selected by `RidgeCV` generalized cross-validation over a 30-value log-spaced grid
+(10⁻²–10⁴). Performance is quantified by out-of-fold Pearson r and NMSE (NMSE < 1 =
+better than predicting the mean). A descriptive EFP coefficient map per subject/target is
+obtained by refitting the modal selected electrode on all of that subject's data (used
+only for visualization, not for the reported accuracy).
 
 ### Baseline predictors
 
-Two baselines were evaluated on the identical folds and electrode:
-(i) an **HRF** predictor using all 10 band powers convolved with a canonical
-double-gamma HRF (fixed delay, no sliding lags), and (ii) a **theta/alpha (T/A)**
-predictor — the theta:alpha power ratio at the best occipital electrode, HRF-convolved
-(a classic single-feature EEG index of arousal/vigilance). The method is expected to
-order EFP ≥ HRF ≥ T/A.
+Two baselines were evaluated with the same cross-validation: (i) an **HRF** predictor
+using all 10 band powers convolved with a canonical double-gamma HRF (fixed delay, no
+sliding lags), fixed at the modal EFP electrode; and (ii) a **theta/alpha (T/A)**
+predictor — the theta (4–7 Hz) / alpha (8–13 Hz) power ratio, HRF-convolved (a classic
+single-feature EEG index of arousal/vigilance), with its occipital electrode chosen by
+the same **nested** CV so the comparison is unbiased. The method is expected to order
+EFP ≥ HRF ≥ T/A.
 
 ### Group-level analyses
 
 Per-subject results were aggregated across the 17 participants. Group significance of
 mean r was assessed with a non-parametric **sign-flip permutation test**
 (10,000 permutations). We computed group-averaged [band × delay] fingerprints and
-**group-averaged per-electrode r topographies**. Cross-subject generalization was
-tested with **leave-one-subject-out (LOSO)** transfer: a fingerprint trained on N−1
-subjects (at the modal best electrode) predicted the held-out subject.
+**group-averaged per-electrode r topographies**; on the topographies we additionally
+applied the original's **electrode-wise significance correction** — a sign-flip p per
+electrode (across subjects), Benjamini–Hochberg FDR-corrected across electrodes (q < 0.05),
+with non-significant electrodes set to zero (as in Meir-Hasson et al., 2014). Cross-subject
+generalization was tested with **leave-one-subject-out (LOSO)** transfer: a fingerprint
+trained on N−1 subjects (at the modal best electrode) predicted the held-out subject.
 
 ### Positive control
 
@@ -105,6 +125,28 @@ replication**, and for participants present in both sessions this also provides 
 within-subject test–retest of the transferred fingerprint. Subjects with corrupted
 EEG (mis-exported at 50 Hz) were excluded from the affected session.
 
+### Relationship to Meir-Hasson et al. (2014)
+
+The method is a faithful re-implementation of the original EFP with a small number of
+deliberate, documented deviations.
+
+*Faithful:* single-electrode Stockwell (1 Hz) time–frequency; 10 data-driven
+equal-energy frequency bands; a [frequency × sliding-delay] ridge model that learns the
+delay from data; **nested double cross-validation** (select on train, evaluate on test;
+outer m-k-fold k=5/m=2, inner λ search); NMSE for model selection and Pearson r for
+reporting; T/A and fixed-HRF baselines; and focal ROIs including the calcarine
+visual-cortex positive control.
+
+*Deviations (with rationale):* (1) our **primary resolution is native TR**, with the
+original's 4 Hz reported as a supplementary, interpolation-controlled analysis; (2) group
+inference uses a subject-level **sign-flip permutation test**, and we add electrode-wise
+**FDR** on the topographies (the original used FDR within subject); (3) λ is chosen by
+`RidgeCV` generalized CV over a fixed log grid rather than an SVD-derived range with an
+inner n-fold; (4) DMN/CEN ROIs are **subject-specific** (CanICA→Yeo) network masks rather
+than a single anatomical sphere, reflecting our network — rather than deep-nucleus —
+target; (5) the two rtBPD sessions are treated as an explicit **double replication**
+rather than selecting each subject's single best session.
+
 ### Implementation
 
 Analyses were run on an HPC cluster (per-subject decoding as a SLURM array; group
@@ -118,16 +160,20 @@ fingerprints, LOSO), `extract_visual_sphere.py` (calcarine-sphere extraction), a
 
 ## Results
 
-### The EFP is the strongest network decoder tested
+### Within-subject decoding
 
-Within-subject, the sliding-delay single-electrode EFP outperformed both baselines
-for every target except plain DMN, replicating the method's expected ordering
-(Table 1; group-mean out-of-fold r at native TR). All EFP effects were significant
-by the sign-flip test (all p < 0.01).
+Within-subject accuracy is reported as the **nested-CV** estimate (Table 1; group-mean
+out-of-fold r at native TR), i.e. after removing the in-sample electrode-selection
+optimism that inflates a naïve "best-of-31-electrodes" score. These de-biased
+within-subject correlations are modest — as expected for a single-electrode predictor of
+a distributed network with ~hundreds of TRs per subject — and are best read as a
+conservative floor; the primary evidence for a genuine EEG→BOLD mapping is the
+cross-subject and cross-cohort generalization below (which are unaffected by the
+within-subject selection issue). [Ordering vs baselines to be finalized against the
+regenerated Table 1.]
 
-**Table 1. Within-subject decoding accuracy** (out-of-fold Pearson r, native TR;
-mean ± SD across n = 17 participants, with the 95% CI for the EFP). Bold marks the
-best predictor per row (EFP for every target except DMN, where T/A leads).
+**Table 1. Within-subject decoding accuracy** (nested-CV out-of-fold Pearson r, native
+TR; mean ± SD across n = 17 participants, with the 95% CI for the EFP).
 *Auto-generated by `scripts/manuscript_stats.py`.*
 
 <!-- BEGIN:table1 -->

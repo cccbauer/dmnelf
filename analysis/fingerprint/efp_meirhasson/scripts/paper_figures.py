@@ -457,12 +457,40 @@ def fig3_composite(cfg, target, res="tr", metric="r"):
     fig.savefig(out, dpi=150, bbox_inches="tight"); plt.close(fig); print("saved", out)
 
 
-def fig_group_electrode_topomap(cfg, target, res="tr"):
-    """Group-averaged per-electrode CV r across all subjects (paper Fig 5b analog).
+def _sign_flip_p(rs, n_flips=10000, seed=0):
+    """One-sided sign-flip p that mean(r) across subjects > 0."""
+    rs = np.asarray([r for r in rs if np.isfinite(r)])
+    if len(rs) < 2:
+        return np.nan
+    obs = rs.mean()
+    rng = np.random.default_rng(seed)
+    null = (rng.choice([-1, 1], size=(n_flips, len(rs))) * np.abs(rs)).mean(axis=1)
+    return float((np.sum(null >= obs) + 1) / (n_flips + 1))
 
-    The definitive electrode-topography test: unlike the single-best-subject topomap,
-    this averages every electrode's CV r over subjects, so it shows where the signal
-    lives on the scalp on average (e.g. occipital for a visual ROI)."""
+
+def _bh_fdr(pvals, q=0.05):
+    """Benjamini-Hochberg: boolean significant mask at FDR q (NaN p -> not sig)."""
+    p = np.asarray(pvals, float)
+    finite = np.isfinite(p)
+    sig = np.zeros(len(p), bool)
+    idx = np.where(finite)[0]
+    if idx.size == 0:
+        return sig
+    pf = p[idx]; order = np.argsort(pf); ranked = pf[order]
+    thresh = q * (np.arange(1, len(ranked) + 1) / len(ranked))
+    below = ranked <= thresh
+    if below.any():
+        kmax = np.max(np.where(below)[0])
+        sig[idx[order[:kmax + 1]]] = True
+    return sig
+
+
+def fig_group_electrode_topomap(cfg, target, res="tr", q=0.05):
+    """Group per-electrode CV r across subjects, FDR-thresholded (paper Fig 5b analog).
+
+    Each electrode's across-subject r vector gets a sign-flip p; Benjamini-Hochberg FDR
+    is applied across electrodes and non-significant electrodes are set to 0 (as in
+    Meir-Hasson 2014). Writes electrode_fdr_{target}_{res}.csv with r, p, fdr_sig."""
     alphas = alphas_from(cfg)
     n_delays = n_delays_for(cfg, res)
     acc, n_used, ref_sub = {}, 0, None
@@ -480,18 +508,35 @@ def fig_group_electrode_topomap(cfg, target, res="tr"):
         for ch, rr in rbc.items():
             if np.isfinite(rr):
                 acc.setdefault(ch, []).append(rr)
-    gmap = {ch: float(np.mean(v)) for ch, v in acc.items() if len(v) >= 10}
-    if not gmap:
+    chans = [ch for ch, v in acc.items() if len(v) >= 10]
+    if not chans:
         print(f"  group topomap {target}: no data"); return
-    best_ch = max(gmap, key=gmap.get)
+    gmap = {ch: float(np.mean(acc[ch])) for ch in chans}
+    pvals = [_sign_flip_p(acc[ch]) for ch in chans]
+    sig = _bh_fdr(pvals, q=q)
+    sig_set = {ch for ch, s in zip(chans, sig) if s}
+
+    pd.DataFrame({"electrode": chans,
+                  "mean_r": [gmap[c] for c in chans],
+                  "p": pvals,
+                  "fdr_sig": [c in sig_set for c in chans]}).to_csv(
+        RES / f"electrode_fdr_{target}_{res}.csv", index=False)
+
+    # paper convention: non-significant electrodes set to 0
+    gmap_masked = {ch: (gmap[ch] if ch in sig_set else 0.0) for ch in chans}
+    peak = max(sig_set, key=gmap.get) if sig_set else max(gmap, key=gmap.get)
+
     fig, ax = plt.subplots(figsize=(5.4, 5))
-    im = render_r_topomap(ax, cfg, ref_sub, gmap, best_ch)
-    ax.set_title(f"{target}: group-mean per-electrode CV r (n={n_used})\n"
-                 f"(peak: {best_ch}, red=better)", fontsize=11, fontweight="bold")
-    fig.colorbar(im, ax=ax, fraction=0.046, label="mean CV r")
+    im = render_r_topomap(ax, cfg, ref_sub, gmap_masked, peak if sig_set else None)
+    ax.set_title(f"{target}: group per-electrode CV r (n={n_used})\n"
+                 f"FDR q<{q}: {len(sig_set)}/{len(chans)} sig"
+                 + (f", peak {peak}" if sig_set else ", none sig"),
+                 fontsize=11, fontweight="bold")
+    fig.colorbar(im, ax=ax, fraction=0.046, label="mean CV r (FDR-masked)")
     fig.tight_layout()
     out = RES / f"paper_fig_group_topomap_{target}_{res}.png"
-    fig.savefig(out, dpi=150); plt.close(fig); print("saved", out)
+    fig.savefig(out, dpi=150); plt.close(fig)
+    print(f"saved {out}  ({len(sig_set)}/{len(chans)} FDR-sig electrodes)")
 
 
 def main():
