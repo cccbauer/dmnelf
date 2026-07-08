@@ -72,7 +72,10 @@ def crosscohort_table(res="tr"):
     frames = {}
     for name, p in arms:
         if p.exists():
-            frames[name] = pd.read_csv(p).set_index("target")
+            df = pd.read_csv(p)
+            if "method" in df.columns:      # new format: keep EFP transfer rows
+                df = df[df["method"] == "EFP"]
+            frames[name] = df.set_index("target")
     if not frames:
         return "_(cross-cohort results pending)_"
     hdr = "| Target | Electrode |"
@@ -95,7 +98,25 @@ def crosscohort_table(res="tr"):
                 line += " — | — |"
         rows.append(line)
     ntxt = ", ".join(f"{name} n={f['n_test'].iloc[0]}" for name, f in frames.items())
-    return "\n".join(rows) + f"\n\n*Transfer electrode = DMNELF LOSO modal channel; {ntxt}. `*` p<0.05.*"
+    return "\n".join(rows) + f"\n\n*Transfer electrode = DMNELF group-peak channel; {ntxt}. `*` p<0.05.*"
+
+
+def panel_table(res="tr"):
+    """Panel B: EFP/HRF/T-A at the network group-peak electrode (same-electrode, OOF)."""
+    f = RES / f"same_electrode_panel_{res}.csv"
+    if not f.exists():
+        return "_(panel pending)_"
+    d = pd.read_csv(f)
+    g = d.groupby("target")[["EFP", "HRF", "TA"]].mean()
+    el = d.groupby("target")["electrode"].first()
+    rows = ["| Target | Electrode | EFP | HRF | T/A |", "|---|---|---|---|---|"]
+    for t in ORDER:
+        if t not in g.index or not g.loc[t].notna().any():
+            continue
+        best = g.loc[t].idxmax()
+        cell = lambda m: (f"**{g.loc[t, m]:.3f}**" if m == best else f"{g.loc[t, m]:.3f}")
+        rows.append(f"| {t} | {el.get(t, '')} | {cell('EFP')} | {cell('HRF')} | {cell('TA')} |")
+    return "\n".join(rows)
 
 
 def scatter(df, res="tr", out=RES / "paper_fig_persubject_scatter_tr.png"):
@@ -137,6 +158,7 @@ def main():
     if MD.exists():
         txt = MD.read_text()
         txt = inject(txt, "table1", table1(df))
+        txt = inject(txt, "panel", panel_table())
         txt = inject(txt, "loso", loso_table(lo))
         txt = inject(txt, "crosscohort", crosscohort_table())
         MD.write_text(txt)

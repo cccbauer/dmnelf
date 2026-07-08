@@ -8,14 +8,26 @@ checked, a **status** (✅ OK / ⚠️ risk / ❌ bug), the **evidence** (file:l
 
 ## TL;DR
 
-- **One critical issue:** within-subject decoding uses **best-electrode selection scored on
-  the same CV folds** → the per-subject/group within-subject r's are optimistically biased
-  (~+0.05–0.15). Fix = **nested CV** (next phase).
-- **The generalization results are trustworthy:** LOSO and the DMNELF→rtBPD **cross-cohort**
-  transfer use a fixed electrode + held-out/independent data and are largely immune to the
-  bias — these should lead the paper.
-- A handful of medium issues (fold buffering, 4 Hz upsampling, band-index alignment,
-  motion regression) and minor/cosmetic items; several checks came back clean.
+- **The audit caught two real artifacts, both now fixed (v3):**
+  1. 🔴 **Best-electrode selection scored on the same CV folds** inflated within-subject r
+     (~+0.05–0.15). **Fix = nested CV** (select electrode on inner-train folds, score on the
+     held-out outer fold; report concatenated out-of-fold Pearson r). Within-subject Table 1
+     now reflects honest, de-biased values.
+  2. 🔴 **Normalization asymmetry** — EFP designs were returned *raw* while the HRF and T/A
+     baselines were per-run z-scored, which deflated EFP (110 heterogeneous band×delay
+     features) both within-subject and cross-cohort. **Fix = per-run standardize in
+     `assemble`**, so all three methods are on equal footing. EFP recovered substantially
+     (e.g. CEN within 0.089→0.159; cross-cohort roughly doubled).
+- **Outcome after both fixes: the EFP-centric story holds on honest numbers.** Within-subject
+  EFP wins the task-relevant targets (PDA/CEN/GSR_CEN/GSR_PDA); the same-electrode Panel B has
+  EFP > HRF 6/7; LOSO is significant 6/7; and the DMNELF→rtBPD **cross-cohort** transfer is
+  significant for **7/7 targets in nf1 and 6/7 in nf2** — a clean double replication with no
+  rtBPD data used in training or electrode selection.
+- **Estimator note:** electrode ranking must use concatenated-OOF r (`oof_r`), not
+  mean-of-per-fold-r (`cv_score`) — the latter is inflated on small test blocks and produced
+  spurious "all-electrodes-significant" topographies. Fixed.
+- Remaining medium issues (purged folds, fixed-band transfer, 4 Hz upsampling, motion
+  regression) are deferred controls, not blockers; several checks came back clean.
 
 Severity legend: 🔴 critical · 🟠 medium · 🟡 low/cosmetic · ✅ verified-OK.
 
@@ -85,7 +97,7 @@ design at decode time.
   extracted with each channel's own bands); only figure/table band-axis labels can be
   slightly wrong. **Fix:** store per-channel edges, or label as the across-channel median.
 
-## 4. Cross-validated decoding  🔴 (contains the critical issue)
+## 4. Cross-validated decoding  🔴→✅ (critical issue, FIXED in v3 — see §9)
 
 **What it does.** Per electrode, double CV: outer contiguous m×k block folds + inner RidgeCV
 for λ; metrics = out-of-fold r and NMSE. Best electrode = min CV NMSE; baselines HRF and T/A
@@ -101,9 +113,10 @@ on the same folds.
   fewer folds). There is no nested/held-out protection; a fresh fold set is even drawn per
   electrode (`:155`). **This inflates `efp_persubject_all.csv` / `efp_group_summary.csv` and,
   through them, the group sign-flip p-values.**
-  **Fix (chosen, next phase): nested CV** — pick the electrode on inner training folds,
-  score it only on the held-out outer fold; report the nested estimate. Lead the paper with
-  LOSO + cross-cohort (below), which do not have this problem.
+  **✅ FIXED (v3): nested CV** (`nested_cv_r` + `oof_r`) — the electrode is picked on
+  inner-training folds and scored only on the held-out outer fold. Within-subject Table 1 now
+  reports de-biased OOF r. A second artifact (EFP returned raw while baselines were z-scored)
+  was also caught here and fixed by per-run standardizing in `assemble` — see §9.
 - 🟠 **No gap between contiguous CV folds.** `mk_block_folds` (`:50`) makes adjacent
   train/test blocks with no buffer → temporal autocorrelation can leak across the boundary
   and mildly inflate CV. **Fix:** purge a few TRs (≥ HRF span) around each test block.
@@ -179,26 +192,39 @@ recover occipital electrodes + alpha.
 
 ---
 
-## 9. Remediation roadmap (next phase)
+## 9. Remediation roadmap
 
-Ordered; each notes the expected effect on the numbers. v1 stays frozen for side-by-side
-comparison.
+### Done (v3 — current)
 
-1. **Nested CV for electrode selection** (🔴). Select the electrode on inner train folds,
-   score on the held-out outer fold. *Effect:* within-subject Table 1 r's drop to honest
-   values; group p-values re-computed on the de-biased r's. LOSO/cross-cohort largely
-   unchanged. Re-run decode → group → figures → `manuscript_stats`.
-2. **Purged/gapped CV folds** (🟠) in `mk_block_folds`. *Effect:* small additional decrease
+1. ✅ **Nested CV for electrode selection** (🔴). `nested_cv_r` selects the electrode on
+   inner-train folds and scores on the held-out outer fold; `oof_r` gives honest
+   concatenated-OOF Pearson r. Removed the within-subject selection bias. HRF and T/A
+   baselines are nested over the same candidate sets so the comparison is fair.
+2. ✅ **Normalization asymmetry fixed** (🔴). `assemble` now per-run standardizes the EFP
+   design (matching the HRF/T-A assemblers). Cross-cohort `build_design` relies on this.
+   EFP recovered within-subject and roughly doubled cross-cohort.
+3. ✅ **Approach-B transfer electrode** (🟠). LOSO uses the **group-mean-r peak over the
+   training subjects only** (per fold), and cross-cohort uses the all-DMNELF group-peak
+   (rtBPD untouched) — both leak-free; replaces the unstable per-subject modal argmax.
+4. ✅ **Per-electrode BH-FDR topography** (🟠), "mark, don't mask" — the continuous r map is
+   preserved and FDR-significant electrodes are dotted; `electrode_fdr_{target}_{res}.csv`
+   written. Estimator corrected to `oof_r` (was `cv_score` → spurious all-significant).
+5. ✅ **Same-electrode Panel B** (`same_electrode_panel.py`) — EFP/HRF/T-A at each network's
+   group-peak electrode with matched OOF CV, isolating the design question. EFP > HRF 6/7.
+
+### Deferred (controls, not blockers)
+
+6. **Purged/gapped CV folds** (🟠) in `mk_block_folds`. *Effect:* small additional decrease
    in within-subject CV; negligible on transfer.
-3. **Fixed-band group model** (🟠) for LOSO + cross-cohort (shared Hz band edges instead of
-   per-subject index alignment). *Effect:* cleaner, likely slightly more conservative
-   transfer r's; removes the alignment caveat.
-4. **Control analyses** (🟠): (a) motion-regressed base targets; (b) 4 Hz vs TR + null-target
-   upsampling check. *Effect:* either validates or trims the 4 Hz / non-GSR claims.
-5. **Minor fixes** (🟡): per-channel `band_hz` storage; `RidgeCV(random_state=0)`; consistent
+7. **Fixed-band group model** (🟠) for LOSO + cross-cohort (shared Hz band edges instead of
+   per-subject index alignment). *Effect:* removes the alignment caveat.
+8. **Control analyses** (🟠): (a) motion-regressed base targets; (b) 4 Hz vs TR + null-target
+   upsampling check (4 Hz now demoted to **supplementary**; TR primary).
+9. **Minor fixes** (🟡): per-channel `band_hz` storage; `RidgeCV(random_state=0)`; consistent
    z-scoring scope; exact version pins.
 
-After (1)–(3), re-freeze as `results/frozen_v2/` and compare v1↔v2 in the manuscript.
+v1 stays frozen at tag `efp-preprint-v1` / `results/frozen_v1/`; v3 lives on branch
+`efp-bulletproof-v2`.
 
 ## Files audited
 `scripts/efp_decode.py`, `efp_features.py`, `efp_group.py`, `cross_cohort_efp.py`,

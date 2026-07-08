@@ -28,7 +28,7 @@ from scipy.stats import zscore, pearsonr
 from sklearn.linear_model import RidgeCV
 
 from efp_features import load_config, load_subject_features, make_delay_design
-from efp_decode import assemble, nmse, mk_block_folds
+from efp_decode import assemble, nmse, mk_block_folds, cv_score, oof_r
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJ_DIR = SCRIPT_DIR.parent
@@ -106,54 +106,106 @@ def _plot_fingerprint(mat, target, res, cfg, path):
     fig.tight_layout(); fig.savefig(path, dpi=140); plt.close(fig)
 
 
-def loso_transfer(cfg, out_dir, cache_dir, df):
-    """LOSO: common electrode per target/res; train N-1, predict held-out subject."""
+def n_delays_for(cfg, res):
     e = cfg["efp"]; tr = cfg["data"]["fmri"]["tr"]
+    return (int(round(e["delay_window_s"] / tr)) + 1 if res == "tr"
+            else int(round(e["delay_window_s"] * e["hz4"])) + 1)
+
+
+def electrode_r_matrix(cfg, out_dir, feats):
+    """Per-subject × per-electrode plain-CV r (subjects rank electrodes on training data).
+    Saved to electrode_r_all.csv and returned as {(target,res): {sub: {ch: r}}}."""
+    e = cfg["efp"]
     alphas = np.logspace(np.log10(e["alpha_grid_lo"]), np.log10(e["alpha_grid_hi"]), e["alpha_grid_n"])
-    subs = cfg["data"]["subjects"]["all"]
-    # cache features per subject once
+    mat, rows = {}, []
+    for res in e["resolutions"]:
+        nd = n_delays_for(cfg, res)
+        for target in cfg["targets"]:
+            d = {}
+            for s, (runs, chs) in feats.items():
+                sub_r = {}
+                for ci, ch in enumerate(chs):
+                    X, y = assemble(runs, ci, target, res, nd)
+                    if X is None:
+                        continue
+                    r = oof_r(X, y, alphas, mk_block_folds(len(y), e["cv_outer_k"], e["cv_outer_m"]))
+                    if np.isfinite(r):
+                        sub_r[ch] = r
+                        rows.append(dict(subject=s, target=target, resolution=res, electrode=ch, r=r))
+                if sub_r:
+                    d[s] = sub_r
+            mat[(target, res)] = d
+    pd.DataFrame(rows).to_csv(out_dir / "electrode_r_all.csv", index=False)
+    return mat
+
+
+def _group_peak(chmat, subset, min_n=10):
+    """Electrode with the highest mean r over `subset` of subjects (present in >= min_n)."""
+    chans = set().union(*[set(chmat[s]) for s in subset if s in chmat]) if subset else set()
+    best, best_r = None, -np.inf
+    for ch in chans:
+        vals = [chmat[s][ch] for s in subset if s in chmat and ch in chmat[s]]
+        if len(vals) >= min_n and np.mean(vals) > best_r:
+            best_r, best = np.mean(vals), ch
+    return best
+
+
+def loso_transfer(cfg, out_dir, cache_dir, df):
+    """LOSO with approach B: transfer electrode = group-mean-r peak.
+
+    common_ch (used by cross_cohort_efp) = peak over ALL subjects (chosen on the training
+    cohort; cross-cohort tests an independent cohort → leak-free). LOSO itself picks the
+    electrode PER FOLD on the N-1 training subjects only (leak-free within DMNELF)."""
+    e = cfg["efp"]
+    alphas = np.logspace(np.log10(e["alpha_grid_lo"]), np.log10(e["alpha_grid_hi"]), e["alpha_grid_n"])
     feats = {}
-    for s in subs:
+    for s in cfg["data"]["subjects"]["all"]:
         try:
-            runs, chs = load_subject_features(cache_dir, s)
-            feats[s] = (runs, chs)
+            feats[s] = load_subject_features(cache_dir, s)
         except FileNotFoundError:
             continue
+    chmat = electrode_r_matrix(cfg, out_dir, feats)
 
     rows = []
     for res in e["resolutions"]:
-        n_delays = int(round(e["delay_window_s"] / tr)) + 1 if res == "tr" \
-            else int(round(e["delay_window_s"] * e["hz4"])) + 1
+        nd = n_delays_for(cfg, res)
         for target in cfg["targets"]:
-            # common electrode = modal best EFP electrode across subjects for this target/res
-            sel = df[(df.target == target) & (df.resolution == res) & (df.method == "EFP")]
-            if sel.empty:
+            cm = chmat.get((target, res), {})
+            usable = [s for s in cm if cm[s]]
+            if len(usable) < 4:
                 continue
-            common_ch = Counter(sel["best_ch"]).most_common(1)[0][0]
-            # build per-subject (X, y) for the common electrode
-            data = {}
-            for s, (runs, chs) in feats.items():
-                if common_ch not in chs:
+            peak_all = _group_peak(cm, usable)          # for cross-cohort (train-cohort choice)
+            r_subs, folds_ch = [], []
+            for held in usable:
+                trains = [s for s in usable if s != held]
+                el = _group_peak({s: cm[s] for s in usable}, trains, min_n=min(10, len(trains)))
+                # electrode must exist in the held-out subject too
+                if el is None or el not in feats[held][1]:
                     continue
-                ci = chs.index(common_ch)
-                X, y = assemble(runs, ci, target, res, n_delays)
-                if X is not None:
-                    data[s] = (zscore(X, axis=0), y)
-            if len(data) < 4:
-                continue
-            r_subs = []
-            for held in data:
-                Xtr = np.vstack([data[s][0] for s in data if s != held])
-                ytr = np.concatenate([data[s][1] for s in data if s != held])
-                Xte, yte = data[held]
-                model = RidgeCV(alphas=alphas).fit(Xtr, ytr)
-                pred = model.predict(Xte)
+                Xtr, ytr = [], []
+                for s in trains:
+                    runs, chs = feats[s]
+                    if el not in chs:
+                        continue
+                    X, y = assemble(runs, chs.index(el), target, res, nd)
+                    if X is not None:
+                        Xtr.append(zscore(X, axis=0)); ytr.append(y)
+                runs, chs = feats[held]
+                Xh, yh = assemble(runs, chs.index(el), target, res, nd)
+                if not Xtr or Xh is None:
+                    continue
+                model = RidgeCV(alphas=alphas).fit(np.vstack(Xtr), np.concatenate(ytr))
+                pred = model.predict(zscore(Xh, axis=0))
                 if np.std(pred) > 1e-9:
-                    r_subs.append(pearsonr(yte, pred)[0])
+                    r_subs.append(pearsonr(yh, pred)[0]); folds_ch.append(el)
+            if not r_subs:
+                continue
             m, p = sign_flip_test(r_subs)
-            rows.append(dict(target=target, resolution=res, common_ch=common_ch,
-                             n=len(r_subs), loso_mean_r=m, sign_flip_p=p))
-            print(f"  LOSO {target} {res} (ch {common_ch}): r={m:+.3f} p={p:.3f} n={len(r_subs)}")
+            modal_fold = Counter(folds_ch).most_common(1)[0][0] if folds_ch else peak_all
+            rows.append(dict(target=target, resolution=res, common_ch=peak_all,
+                             loso_fold_modal_ch=modal_fold, n=len(r_subs),
+                             loso_mean_r=m, sign_flip_p=p))
+            print(f"  LOSO {target} {res}: peak_all={peak_all} r={m:+.3f} p={p:.3f} n={len(r_subs)}")
     loso = pd.DataFrame(rows)
     loso.to_csv(out_dir / "efp_group_loso.csv", index=False)
     return loso

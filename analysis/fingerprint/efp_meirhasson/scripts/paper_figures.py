@@ -80,10 +80,11 @@ def per_channel_r(cfg, runs, chs, target, res, n_delays, alphas, best_ch):
     return r_by_ch, best_pred, best_y
 
 
-def render_r_topomap(ax, cfg, sub, r_by_ch, best_ch, vmax=None):
+def render_r_topomap(ax, cfg, sub, r_by_ch, best_ch, vmax=None, mark_chs=None):
     """Draw a per-electrode CV-r scalp topomap into ax; star marks best electrode.
 
     Uses MNE's internal 2D projection for both the map and the star so they align.
+    `mark_chs` (e.g. FDR-significant electrodes) get a black dot marker.
     Returns the image handle (for a colorbar)."""
     d = cfg["data"]
     fif = (Path(d["eeg_preproc_dir"]) / f"sub-{sub}" / d["session"] / "eeg" /
@@ -103,6 +104,13 @@ def render_r_topomap(ax, cfg, sub, r_by_ch, best_ch, vmax=None):
     im, _ = mne.viz.plot_topomap(vals, pos2d, axes=ax, show=False, cmap="RdBu_r",
                                  vlim=(-vmax, vmax), contours=6, sensors=True)
     have_chs = [raw.ch_names[i] for i in have]
+    if mark_chs:
+        for c in mark_chs:
+            if c in have_chs:
+                mi = have_chs.index(c)
+                ax.plot(pos2d[mi, 0], pos2d[mi, 1], marker="o", markersize=7,
+                        markerfacecolor="black", markeredgecolor="white",
+                        markeredgewidth=0.8, linestyle="none", zorder=9)
     if best_ch in have_chs:
         bi = have_chs.index(best_ch)
         ax.plot(pos2d[bi, 0], pos2d[bi, 1], marker="*", markersize=20,
@@ -486,31 +494,26 @@ def _bh_fdr(pvals, q=0.05):
 
 
 def fig_group_electrode_topomap(cfg, target, res="tr", q=0.05):
-    """Group per-electrode CV r across subjects, FDR-thresholded (paper Fig 5b analog).
+    """Group per-electrode CV r across subjects (paper Fig 5b analog).
 
+    Reads the per-subject × per-electrode matrix (electrode_r_all.csv, written by
+    efp_group) so the topography peak matches the LOSO/cross-cohort transfer electrode.
     Each electrode's across-subject r vector gets a sign-flip p; Benjamini-Hochberg FDR
-    is applied across electrodes and non-significant electrodes are set to 0 (as in
-    Meir-Hasson 2014). Writes electrode_fdr_{target}_{res}.csv with r, p, fdr_sig."""
-    alphas = alphas_from(cfg)
-    n_delays = n_delays_for(cfg, res)
-    acc, n_used, ref_sub = {}, 0, None
-    for sub in cfg["data"]["subjects"]["all"]:
-        try:
-            runs, chs = load_subject_features(CACHE, sub)
-        except Exception:
-            continue
-        rbc, _, _ = per_channel_r(cfg, runs, chs, target, res, n_delays, alphas, chs[0])
-        if not rbc:
-            continue
-        if ref_sub is None:
-            ref_sub = sub
-        n_used += 1
-        for ch, rr in rbc.items():
-            if np.isfinite(rr):
-                acc.setdefault(ch, []).append(rr)
+    is applied across electrodes. The continuous group map is shown with FDR-significant
+    electrodes MARKED (not masked). Writes electrode_fdr_{target}_{res}.csv."""
+    mcsv = RES / "electrode_r_all.csv"
+    if not mcsv.exists():
+        print(f"  group topomap {target}: electrode_r_all.csv missing (run efp_group)"); return
+    d = pd.read_csv(mcsv)
+    d = d[(d.target == target) & (d.resolution == res)]
+    if d.empty:
+        print(f"  group topomap {target}: no rows"); return
+    acc = {ch: g["r"].tolist() for ch, g in d.groupby("electrode")}
     chans = [ch for ch, v in acc.items() if len(v) >= 10]
     if not chans:
-        print(f"  group topomap {target}: no data"); return
+        print(f"  group topomap {target}: <10 subjects/electrode"); return
+    n_used = d["subject"].nunique()
+    ref_sub = str(d["subject"].iloc[0])
     gmap = {ch: float(np.mean(acc[ch])) for ch in chans}
     pvals = [_sign_flip_p(acc[ch]) for ch in chans]
     sig = _bh_fdr(pvals, q=q)
@@ -522,21 +525,17 @@ def fig_group_electrode_topomap(cfg, target, res="tr", q=0.05):
                   "fdr_sig": [c in sig_set for c in chans]}).to_csv(
         RES / f"electrode_fdr_{target}_{res}.csv", index=False)
 
-    # paper convention: non-significant electrodes set to 0
-    gmap_masked = {ch: (gmap[ch] if ch in sig_set else 0.0) for ch in chans}
-    peak = max(sig_set, key=gmap.get) if sig_set else max(gmap, key=gmap.get)
-
+    peak = max(gmap, key=gmap.get)   # group-mean-r peak = transfer electrode
     fig, ax = plt.subplots(figsize=(5.4, 5))
-    im = render_r_topomap(ax, cfg, ref_sub, gmap_masked, peak if sig_set else None)
+    im = render_r_topomap(ax, cfg, ref_sub, gmap, peak, mark_chs=sig_set)
     ax.set_title(f"{target}: group per-electrode CV r (n={n_used})\n"
-                 f"FDR q<{q}: {len(sig_set)}/{len(chans)} sig"
-                 + (f", peak {peak}" if sig_set else ", none sig"),
+                 f"peak {peak}; FDR q<{q}: {len(sig_set)}/{len(chans)} sig (•)",
                  fontsize=11, fontweight="bold")
-    fig.colorbar(im, ax=ax, fraction=0.046, label="mean CV r (FDR-masked)")
+    fig.colorbar(im, ax=ax, fraction=0.046, label="mean CV r")
     fig.tight_layout()
     out = RES / f"paper_fig_group_topomap_{target}_{res}.png"
     fig.savefig(out, dpi=150); plt.close(fig)
-    print(f"saved {out}  ({len(sig_set)}/{len(chans)} FDR-sig electrodes)")
+    print(f"saved {out}  (peak {peak}, {len(sig_set)}/{len(chans)} FDR-sig)")
 
 
 def main():

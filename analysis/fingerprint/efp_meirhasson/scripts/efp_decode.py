@@ -82,6 +82,20 @@ def cv_score(X, y, alphas, folds):
     return float(np.mean(r_list)), float(np.mean(nmse_list))
 
 
+def oof_r(X, y, alphas, folds):
+    """Honest CV r for a FIXED design: concatenate out-of-fold predictions, then correlate.
+    Unlike mean-of-per-fold-r (cv_score), this is not inflated by small test blocks."""
+    pred = np.full(len(y), np.nan)
+    for tr, te in folds:
+        mu, sd = X[tr].mean(0), X[tr].std(0) + 1e-12
+        m = RidgeCV(alphas=alphas).fit((X[tr] - mu) / sd, y[tr])
+        pred[te] = m.predict((X[te] - mu) / sd)
+    ok = ~np.isnan(pred)
+    if ok.sum() < 3 or np.std(pred[ok]) < 1e-9:
+        return np.nan
+    return float(pearsonr(y[ok], pred[ok])[0])
+
+
 def nested_cv_r(X_list, y, alphas, k, m, cand, inner_m=1):
     """Nested-CV electrode selection to REMOVE selection bias.
 
@@ -142,6 +156,9 @@ def assemble(runs, ci, target, res, n_delays):
         X, off = make_delay_design(rd[bp_key][ci], n_delays)
         if X.shape[0] == 0:
             continue
+        # per-run standardize features (scale-invariant across subjects/cohorts,
+        # matching assemble_hrf / assemble_ta so all methods are on equal footing)
+        X = (X - X.mean(0)) / (X.std(0) + 1e-12)
         y = zscore(rd[tg_key][target][off:off + X.shape[0]])
         Xs.append(X); ys.append(y)
     if not Xs:
@@ -225,11 +242,24 @@ def process_subject(cfg, sub, cache_dir, out_dir):
             rows.append(dict(subject=sub, target=target, resolution=res, method="EFP",
                              best_ch=best_ch, mean_r=r_efp, mean_nmse=nm_efp))
 
-            # ---- HRF baseline: fixed at the modal EFP electrode (no selection) ----
-            Xh, yh = assemble_hrf(runs, best_ci, target, res, hrf)
-            rh, nmh = cv_score(Xh, yh, alphas, mk_block_folds(len(yh), k, m))
+            # ---- HRF baseline: nested-CV over all electrodes (fair vs EFP) ----
+            Xh_list, yh = [], None
+            for ci in range(len(ch_names)):
+                try:
+                    Xc, yc = assemble_hrf(runs, ci, target, res, hrf)
+                except Exception:
+                    Xc, yc = None, None
+                Xh_list.append(Xc)
+                if Xc is not None and yh is None:
+                    yh = yc
+            hrf_cand = [ci for ci, X in enumerate(Xh_list) if X is not None]
+            if yh is not None and hrf_cand:
+                rh, nmh, hrf_chosen = nested_cv_r(Xh_list, yh, alphas, k, m, hrf_cand)
+                hrf_ch = ch_names[Counter(hrf_chosen).most_common(1)[0][0]] if hrf_chosen else best_ch
+            else:
+                rh, nmh, hrf_ch = np.nan, np.nan, best_ch
             rows.append(dict(subject=sub, target=target, resolution=res, method="HRF",
-                             best_ch=best_ch, mean_r=rh, mean_nmse=nmh))
+                             best_ch=hrf_ch, mean_r=rh, mean_nmse=nmh))
 
             # ---- T/A baseline: nested-CV over occipital electrodes ----
             Xta_list = [None] * len(ch_names)
