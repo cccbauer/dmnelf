@@ -1,17 +1,19 @@
 # EFP vs multivariate band-power — head-to-head
 
-Band-power model = elasticnet (its stronger model). EFP = nested-CV v3, single electrode.
-`*` = sign-flip p < 0.05. **Cross-cohort replicates** = significant in BOTH rtBPD sessions.
+EFP = nested-CV v3, single electrode (RidgeCV). Band-power = multivariate 155-feature (31ch × 5 bands), nested (OOF r + inner-CV α); both ridge and elasticnet shown within-subject.
+Cross-cohort uses band-power **elasticnet** (its stronger transfer model — ridge replicates only 1/5). `*` = sign-flip p < 0.05. **Replicates** = significant in BOTH rtBPD sessions.
 
-## Within-subject (caveat: EFP nested/de-biased; band-power non-nested)
+## Within-subject (both nested/de-biased — matched estimator)
 
-| Target | EFP (1 electrode) | Band-power (155 feat) |
-|---|---|---|
-| DMN | 0.142 | 0.177 |
-| PDA | 0.169 | 0.145 |
-| GSR_CEN | 0.171 | 0.207 |
-| GSR_DMN | 0.117 | 0.189 |
-| GSR_PDA | 0.141 | nan |
+Band-power ridge is the L2-matched comparison to EFP's RidgeCV; elasticnet (sparse) shown too.
+
+| Target | EFP (1 electrode) | Band-power ridge | Band-power enet |
+|---|---|---|---|
+| DMN | 0.142 | 0.147 | 0.215 |
+| PDA | 0.169 | 0.129 | 0.144 |
+| GSR_CEN | 0.171 | 0.168 | 0.114 |
+| GSR_DMN | 0.117 | 0.137 | 0.078 |
+| GSR_PDA | 0.141 | 0.132 | 0.152 |
 
 ## Cross-cohort double replication (train DMNELF → predict rtBPD)
 

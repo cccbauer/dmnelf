@@ -40,16 +40,16 @@ def efp_within(t):
     return float(v.mean()) if len(v) else np.nan
 
 
-def bp_within(bt):
+def bp_within(bt, model=BP_MODEL):
     """Prefer the FAIR nested re-run (OOF r + inner-CV alpha, all 16 subjects,
     matched to EFP v3). Fall back to the old non-nested group file."""
     fair = BP / "within_fair_summary.csv"
     if fair.exists():
         d = pd.read_csv(fair)
-        d = d[(d.target == bt) & (d.model == BP_MODEL)]
+        d = d[(d.target == bt) & (d.model == model)]
         if len(d):
             return float(d.mean_oof_r.iloc[0])
-    f = BP / "multivariate" / f"group_{bt}_{BP_MODEL}.csv"
+    f = BP / "multivariate" / f"group_{bt}_{model}.csv"
     if not f.exists():
         return np.nan
     return float(pd.read_csv(f).mean_subject_r.iloc[0])
@@ -86,6 +86,7 @@ for et, bt in PAIRS:
     e1, e1p = efp_cc(et, "");     e2, e2p = efp_cc(et, "_nf2")
     b1, b1p = bp_cc(bt, "");      b2, b2p = bp_cc(bt, "_nf2")
     rows.append(dict(target=et, efp_within=e_w, bp_within=b_w,
+                     bp_within_ridge=bp_within(bt, "ridge"), bp_within_enet=bp_within(bt, "elasticnet"),
                      efp_nf1=e1, efp_nf1_p=e1p, efp_nf2=e2, efp_nf2_p=e2p,
                      bp_nf1=b1, bp_nf1_p=b1p, bp_nf2=b2, bp_nf2_p=b2p))
 df = pd.DataFrame(rows)
@@ -93,13 +94,16 @@ df.to_csv(OUT / "comparison_data.csv", index=False)
 
 # ---- markdown table ----
 L = ["# EFP vs multivariate band-power — head-to-head", "",
-     f"Band-power model = {BP_MODEL} (its stronger model). EFP = nested-CV v3, single electrode.",
-     "`*` = sign-flip p < 0.05. **Cross-cohort replicates** = significant in BOTH rtBPD sessions.", "",
+     "EFP = nested-CV v3, single electrode (RidgeCV). Band-power = multivariate 155-feature "
+     "(31ch × 5 bands), nested (OOF r + inner-CV α); both ridge and elasticnet shown within-subject.",
+     "Cross-cohort uses band-power **elasticnet** (its stronger transfer model — ridge replicates "
+     "only 1/5). `*` = sign-flip p < 0.05. **Replicates** = significant in BOTH rtBPD sessions.", "",
      ("## Within-subject (both nested/de-biased — matched estimator)" if bp_within_is_fair()
       else "## Within-subject (caveat: EFP nested/de-biased; band-power non-nested)"), "",
-     "| Target | EFP (1 electrode) | Band-power (155 feat) |", "|---|---|---|"]
+     "Band-power ridge is the L2-matched comparison to EFP's RidgeCV; elasticnet (sparse) shown too.", "",
+     "| Target | EFP (1 electrode) | Band-power ridge | Band-power enet |", "|---|---|---|---|"]
 for _, r in df.iterrows():
-    L.append(f"| {r.target} | {r.efp_within:.3f} | {r.bp_within:.3f} |")
+    L.append(f"| {r.target} | {r.efp_within:.3f} | {r.bp_within_ridge:.3f} | {r.bp_within_enet:.3f} |")
 L += ["", "## Cross-cohort double replication (train DMNELF → predict rtBPD)", "",
       "| Target | EFP nf1 | EFP nf2 | Band-power nf1 | Band-power nf2 | Replicates (both sess.) |",
       "|---|---|---|---|---|---|"]
