@@ -21,8 +21,9 @@ mne.set_log_level("ERROR")
 
 def load_config(p):
     cfg = yaml.safe_load(open(p)); d = cfg["data"]
-    d["features_dir"] = (d["features_dir_cluster"] if Path("/projects/swglab").exists()
-                         else d["features_dir_local"])
+    suffix = "_cluster" if Path("/projects/swglab").exists() else "_local"
+    for key in ("features_dir", "eeg_preproc_dir", "confounds_dir"):
+        d[key] = str(Path(d[key + suffix]).expanduser())
     return cfg
 
 
@@ -61,7 +62,7 @@ def zscore(x):
 def gather_subject(cfg, subj, hrf):
     """Per feedback run: (targets dict, bandpower dict, parcels[n_tr x 64], chs).
     targets: DMN, CEN, PDA timeseries (raw, will be handled by caller)."""
-    d = cfg["data"]; ses = d["session"]; task = d["task"]
+    d = cfg["data"]; ses = d.get("session_eeg", d["session"]); task = d["task"]
     spt = d["eeg"]["samples_per_tr"]; desc = d["eeg"]["desc"]
     dmn_i = d["fmri"]["dmn_idx"]; cen_i = d["fmri"]["cen_idx"]; ndi = d["fmri"]["n_difumo"]
     fdir = Path(d["features_dir"]) / f"sub-{subj}"
