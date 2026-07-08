@@ -170,7 +170,7 @@ bullets(s, [
      "simultaneous scalp EEG.", 0),
     ("Why? So EEG alone — cheap, portable, no scanner — can drive real-time neurofeedback "
      "once a mapping is learned.", 0, BLUE, True),
-    ("PDA = the actual DMNELF neurofeedback target (personalized DMN–CEN differential). "
+    ("PDA = the actual DMNELF neurofeedback target (personalized CEN − DMN differential). "
      "GSR'd targets remove the shared global-arousal signal — the hard, network-specific test.", 0),
     ("Meir-Hasson's EFP is a single-electrode, HRF-free time-frequency fingerprint. We ask: "
      "does it replicate here, beat standard baselines, and generalize to new subjects & a new cohort?", 0),
@@ -218,7 +218,7 @@ bullets(s, [
 # 7 — Step 4: fMRI targets & GSR
 s = new("Step 4 — fMRI targets & global-signal regression")
 bullets(s, [
-    ("Seven targets (z-scored per run): CEN, DMN, PDA (DMN–CEN differential), plus a VIS "
+    ("Seven targets (z-scored per run): CEN, DMN, PDA (CEN − DMN differential), plus a VIS "
      "positive-control ROI, each in RAW and GSR'd form.", 0),
     ("RAW targets include global arousal (a sanity check — easy). GSR'd targets remove the "
      "shared signal → the stringent, network-specific test.", 0, BLUE, True),
