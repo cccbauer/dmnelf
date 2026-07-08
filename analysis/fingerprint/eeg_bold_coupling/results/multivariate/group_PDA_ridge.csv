@@ -1,0 +1,2 @@
+target,model,mean_subject_r,t_stat,n_subjects,p_right_tailed,p_two_tailed
+PDA,ridge,0.11194830449730822,2.228250885212614,16,0.021097890210978902,0.042195780421957804

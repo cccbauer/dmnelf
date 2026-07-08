@@ -1,0 +1,2 @@
+target,model,mean_subject_r,t_stat,n_subjects,p_right_tailed,p_two_tailed
+GSR_DMN,ridge,0.12390917824536755,3.463854272866413,16,0.0027997200279972004,0.005599440055994401

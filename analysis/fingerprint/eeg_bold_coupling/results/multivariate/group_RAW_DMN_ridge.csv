@@ -1,0 +1,2 @@
+target,model,mean_subject_r,t_stat,n_subjects,p_right_tailed,p_two_tailed
+RAW_DMN,ridge,0.15621241757778775,3.391621025946257,11,0.0051994800519948,0.0103989601039896
