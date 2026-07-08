@@ -41,10 +41,22 @@ def efp_within(t):
 
 
 def bp_within(bt):
+    """Prefer the FAIR nested re-run (OOF r + inner-CV alpha, all 16 subjects,
+    matched to EFP v3). Fall back to the old non-nested group file."""
+    fair = BP / "within_fair_summary.csv"
+    if fair.exists():
+        d = pd.read_csv(fair)
+        d = d[(d.target == bt) & (d.model == BP_MODEL)]
+        if len(d):
+            return float(d.mean_oof_r.iloc[0])
     f = BP / "multivariate" / f"group_{bt}_{BP_MODEL}.csv"
     if not f.exists():
         return np.nan
     return float(pd.read_csv(f).mean_subject_r.iloc[0])
+
+
+def bp_within_is_fair():
+    return (BP / "within_fair_summary.csv").exists()
 
 
 def efp_cc(t, tag=""):
@@ -83,7 +95,8 @@ df.to_csv(OUT / "comparison_data.csv", index=False)
 L = ["# EFP vs multivariate band-power — head-to-head", "",
      f"Band-power model = {BP_MODEL} (its stronger model). EFP = nested-CV v3, single electrode.",
      "`*` = sign-flip p < 0.05. **Cross-cohort replicates** = significant in BOTH rtBPD sessions.", "",
-     "## Within-subject (caveat: EFP nested/de-biased; band-power non-nested)", "",
+     ("## Within-subject (both nested/de-biased — matched estimator)" if bp_within_is_fair()
+      else "## Within-subject (caveat: EFP nested/de-biased; band-power non-nested)"), "",
      "| Target | EFP (1 electrode) | Band-power (155 feat) |", "|---|---|---|"]
 for _, r in df.iterrows():
     L.append(f"| {r.target} | {r.efp_within:.3f} | {r.bp_within:.3f} |")
@@ -131,12 +144,14 @@ fig.tight_layout(); fig.savefig(OUT / "fig_crosscohort_headtohead.png", dpi=150)
 # ---- figure 2: within-subject ----
 fig, ax = plt.subplots(figsize=(8.5, 4.4))
 w = 0.38
+bp_lab = "Band-power (155 feat, nested)" if bp_within_is_fair() else "Band-power (155 feat, non-nested)"
 ax.bar(x - w/2, df.efp_within, w, label="EFP (1 electrode, nested)", color="#1f77b4", edgecolor="k", linewidth=0.5)
-ax.bar(x + w/2, df.bp_within, w, label="Band-power (155 feat, non-nested)", color="#c0504d", edgecolor="k", linewidth=0.5)
+ax.bar(x + w/2, df.bp_within, w, label=bp_lab, color="#c0504d", edgecolor="k", linewidth=0.5)
 ax.axhline(0, color="k", lw=0.8); ax.set_xticks(x); ax.set_xticklabels(tg)
 ax.set_ylabel("within-subject CV r")
-ax.set_title("Within-subject — band-power leads (multivariate; note non-nested caveat)",
-             fontsize=11, fontweight="bold")
+wt = ("Within-subject — multivariate band-power vs single-electrode EFP (matched nested CV)"
+      if bp_within_is_fair() else "Within-subject — band-power leads (multivariate; non-nested caveat)")
+ax.set_title(wt, fontsize=11, fontweight="bold")
 ax.legend(fontsize=9); ax.spines[["top", "right"]].set_visible(False)
 fig.tight_layout(); fig.savefig(OUT / "fig_within_headtohead.png", dpi=150); plt.close(fig)
 print("\nsaved figures to", OUT)
