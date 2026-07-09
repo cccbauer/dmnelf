@@ -96,20 +96,16 @@ bullets(s, [
      "ideal NF marker: interpretable, calibration-free, deployable.", 0, GREEN, True),
 ], top=1.6, size=16)
 
-# 6 secondary — EEG quench
-s = new("Secondary — EEG decluttering during regulation (and it's NOT EMG)")
+# 6 secondary — EEG quench + EMG control
+s = new("Secondary — EEG decluttering during regulation (EMG control: it's neural)",
+        "beta/gamma power-variance drop in feedback; tested against EMG by topography + aperiodic split")
+img(s, R / "fig_emg_control.png", left=1.35, top=1.75, width=10.6)
 bullets(s, [
-    ("Non-convolved (specparam) band power: beta +1.6 dB (p=2e-4), gamma +3.7 dB (p=1e-4) variance "
-     "DROP during feedback; delta/theta/alpha flat.", 0, BLUE, True),
-    ("Not EMG: the quench is MIDLINE-strongest, not temporal-dominant (beta midline +1.56 vs "
-     "temporal +1.06); and active novice noting-practice wouldn't reduce EMG vs rest anyway.", 0, GREEN, True),
-    ("Aperiodic check: broadband offset variance is flat (−0.2 dB, ns; against EMG), while the 1/f "
-     "EXPONENT stabilizes (+1.2 dB, p=8e-4) — a more stable E/I regime.", 0),
-    ("→ genuinely neural: reduced high-freq power variability + stabilized 1/f slope during "
-     "regulation = the stability/criticality face of the f-SNR framework.", 0, NAVY, True),
-    ("(HRF-convolved cache gave a spurious +30 dB all-band onset-ramp artifact; corrected with the "
-     "non-convolved specparam extraction.)", 0, GREY),
-], top=1.6, size=15)
+    ("Not EMG: quench is MIDLINE-strongest not temporal (beta midline +1.56 vs temporal +1.06 dB); "
+     "broadband offset flat (ns); 1/f exponent stabilizes (+1.2 dB, p=8e-4). Novice noting-practice "
+     "wouldn't reduce EMG vs rest anyway. → reduced high-freq variability + stabilized 1/f = the "
+     "stability/criticality face of f-SNR.", 0, GREEN, True),
+], top=6.05, size=12)
 
 # 7 bottom line
 s = new("Bottom line")
