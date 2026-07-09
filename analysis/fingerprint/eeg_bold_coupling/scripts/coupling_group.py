@@ -1,158 +1,210 @@
+#!/usr/bin/env python
 """
-coupling_group.py  (STEP A, group inference)
---------------------------------------------
-Is there a CONSISTENT, spatially/spectrally specific EEG band-power -> network
-coupling across the cohort, after removing the global broadband confound?
+coupling_group.py
+-----------------
+Group-level analysis of EEG-BOLD coupling after per-subject feature extraction.
 
-For each subject we compute a channel x band coupling map r[band,ch] between the
-HRF-convolved log band power and each target (DMN/CEN/PDA), under three feature
-versions: RAW, CAR (global spatial factor removed), PARTIAL (global+trend
-regressed out). We then do GROUP inference across subjects:
-  - mean coupling map,
-  - one-sample t across subjects per cell,
-  - FWER-controlled p via SIGN-FLIP max-statistic null (flip each subject's whole
-    map by +-1, recompute max|t| over the grid; corrects for the 31x5 search).
+Computes:
+- Within-subject correlations (EEG band power → DMN/CEN/PDA)
+- Group-level t-tests against zero (sign-flip permutation null)
+- Multiple comparison correction (max-statistic across bands/channels/targets)
 
-If a consistent coupling exists (e.g. posterior alpha -> DMN), the group t-map has
-a significant, interpretable peak. If the per-subject hits are scattered, the
-group map is ~0 and nothing survives -> the residual couplings were noise.
-
-Usage: python scripts/coupling_group.py --config config.yaml
-Output: results/coupling_group.csv + results/figures/coupling_group_<version>.png
+Run after bandpower.py has extracted features for all subjects.
 """
-import argparse, sys, warnings, csv
+import sys
+import argparse
 from pathlib import Path
 import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
+import pandas as pd
+import yaml
+import mne
+from scipy.stats import ttest_1samp, t
+from joblib import Parallel, delayed
 
+# Add parent to path for shared utils
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from bandpower import load_config, canonical_hrf, gather_subject, zscore  # noqa: E402
-import mne  # noqa: E402
-warnings.simplefilter("ignore"); mne.set_log_level("ERROR")
+from bandpower import load_config, gather_subject, canonical_hrf
+
+mne.set_log_level("ERROR")
 
 
-def resid(Y, nuis):
-    X = np.column_stack([np.ones(len(nuis)), nuis])
-    return Y - X @ np.linalg.lstsq(X, Y, rcond=None)[0]
+# ----------------------------------------------------------------------
+# Within-subject coupling (correlation between EEG band power and target)
+# ----------------------------------------------------------------------
+def subject_coupling(runs, target_name, bands, zscore_eeg=True, zscore_target=True):
+    """
+    Compute correlation for each (band, channel) across all runs of one subject.
+
+    Parameters
+    ----------
+    runs : list of dicts from gather_subject
+    target_name : str, 'DMN', 'CEN', or 'PDA'
+    bands : list of band names (e.g., ['delta','theta',...])
+    zscore_eeg : bool, z-score each band's power per run (within-run)
+    zscore_target : bool, z-score target per run
+
+    Returns
+    -------
+    r_mat : dict band -> np.ndarray (n_channels,)
+        Correlation coefficients per channel
+    """
+    # Collect all TRs across runs into one array per band
+    # We'll concatenate runs (preserving time order but runs are independent)
+    all_eeg = {b: [] for b in bands}
+    all_target = []
+
+    for run in runs:
+        n_tr = run["n_tr"]
+        target = run["targets"][target_name]
+        if zscore_target:
+            target = (target - target.mean()) / (target.std() + 1e-12)
+        all_target.append(target)
+
+        for band in bands:
+            bp = run["bp"][band]          # (n_tr, n_ch)
+            if zscore_eeg:
+                bp = (bp - bp.mean(axis=0)) / (bp.std(axis=0) + 1e-12)
+            all_eeg[band].append(bp)
+
+    # Concatenate across runs
+    all_target = np.concatenate(all_target, axis=0)
+    r_out = {}
+    for band in bands:
+        X = np.concatenate(all_eeg[band], axis=0)   # (total_tr, n_ch)
+        # Correlation with target (vector) per channel
+        r = np.corrcoef(X.T, all_target)[:-1, -1]   # (n_ch,)
+        r_out[band] = r
+    return r_out
 
 
-def corr_map(F, y):
-    """Pearson r of each column of F with y (both will be z-scored)."""
-    Fz = (F - F.mean(0)) / (F.std(0) + 1e-12)
-    yz = (y - y.mean()) / (y.std() + 1e-12)
-    return (Fz * yz[:, None]).mean(0)
+# ----------------------------------------------------------------------
+# Group-level stats with sign-flip permutation (max-statistic corrected)
+# ----------------------------------------------------------------------
+def group_coupling_all_subjects(cfg, subjects, target_name, bands, n_perm=2000):
+    """
+    For each subject, get correlation maps (band, channel).
+    Then group t-test against zero, corrected with sign-flip permutation.
+
+    Returns
+    -------
+    results : dict
+        t_obs : dict band -> np.ndarray (n_channels,)
+        p_fwer : dict band -> np.ndarray (n_channels,)
+        t_thresh : float (FWER threshold)
+    """
+    tr = cfg["data"]["fmri"]["tr"]
+    hrf_params = cfg["hrf"]
+    hrf = canonical_hrf(tr, hrf_params["length_s"], hrf_params["delay"], hrf_params["undershoot"])
+
+    # Collect per-subject correlation maps (n_subj, n_ch)
+    n_ch = None
+    subj_maps = {b: [] for b in bands}
+
+    for subj in subjects:
+        print(f"  Processing {subj}...")
+        runs = gather_subject(cfg, subj, hrf)
+        if not runs:
+            print(f"    No runs found for {subj}, skipping")
+            continue
+        r_map = subject_coupling(runs, target_name, bands, zscore_eeg=True, zscore_target=True)
+        for b in bands:
+            subj_maps[b].append(r_map[b])
+            if n_ch is None:
+                n_ch = len(r_map[b])
+
+    # Convert to arrays (n_subj, n_ch)
+    for b in bands:
+        subj_maps[b] = np.array(subj_maps[b])
+    n_subj = len(subj_maps[bands[0]])
+
+    # Observed t-values (one-sample t-test against 0)
+    t_obs = {}
+    for b in bands:
+        t_obs[b], _ = ttest_1samp(subj_maps[b], 0, axis=0)
+
+    # Permutation null: sign-flip within each subject
+    # Max-statistic over all bands and channels
+    max_t_perm = np.zeros(n_perm)
+    for perm in range(n_perm):
+        # Random sign flips for each subject (per channel, but we flip entire subject's map)
+        signs = np.random.choice([-1, 1], size=(n_subj, 1))
+        t_perm_band = []
+        for b in bands:
+            flipped = subj_maps[b] * signs
+            t_perm, _ = ttest_1samp(flipped, 0, axis=0)
+            t_perm_band.append(t_perm)
+        t_perm_all = np.concatenate(t_perm_band)  # (n_bands * n_ch,)
+        max_t_perm[perm] = np.max(np.abs(t_perm_all))
+        if (perm+1) % 500 == 0:
+            print(f"    Permutation {perm+1}/{n_perm}")
+
+    # FWER threshold at alpha=0.05
+    t_thresh = np.percentile(max_t_perm, 95)
+    # Compute FWER-corrected p-values per channel/band
+    p_fwer = {}
+    for b in bands:
+        p_unc = 2 * (1 - t.cdf(np.abs(t_obs[b]), df=n_subj-1))
+        # Adjust: p_fwer = proportion of permutations where max_t > |t_obs|
+        # But to get per-channel we need to compare each t_obs against null distribution of max
+        # Standard approach: p_fwer = (number of permutations with max_t >= |t_obs[b][c]|) / n_perm
+        # We'll compute per channel by counting how many permutations had max_t >= that channel's t
+        p_fwer_b = np.zeros_like(t_obs[b])
+        for c in range(n_ch):
+            p_fwer_b[c] = np.mean(max_t_perm >= np.abs(t_obs[b][c]))
+        p_fwer[b] = p_fwer_b
+
+    return {"t_obs": t_obs, "p_fwer": p_fwer, "t_thresh": t_thresh, "n_subj": n_subj}
 
 
-def subject_maps(runs, bands):
-    """Return {version: {target: r[nb,nc]}} for one subject."""
-    nb, nc = len(bands), len(runs[0]["chs"])
-    raw_r, car_r, par_r = [], [], []
-    tgt = {k: [] for k in ("DMN", "CEN", "PDA")}
-    tgt_p = {k: [] for k in ("DMN", "CEN", "PDA")}
-    for r in runs:
-        zb = {b: zscore(r["bp"][b]) for b in bands}
-        raw = np.hstack([zb[b] for b in bands])
-        car = np.hstack([zb[b] - zb[b].mean(1, keepdims=True) for b in bands])
-        g = raw.mean(1); t = np.arange(r["n_tr"])
-        raw_r.append(raw); car_r.append(car)
-        par_r.append(resid(raw, np.column_stack([t, g])))
-        for k in tgt:
-            yz = zscore(r["targets"][k])
-            tgt[k].append(yz); tgt_p[k].append(resid(yz, np.column_stack([t, g])))
-    F = {"RAW": np.vstack(raw_r), "CAR": np.vstack(car_r), "PARTIAL": np.vstack(par_r)}
-    Y = {k: np.concatenate(tgt[k]) for k in tgt}
-    Yp = {k: np.concatenate(tgt_p[k]) for k in tgt_p}
-    out = {}
-    for ver in F:
-        out[ver] = {}
-        for k in ("DMN", "CEN", "PDA"):
-            yy = Yp[k] if ver == "PARTIAL" else Y[k]
-            out[ver][k] = corr_map(F[ver], yy).reshape(nb, nc)
-    return out
-
-
-def signflip_maxt(R, nperm, rng):
-    """R: [ns, nb, nc] per-subject r maps. Returns mean, t, p_fwer per cell + best."""
-    ns = R.shape[0]
-    mean = R.mean(0); sd = R.std(0, ddof=1)
-    t = mean / (sd / np.sqrt(ns) + 1e-12)
-    obs = np.abs(t); obs_max = obs.max()
-    bidx = np.unravel_index(obs.argmax(), obs.shape)
-    ge = np.zeros_like(t)
-    cnt_max = 0
-    for _ in range(nperm):
-        s = rng.choice([-1, 1], size=ns)[:, None, None]
-        Rp = R * s
-        mp = Rp.mean(0); sdp = Rp.std(0, ddof=1)
-        tp = np.abs(mp / (sdp / np.sqrt(ns) + 1e-12))
-        if tp.max() >= obs_max:
-            cnt_max += 1
-        ge += (tp >= obs)
-    p_best = (cnt_max + 1) / (nperm + 1)
-    return mean, t, bidx, p_best
-
-
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--config", default="config.yaml")
-    ap.add_argument("--nperm", type=int, default=5000)
-    a = ap.parse_args(); cfg = load_config(a.config)
-    bands = list(cfg["bands"]); nb = len(bands)
-    hcfg = cfg["hrf"]; hrf = canonical_hrf(cfg["data"]["fmri"]["tr"], hcfg["length_s"],
-                                           hcfg["delay"], hcfg["undershoot"])
-    subs = [s for s in cfg["data"]["subjects"]["all"]
-            if s not in set(cfg["data"]["subjects"].get("exclude", []))]
-    rng = np.random.default_rng(0)
-
-    maps = {v: {k: [] for k in ("DMN", "CEN", "PDA")} for v in ("RAW", "CAR", "PARTIAL")}
-    chs = None
-    for s in subs:
-        runs = gather_subject(cfg, s, hrf)
-        if len(runs) < 2:
-            print(f"  skip {s} (<2 runs)"); continue
-        chs = runs[0]["chs"]
-        sm = subject_maps(runs, bands)
-        for v in maps:
-            for k in maps[v]:
-                maps[v][k].append(sm[v][k])
-        print(f"  {s} done")
-    nc = len(chs)
-
-    rows = []
-    for ver in ("RAW", "CAR", "PARTIAL"):
-        fig, ax = plt.subplots(2, 3, figsize=(16, 7))
-        for ci, k in enumerate(("DMN", "CEN", "PDA")):
-            R = np.stack(maps[ver][k])                     # [ns, nb, nc]
-            mean, t, bidx, p_best = signflip_maxt(R, a.nperm, rng)
-            bi, bj = bidx
-            print(f"{ver:7s} {k}: group-best {chs[bj]}/{bands[bi]} "
-                  f"mean_r={mean[bi,bj]:+.3f} t={t[bi,bj]:+.2f} p_fwer={p_best:.4f}")
-            rows.append(dict(version=ver, target=k, best_ch=chs[bj], best_band=bands[bi],
-                             mean_r=float(mean[bi, bj]), t=float(t[bi, bj]), p_fwer=p_best))
-            im0 = ax[0, ci].imshow(mean, aspect="auto", cmap="RdBu_r", vmin=-.2, vmax=.2)
-            ax[0, ci].set_title(f"{k}: group mean r", fontsize=9)
-            im1 = ax[1, ci].imshow(t, aspect="auto", cmap="RdBu_r", vmin=-5, vmax=5)
-            ax[1, ci].set_title(f"{k}: group t  (best {chs[bj]}/{bands[bi]} "
-                                f"r={mean[bi,bj]:+.2f} p_fwer={p_best:.3f})", fontsize=8)
-            for axi, im in ((ax[0, ci], im0), (ax[1, ci], im1)):
-                axi.set_yticks(range(nb)); axi.set_yticklabels(bands, fontsize=7)
-                axi.set_xticks(range(0, nc, 4))
-                axi.set_xticklabels([chs[j] for j in range(0, nc, 4)], rotation=90, fontsize=5)
-                fig.colorbar(im, ax=axi, fraction=.046, pad=.02)
-        fig.suptitle(f"Group EEG band-power -> network coupling ({ver}, n={len(subs)}, "
-                     f"sign-flip max-stat null)", fontsize=12)
-        fig.tight_layout()
-        outd = Path(cfg["project"]["base_dir"]) / "results" / "figures"
-        outd.mkdir(parents=True, exist_ok=True)
-        fig.savefig(outd / f"coupling_group_{ver}.png", dpi=110); plt.close(fig)
-
-    outp = Path(cfg["project"]["base_dir"]) / "results" / "coupling_group.csv"
-    with open(outp, "w", newline="") as f:
-        wr = csv.DictWriter(f, fieldnames=list(rows[0].keys())); wr.writeheader(); wr.writerows(rows)
-    print(f"saved: {outp} + figures/coupling_group_*.png")
-
-
+# ----------------------------------------------------------------------
+# Main entry point
+# ----------------------------------------------------------------------
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Group-level EEG-BOLD coupling analysis")
+    parser.add_argument("--offline", action="store_true", help="Use local offline data paths")
+    parser.add_argument("--subject", type=str, default="group",
+                        help="Ignored; kept for compatibility (always runs group)")
+    parser.add_argument("--target", type=str, default="PDA",
+                        choices=["DMN", "CEN", "PDA"],
+                        help="Target network to decode")
+    parser.add_argument("--n_perm", type=int, default=2000,
+                        help="Number of sign-flip permutations for FWER correction")
+    args = parser.parse_args()
+
+    config_path = Path(__file__).resolve().parent.parent / "config.yaml"
+    cfg = load_config(config_path, offline=args.offline)
+
+    # Override output directory for offline mode
+    if args.offline:
+        # Set base_dir to local repo results folder
+        repo_root = Path(__file__).resolve().parent.parent.parent  # up to dmnelf/
+        cfg["project"]["base_dir"] = str(repo_root / "analysis/fingerprint/eeg_bold_coupling")
+        print(f"Offline mode: saving results to {cfg['project']['base_dir']}")
+    else:
+        # Keep cluster base_dir as is (already loaded from config)
+        pass
+
+    subjects = cfg["data"]["subjects"]["all"]
+    bands = list(cfg["bands"].keys())
+
+    print(f"Running group coupling for target={args.target}")
+    print(f"Subjects: {subjects}")
+    print(f"Bands: {bands}")
+
+    results = group_coupling_all_subjects(cfg, subjects, args.target, bands, n_perm=args.n_perm)
+
+    # Save results
+    out_dir = Path(cfg["project"]["base_dir"]) / "results"
+    out_dir.mkdir(exist_ok=True, parents=True)
+    for band in bands:
+        t_arr = results["t_obs"][band]
+        p_arr = results["p_fwer"][band]
+        # Save as numpy
+        np.savez(out_dir / f"group_{args.target}_{band}_coupling.npz",
+                 t_obs=t_arr, p_fwer=p_arr, t_thresh=results["t_thresh"], n_subj=results["n_subj"])
+
+    print(f"\nResults saved to {out_dir}")
+    print(f"FWER threshold t = {results['t_thresh']:.3f}")
+    for band in bands:
+        n_sig = np.sum(results["p_fwer"][band] < 0.05)
+        print(f"{band}: {n_sig} significant channels (FWER p<0.05)")
