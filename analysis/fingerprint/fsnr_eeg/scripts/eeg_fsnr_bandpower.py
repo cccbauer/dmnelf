@@ -26,6 +26,28 @@ PROJ = Path(__file__).resolve().parent.parent
 DATA = PROJ / "data"; RES = PROJ / "results"; RES.mkdir(exist_ok=True)
 BANDS = ["delta", "theta", "alpha", "beta", "gamma"]
 POST = ["P3", "P4", "P7", "P8", "O1", "O2", "Oz", "Pz", "POz", "PO3", "PO4"]  # posterior
+FRONTAL = ["Fp1", "Fp2", "F3", "F4", "F7", "F8", "Fz", "FC1", "FC2", "FC5", "FC6"]  # portable headset
+
+
+def cols_for(feat, chset):
+    """Indices of feature columns whose channel is in chset."""
+    return [j for j, (b, c) in enumerate(feat) if c in chset]
+
+
+def apriori_match(runs, chs, band, chset):
+    """Construct-driven (no fitting): running f-SNR of `band` averaged over `chset`,
+    correlated with PDA per run (mean over runs)."""
+    pi = [i for i, c in enumerate(chs) if c in chset]
+    if not pi:
+        return np.nan
+    rs = []
+    for rd in runs:
+        pda = zs(np.asarray(rd["targets"]["PDA"], float))
+        ef = zs(np.nanmean(np.column_stack([running_fsnr(rd["bp"][band][:, i])[1] for i in pi]), 1))
+        m = np.isfinite(pda) & np.isfinite(ef)
+        if m.sum() > 20:
+            rs.append(np.corrcoef(pda[m], ef[m])[0, 1])
+    return np.nanmean(rs) if rs else np.nan
 
 
 def zs(x):
@@ -76,30 +98,27 @@ def match_nested(X, y, k=5):
 
 def main():
     files = sorted(glob.glob(str(DATA / "*_bandpower.npz")))
-    rows, quench = [], {b: [] for b in BANDS}
-    apriori = []
+    rows = []
+    apriori = {"post_alpha": [], "frontal_alpha": [], "frontal_theta": []}
     for f in files:
         sub = re.search(r"(dmnelf\w+)_bandpower", f).group(1)
         runs, chs = subject_runs(f)
         Xr, Xf, ypda, yfsnr, feat = build_features(runs, chs)
+        fc = cols_for(feat, FRONTAL); pc = cols_for(feat, POST)
         r = dict(subject=sub)
-        r["raw_vs_PDA"], _ = match_nested(Xr, ypda)
-        r["fsnr_vs_PDA"], ch = match_nested(Xf, ypda)
-        r["raw_vs_fMRIfsnr"], _ = match_nested(Xr, yfsnr)
-        r["fsnr_vs_fMRIfsnr"], _ = match_nested(Xf, yfsnr)
+        r["raw_vs_PDA_all"], _ = match_nested(Xr, ypda)
+        r["raw_vs_PDA_frontal"], _ = match_nested(Xr[:, fc], ypda)
+        r["raw_vs_PDA_post"], _ = match_nested(Xr[:, pc], ypda)
+        r["fsnr_vs_PDA_all"], _ = match_nested(Xf, ypda)
+        r["fsnr_vs_PDA_frontal"], _ = match_nested(Xf[:, fc], ypda)
+        r["fsnr_vs_fMRIfsnr_all"], _ = match_nested(Xf, yfsnr)
         rows.append(r)
         # NOTE: EEG variability-quench is NOT computed here — the cached band power is
-        # HRF-convolved (~27 s onset ramp contaminates the 25-TR baseline). Clean EEG
-        # quench is done in Flavor 2 (specparam, non-convolved windowed PSD).
-        # a-priori posterior-alpha f-SNR match to PDA
-        pi = [i for i, c in enumerate(chs) if c in POST]
-        ap = []
-        for rd in runs:
-            pda = zs(np.asarray(rd["targets"]["PDA"], float))
-            aef = zs(np.nanmean(np.column_stack([running_fsnr(rd["bp"]["alpha"][:, i])[1] for i in pi]), 1))
-            m = np.isfinite(pda) & np.isfinite(aef)
-            if m.sum() > 20: ap.append(np.corrcoef(pda[m], aef[m])[0, 1])
-        apriori.append(np.nanmean(ap) if ap else np.nan)
+        # HRF-convolved (~27 s onset ramp contaminates the 25-TR baseline); done in Flavor 2.
+        # a-priori construct indices (no fitting): band f-SNR over a montage, matched to PDA
+        apriori["post_alpha"].append(apriori_match(runs, chs, "alpha", POST))
+        apriori["frontal_alpha"].append(apriori_match(runs, chs, "alpha", FRONTAL))
+        apriori["frontal_theta"].append(apriori_match(runs, chs, "theta", FRONTAL))
 
     import pandas as pd
     df = pd.DataFrame(rows); df.to_csv(RES / "eeg_fsnr_bandpower_match.csv", index=False)
@@ -110,12 +129,15 @@ def main():
         obs = x.mean(); null = (rng.choice([-1, 1], (n, len(x)))*np.abs(x)).mean(1)
         return obs, (np.sum(null >= obs)+1)/(n+1)
 
-    print("=== within-subject matched r (mean; sign-flip p) ===")
-    for c in ["raw_vs_PDA", "fsnr_vs_PDA", "raw_vs_fMRIfsnr", "fsnr_vs_fMRIfsnr"]:
+    print("=== leak-free nested single-site match to PDA — by montage ===")
+    for c in ["raw_vs_PDA_all", "raw_vs_PDA_frontal", "raw_vs_PDA_post",
+              "fsnr_vs_PDA_all", "fsnr_vs_PDA_frontal", "fsnr_vs_fMRIfsnr_all"]:
         o, p = sflip(df[c].values)
-        print(f"  {c:20s} r={o:+.3f}  p={p:.4f}")
-    o, p = sflip(np.array(apriori))
-    print(f"  {'aprioriPostAlpha_PDA':20s} r={o:+.3f}  p={p:.4f}  (construct-driven, no fitting)")
+        print(f"  {c:22s} r={o:+.3f}  p={p:.4f}")
+    print("\n=== a-priori construct indices (no fitting) vs PDA ===")
+    for k in ["post_alpha", "frontal_alpha", "frontal_theta"]:
+        o, p = sflip(np.array(apriori[k]))
+        print(f"  {k:16s} r={o:+.3f}  p={p:.4f}")
     print("\n(EEG variability-quench deferred to Flavor 2: cached band power is HRF-convolved.)")
 
 
