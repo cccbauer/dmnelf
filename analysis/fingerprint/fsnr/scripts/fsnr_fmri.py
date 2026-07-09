@@ -27,6 +27,7 @@ Writes results/fsnr_fmri.csv (per run) + prints validation.
 """
 from pathlib import Path
 import numpy as np, pandas as pd, re
+from scipy.stats import gamma
 
 PROJ = Path(__file__).resolve().parent.parent
 DATA = PROJ / "data"
@@ -34,6 +35,34 @@ RES = PROJ / "results"; RES.mkdir(exist_ok=True)
 DMN_I, CEN_I = 64, 65
 BASELINE_TR = 25      # first 25 TR = rest baseline
 HRF_DROP = 5          # drop first 5 feedback TRs (HRF lag ~6 s at TR 1.2)
+TR = 1.2
+
+
+def canonical_hrf(tr=TR, length_s=32, delay=6, undershoot=16):
+    t = np.arange(0, length_s, tr)
+    h = gamma.pdf(t, delay) - gamma.pdf(t, undershoot) / 6.0
+    return h / h.sum()
+
+
+def task_regressor(n_tr, baseline_tr=BASELINE_TR):
+    """HRF-convolved rest->feedback boxcar (the pseudo-target): 0 during rest, 1 during
+    feedback. This is E[r|z] for continuous z; GLM f-SNR = explained/residual variance."""
+    box = np.zeros(n_tr); box[baseline_tr:] = 1.0
+    hrf = canonical_hrf()
+    x = np.convolve(box, hrf, mode="full")[:n_tr]
+    return x - x.mean()
+
+
+def glm_fsnr(r, x):
+    """Regress r on [1, x]; return (fsnr_db, beta, r2). signal=explained var, noise=resid."""
+    X = np.column_stack([np.ones_like(x), x])
+    beta, *_ = np.linalg.lstsq(X, r, rcond=None)
+    fitted = X @ beta
+    ss_model = np.sum((fitted - r.mean()) ** 2)
+    ss_resid = np.sum((r - fitted) ** 2)
+    fsnr = ss_model / ss_resid if ss_resid > 1e-12 else np.nan
+    r2 = ss_model / (ss_model + ss_resid) if (ss_model + ss_resid) > 0 else np.nan
+    return (10 * np.log10(fsnr) if fsnr and fsnr > 0 else np.nan), float(beta[1]), r2
 
 
 def lotv(r, zmask):
@@ -71,6 +100,22 @@ def run_fsnr(fm, pda):
     # DMN-as-noise variant: CEN task-signal over DMN endogenous noise
     sC = out["signal_CEN"]; nD = out["noise_DMN"]
     out["fsnr_CENDMN_db"] = 10 * np.log10(sC / nD) if (nD > 1e-12 and sC > 0) else np.nan
+
+    # ---- GLM / pseudo-target version (continuous z; uses all TRs, proper HRF) ----
+    x = task_regressor(n_tr)
+    ss_resid = {}
+    for nm, r in [("PDA", pda), ("CEN", cen), ("DMN", dmn)]:
+        db, beta, r2 = glm_fsnr(r, x)
+        out[f"glm_{nm}_db"] = db          # explained/residual variance in dB
+        out[f"beta_{nm}"] = beta          # signed HRF-aware regulation (replaces crude delta)
+        out[f"r2_{nm}"] = r2
+        # residual variance for the CEN/DMN glm variant
+        Xd = np.column_stack([np.ones_like(x), x]); b, *_ = np.linalg.lstsq(Xd, r, rcond=None)
+        ss_resid[nm] = np.sum((r - Xd @ b) ** 2) / len(r)
+    # CEN signal (glm explained var) over DMN residual (endogenous) noise
+    Xd = np.column_stack([np.ones_like(x), x]); bC, *_ = np.linalg.lstsq(Xd, cen, rcond=None)
+    ssC = np.sum((Xd @ bC - cen.mean()) ** 2) / len(cen)
+    out["glm_CENDMN_db"] = 10 * np.log10(ssC / ss_resid["DMN"]) if ss_resid["DMN"] > 1e-12 and ssC > 0 else np.nan
     return out
 
 
@@ -89,40 +134,44 @@ def main():
     df.to_csv(RES / "fsnr_fmri.csv", index=False)
     print(f"{len(df)} runs, {df.subject.nunique()} subjects -> {RES/'fsnr_fmri.csv'}\n")
 
-    # ---- per-network group summary (dB) ----
-    print("=== per-run f-SNR (dB), group mean ± sd ===")
-    for c in ["fsnr_PDA_db", "fsnr_CEN_db", "fsnr_DMN_db", "fsnr_CENDMN_db"]:
-        v = df[c].replace([np.inf, -np.inf], np.nan).dropna()
-        print(f"  {c:16s} {v.mean():+.2f} ± {v.std():.2f} dB   (n={len(v)})")
+    def icc(col):
+        d = df[["subject", col]].replace([np.inf, -np.inf], np.nan).dropna()
+        g = d.groupby("subject")[col]
+        btw, wth = g.mean().var(), g.var().mean()
+        return btw / (btw + wth) if (btw + wth) > 0 else np.nan
 
-    print("\n=== directional regulation (mean_feedback - mean_rest), group mean ===")
-    for c in ["delta_PDA", "delta_CEN", "delta_DMN"]:
-        print(f"  {c:10s} {df[c].mean():+.3f}   (>0 in {100*(df[c]>0).mean():.0f}% of runs)")
+    def corr(a, b):
+        d = df[[a, b]].replace([np.inf, -np.inf], np.nan).dropna()
+        return np.corrcoef(d[a], d[b])[0, 1] if len(d) > 3 else np.nan
 
-    # ---- reliability: run-to-run (ICC-ish via between/within variance) ----
-    print("\n=== reliability (per-subject mean, and run-to-run) ===")
-    for c in ["fsnr_PDA_db", "fsnr_CEN_db", "fsnr_DMN_db", "fsnr_CENDMN_db"]:
-        d = df[["subject", c]].replace([np.inf, -np.inf], np.nan).dropna()
-        g = d.groupby("subject")[c]
-        btw = g.mean().var()                     # between-subject variance of means
-        wth = g.var().mean()                     # mean within-subject variance
-        icc = btw / (btw + wth) if (btw + wth) > 0 else np.nan
-        print(f"  {c:16s} ICC≈{icc:.2f}  (between={btw:.2f}, within={wth:.2f})")
+    # ---- head-to-head: discrete (2-bin LoTV) vs GLM (HRF pseudo-target) ----
+    print("=== DISCRETE (2-bin) vs GLM (HRF pseudo-target) — per network ===")
+    print(f"  {'metric':10s} {'discrete dB':>12s} {'GLM dB':>10s} {'ICC disc':>9s} {'ICC glm':>8s}")
+    for nm in ["PDA", "CEN", "DMN", "CENDMN"]:
+        dc = f"fsnr_{nm}_db" if nm != "CENDMN" else "fsnr_CENDMN_db"
+        gc = f"glm_{nm}_db"
+        vd = df[dc].replace([np.inf, -np.inf], np.nan).dropna()
+        vg = df[gc].replace([np.inf, -np.inf], np.nan).dropna()
+        print(f"  {nm:10s} {vd.mean():+8.2f}±{vd.std():4.1f} {vg.mean():+7.2f}±{vg.std():4.1f}"
+              f" {icc(dc):9.2f} {icc(gc):8.2f}")
+    print("  (per-subject 4-run reliability ~ 4*ICC/(1+3*ICC))")
 
-    # ---- non-redundancy with PDA level ----
-    print("\n=== non-redundancy: corr(f-SNR, mean feedback PDA) across runs ===")
-    for c in ["fsnr_PDA_db", "fsnr_CEN_db", "fsnr_CENDMN_db"]:
-        d = df[[c, "meanfb_PDA"]].replace([np.inf, -np.inf], np.nan).dropna()
-        r = np.corrcoef(d[c], d["meanfb_PDA"])[0, 1]
-        print(f"  corr({c}, meanfb_PDA) = {r:+.2f}   (want |r|<0.8)")
+    print("\n=== directional regulation: crude Δmean vs HRF-aware β (group) ===")
+    for nm in ["PDA", "CEN", "DMN"]:
+        dcol, bcol = f"delta_{nm}", f"beta_{nm}"
+        print(f"  {nm:4s}  Δmean={df[dcol].mean():+.3f} ({100*(df[dcol]>0).mean():.0f}% >0)"
+              f"   β={df[bcol].mean():+.3f} ({100*(df[bcol]>0).mean():.0f}% >0)")
 
-    # ---- hypothesis: f-SNR vs DMN suppression / PDA elevation ----
-    print("\n=== hypothesis: does f-SNR track regulation direction? (across runs) ===")
-    for c in ["fsnr_PDA_db", "fsnr_CEN_db", "fsnr_CENDMN_db"]:
-        d = df[[c, "delta_DMN", "delta_PDA"]].replace([np.inf, -np.inf], np.nan).dropna()
-        rD = np.corrcoef(d[c], d["delta_DMN"])[0, 1]
-        rP = np.corrcoef(d[c], d["delta_PDA"])[0, 1]
-        print(f"  {c:16s} vs ΔDMN r={rD:+.2f} (expect <0)   vs ΔPDA r={rP:+.2f} (expect >0)")
+    print("\n=== non-redundancy with PDA level: corr(f-SNR, mean feedback PDA) ===")
+    for nm in ["PDA", "CEN", "CENDMN"]:
+        print(f"  {nm:6s}  discrete={corr(f'fsnr_{nm}_db','meanfb_PDA'):+.2f}"
+              f"   glm={corr(f'glm_{nm}_db','meanfb_PDA'):+.2f}   (want |r|<0.8)")
+
+    print("\n=== hypothesis test: f-SNR vs regulation direction (GLM β; across runs) ===")
+    for nm in ["PDA", "CEN", "CENDMN"]:
+        gc = f"glm_{nm}_db"
+        print(f"  {gc:12s} vs βDMN r={corr(gc,'beta_DMN'):+.2f} (expect <0)"
+              f"   vs βPDA r={corr(gc,'beta_PDA'):+.2f} (expect >0)")
 
 
 if __name__ == "__main__":
