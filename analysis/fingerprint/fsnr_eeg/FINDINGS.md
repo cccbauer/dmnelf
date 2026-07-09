@@ -28,10 +28,15 @@
    removes cohort-specific scale/gain, making the f-SNR cohort-invariant. The construct even
    matches/beats the **fitted** EFP decoder cross-cohort (EFP PDA nf1 0.067, nf2 0.153).
 
-4. **Secondary — clean EEG variability quench:** non-convolved (specparam) band power shows
-   beta +1.6 dB (p = 2e-4) and gamma +3.7 dB (p = 1e-4) variance drop during feedback; low bands
-   flat. High-frequency EEG decluttering (EMG caveat). (The HRF-convolved cache gave a spurious
-   +30 dB all-band onset-ramp artifact — corrected with the non-convolved extraction.)
+4. **Secondary — EEG decluttering during regulation (neural, not EMG):** non-convolved (specparam)
+   band power shows beta +1.6 dB (p = 2e-4) and gamma +3.7 dB (p = 1e-4) variance drop during
+   feedback; low bands flat. This is **not** an EMG artifact: the quench is **midline-strongest**
+   (beta midline +1.56 vs temporal +1.06 dB), the **broadband aperiodic offset is flat** (−0.2 dB,
+   n.s.; against EMG), and the **1/f exponent stabilizes** (+1.2 dB, p = 8e-4). Active novice
+   noting-practice would not reduce EMG vs eyes-closed rest anyway. So: reduced high-frequency power
+   variability + a more stable aperiodic 1/f slope during regulation — the stability/criticality
+   face of the f-SNR framework. (The HRF-convolved cache gave a spurious +30 dB all-band onset-ramp
+   artifact — corrected with the non-convolved extraction.)
 
 ## Bottom line
 
