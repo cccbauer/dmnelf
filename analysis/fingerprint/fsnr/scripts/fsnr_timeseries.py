@@ -86,7 +86,7 @@ def page(pdfp, r, met):
     ax2.set_ylabel("DMN–CEN corr", color="#2e7d32"); ax2.set_ylim(-1, 1)
     ax[1].legend(ncol=3, fontsize=8, loc="upper right")
     # --- 3rd panel: causal running f-SNR (dB) — the actual f-SNR over time ---
-    for nm in ["PDA", "CEN"]:
+    for nm in ["PDA", "CEN", "DMN"]:
         _, db, _, _ = running_fsnr(r[nm])
         ax[2].plot(t, db, color=COL[nm], lw=1.4, label=f"f-SNR {nm}")
     ax[2].axvspan(0, BASELINE_TR * TR, color="grey", alpha=.12)
@@ -133,7 +133,7 @@ def group_page(fb, rest):
     ax[2].set_xlabel("time (s)"); ax[2].set_ylabel("mean rolling variance")
     ax[2].set_title("Feedback quenches; rest stays flat", fontweight="bold", fontsize=10.5); ax[2].legend(fontsize=8)
     # (d) group running f-SNR(t) in dB — the actual f-SNR trajectory
-    for nm in ["PDA", "CEN"]:
+    for nm in ["PDA", "CEN", "DMN"]:
         DB = np.array([running_fsnr(r[nm])[1][:N] for r in fb if r["n"] >= N])
         mu, se = np.nanmean(DB, 0), np.nanstd(DB, 0) / np.sqrt(len(DB))
         ax[3].plot(t, mu, color=COL[nm], lw=1.8, label=f"f-SNR {nm}")
