@@ -18,6 +18,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fsnr_fmri import task_regressor, BASELINE_TR, HRF_DROP, DMN_I, CEN_I, TR
+from fsnr_proxy import running_fsnr, W as PW
 
 PROJ = Path(__file__).resolve().parent.parent
 DATA = PROJ / "data"; RES = PROJ / "results"
@@ -53,8 +54,8 @@ def load(task):
 
 def page(pdfp, r, met):
     n = r["n"]; t = np.arange(n) * TR
-    fig, ax = plt.subplots(2, 1, figsize=(11, 6.6), sharex=True,
-                           gridspec_kw=dict(height_ratios=[1.15, 1]))
+    fig, ax = plt.subplots(3, 1, figsize=(11, 8.4), sharex=True,
+                           gridspec_kw=dict(height_ratios=[1.15, 1, 0.9]))
     # --- top: z-scored shape overlay ---
     for nm in ["DMN", "CEN", "PDA"]:
         ax[0].plot(t, z(r[nm]), color=COL[nm], lw=1.3, label=nm)
@@ -78,13 +79,21 @@ def page(pdfp, r, met):
         gv = roll_var(z(r["gs"]))     # z-scored global so it shares the variance axis scale
         ax[1].plot(t, gv, color=COL["global"], lw=1.0, alpha=.6, label="var global (z)")
     ax[1].axvspan(0, BASELINE_TR * TR, color="grey", alpha=.12)
-    ax[1].set_ylabel("rolling variance"); ax[1].set_xlabel("time (s)")
+    ax[1].set_ylabel("rolling variance")
     ax2 = ax[1].twinx()
     ax2.plot(t, roll_corr(r["DMN"], r["CEN"]), color="#2e7d32", lw=1.0, alpha=.5)
     ax2.axhline(0, color="#2e7d32", lw=.5, ls=":", alpha=.5)
     ax2.set_ylabel("DMN–CEN corr", color="#2e7d32"); ax2.set_ylim(-1, 1)
     ax[1].legend(ncol=3, fontsize=8, loc="upper right")
-    for a in [ax[0], ax[1]]:
+    # --- 3rd panel: causal running f-SNR (dB) — the actual f-SNR over time ---
+    for nm in ["PDA", "CEN"]:
+        _, db, _, _ = running_fsnr(r[nm])
+        ax[2].plot(t, db, color=COL[nm], lw=1.4, label=f"f-SNR {nm}")
+    ax[2].axvspan(0, BASELINE_TR * TR, color="grey", alpha=.12)
+    ax[2].axhline(0, color="k", lw=.5, alpha=.4)
+    ax[2].set_ylabel(f"running f-SNR (dB)\n[causal {PW}-TR window]"); ax[2].set_xlabel("time (s)")
+    ax[2].legend(ncol=2, fontsize=8, loc="upper right")
+    for a in [ax[0], ax[1], ax[2]]:
         a.spines[["top"]].set_visible(False)
     fig.tight_layout(); pdfp.savefig(fig); plt.close(fig)
 
@@ -94,7 +103,7 @@ def group_page(fb, rest):
     def stack(runs, key, n=N):
         M = [r[key][:n] for r in runs if r[key] is not None and len(r[key]) >= n]
         return np.array(M)
-    fig, ax = plt.subplots(1, 3, figsize=(15, 4.4))
+    fig, ax = plt.subplots(1, 4, figsize=(19, 4.4))
     t = np.arange(N) * TR
     # (a) onset-aligned group mean +/- SEM of networks (z per run first)
     for nm in ["DMN", "CEN", "PDA"]:
@@ -123,6 +132,15 @@ def group_page(fb, rest):
     ax[2].axvspan(0, BASELINE_TR * TR, color="grey", alpha=.12)
     ax[2].set_xlabel("time (s)"); ax[2].set_ylabel("mean rolling variance")
     ax[2].set_title("Feedback quenches; rest stays flat", fontweight="bold", fontsize=10.5); ax[2].legend(fontsize=8)
+    # (d) group running f-SNR(t) in dB — the actual f-SNR trajectory
+    for nm in ["PDA", "CEN"]:
+        DB = np.array([running_fsnr(r[nm])[1][:N] for r in fb if r["n"] >= N])
+        mu, se = np.nanmean(DB, 0), np.nanstd(DB, 0) / np.sqrt(len(DB))
+        ax[3].plot(t, mu, color=COL[nm], lw=1.8, label=f"f-SNR {nm}")
+        ax[3].fill_between(t, mu - se, mu + se, color=COL[nm], alpha=.2)
+    ax[3].axvspan(0, BASELINE_TR * TR, color="grey", alpha=.12)
+    ax[3].axhline(0, color="k", lw=.5); ax[3].set_xlabel("time (s)"); ax[3].set_ylabel("running f-SNR (dB)")
+    ax[3].set_title("f-SNR(t) rises during feedback", fontweight="bold", fontsize=10.5); ax[3].legend(fontsize=8)
     for a in ax: a.spines[["top", "right"]].set_visible(False)
     fig.tight_layout(); fig.savefig(RES / "fig_fsnr_timeseries_group.png", dpi=150); plt.close(fig)
 
