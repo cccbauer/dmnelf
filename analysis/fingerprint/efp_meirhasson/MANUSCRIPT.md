@@ -160,6 +160,34 @@ double-CV ridge and baselines), `efp_group.py` (aggregation, permutation tests,
 fingerprints, LOSO), `extract_visual_sphere.py` (calcarine-sphere extraction), and
 `paper_figures.py` (Figs. 2, 3, 5 analogs, topographies).
 
+### Portable EEG feasibility: frontal electrode restriction
+
+To assess whether the EFP generalizes to a portable EEG headset covering only the
+frontal scalp, electrode access was restricted to an 11-channel frontal subset:
+{Fp1, Fp2, F3, F4, F7, F8, Fz, FC1, FC2, FC5, FC6}. Three conditions were evaluated
+within the LOSO framework and in cross-cohort transfer:
+
+1. **Frontal single-electrode:** the best frontal electrode per target was selected
+   as the group-mean-r peak within the frontal subset, using only training subjects
+   (leak-free). All other aspects of the EFP pipeline were unchanged.
+
+2. **Frontal multivariate:** band-power delay features from all 11 frontal electrodes
+   were concatenated into a single feature matrix (fixed alphabetical electrode order
+   for dimensional consistency across subjects) and a single RidgeCV was fitted per
+   target. This increases the feature space approximately 11-fold relative to the
+   single-electrode model.
+
+3. **Pseudo-calibration:** before deployment, one rest→task run with a known block
+   design was used to individualize the frontal multivariate group model without any
+   held-out fMRI. A pseudo-target — an HRF-convolved boxcar (sign-matched per target:
+   +1 for CEN/PDA/GSR variants, −1 for DMN/GSR_DMN) — replaced the true fMRI label
+   for that run. A fresh per-subject RidgeCV was trained on this pseudo-target and its
+   predictions were z-scored and added to the group model predictions (blend). The
+   remaining runs were used for evaluation against the real fMRI, providing an honest
+   estimate of one-run calibration gain. The statistical significance of the calibration
+   gain over the uncalibrated group model was assessed by a sign-flip permutation test
+   on the per-subject gain scores.
+
 ---
 
 ## Results
@@ -320,6 +348,58 @@ the rtBPD cohort (native TR), by neurofeedback session (nf1, nf2).
 *Transfer electrode = DMNELF group-peak channel; nf1 n=19, nf2 n=11. `*` p<0.05.*
 <!-- END:crosscohort -->
 
+### Frontal EEG partially recovers the fingerprint; pseudo-calibration rescues PDA
+
+The LOSO group-model reference at n_cal=1 (one run held out; evaluated on remaining
+runs) was: PDA r = 0.117, CEN r = 0.119, DMN r = 0.081, GSR_CEN r = 0.118,
+GSR_PDA r = 0.115.
+
+**Frontal single-electrode.** Restricting to the best frontal channel per target
+preserved CEN substantially (Cz→Fz, r = 0.094; 79% of full-montage) but sharply
+reduced PDA (Pz→Fz, r = 0.015; 13%) and GSR_PDA (r = 0.026; 23%). DMN was
+partially preserved (O1→FC5, r = 0.046; 57%). This is expected: PDA's group-peak
+electrode is parietal (Pz), which lies outside the frontal headset coverage.
+
+**Frontal multivariate, no calibration.** Using all 11 frontal electrodes
+concatenated, the group model collapsed within DMNELF (PDA r ≈ 0.001; all targets ≤
+0.101), reflecting overfitting of the high-dimensional frontal feature space to n = 17
+training subjects.
+
+**Frontal multivariate, pseudo-calibration (n_cal = 1).** A single pseudo-calibrated
+run rescued performance substantially. After one calibration run PDA recovered to
+r = 0.113 (p = 0.009), GSR_CEN to r = 0.122 (p = 0.022), and GSR_PDA to r = 0.107
+(p = 0.008) — within ~5% of full-montage LOSO accuracy. CEN, already partly captured
+by the uncalibrated group model (r = 0.101), reached r = 0.121 with calibration
+(non-significant gain, p = 0.335). DMN did not benefit from frontal calibration
+(r = −0.016), consistent with its occipital group-peak electrode.
+
+**Table 4. Frontal EEG decoding accuracy** (LOSO, group_only and pseudo-cal at
+n_cal = 1; native TR; n = 17). Full-montage group_only shown for reference.
+
+| Target | Full montage | Frontal single | Frontal multi (group) | Frontal multi (pseudo-cal) | p (gain) |
+|--------|-------------|----------------|-----------------------|---------------------------|----------|
+| PDA | 0.117 | 0.015 | 0.001 | **0.113** | 0.009 |
+| GSR_CEN | 0.118 | 0.049 | 0.022 | **0.122** | 0.022 |
+| CEN | 0.119 | 0.094 | 0.101 | **0.121** | 0.335 |
+| DMN | 0.081 | 0.046 | 0.033 | −0.016 | 0.824 |
+| GSR_PDA | 0.115 | 0.026 | −0.001 | **0.107** | 0.008 |
+
+**Cross-cohort generalization of the frontal multivariate model.** Trained on all
+DMNELF subjects and applied to the independent rtBPD cohort, the frontal multivariate
+group model generalized well without any calibration: nf1 — PDA r = 0.109, CEN
+r = 0.156, DMN r = 0.112, GSR_CEN r = 0.119, GSR_PDA r = 0.110; nf2 — PDA r = 0.059,
+CEN r = 0.127. Cross-cohort frontal-multivariate performance equaled or exceeded the
+full single-electrode cross-cohort transfer for most targets in nf1 (cf. Table 3:
+full nf1 PDA r = 0.067, CEN r = 0.138, DMN r = 0.097). Pseudo-calibration did not
+improve cross-cohort decoding (all gain p > 0.28), indicating that the DMNELF-trained
+group model already generalizes without individualization when applied to a new
+population.
+
+Together these results indicate that a frontal-only portable EEG headset can recover
+the EFP for CEN and PDA — the primary neurofeedback targets — provided that one
+pseudo-calibration run (requiring no fMRI) is collected within-cohort, or that a
+cross-cohort group model is applied directly.
+
 ### Summary
 
 The EFP method reproduces on DMN/CEN/PDA in this cohort and yields the best
@@ -327,7 +407,11 @@ within-subject and cross-subject decoding we have obtained for these targets, wi
 interpretable alpha-band fingerprints and a validated visual positive control. The
 principal caveat is spatial: the recoverable signal is distributed and global rather
 than focal, so the fingerprints should be read as network-level, arousal-linked
-predictors rather than evidence of localized cortical sources.
+predictors rather than evidence of localized cortical sources. Crucially, the
+fingerprint is partially recoverable with frontal-only EEG: after a single
+pseudo-calibration run (no fMRI required), PDA and GSR-corrected CEN decoding from
+11 frontal channels approaches full-montage accuracy, opening a path toward portable
+neurofeedback deployment.
 
 ---
 
