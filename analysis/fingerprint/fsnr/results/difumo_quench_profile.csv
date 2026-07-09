@@ -1,0 +1,65 @@
+component,difumo_name,yeo7,quench_db
+53,Parieto-occipital sulcus anterior,DefaultB,0.6622187507760503
+54,Precuneus anterior,DorsAttnB,0.6597365389749691
+5,Parieto-occipital sulcus superior,ContA,0.636569219746
+44,Paracentral lobule superior,SomMotA,0.5980542147691935
+8,Planum temporale,SomMotA,0.5808117270919912
+9,Cerebellum Crus II,No network found,0.4876370662506958
+10,Superior parts of Postcentral and Precentral gyri,SomMotA,0.4825983772077628
+33,Superior parietal lobule anterior,DorsAttnB,0.42664894614850274
+18,Precuneus superior,DorsAttnB,0.4030527524500539
+26,Cingulate gyrus mid-anterior,SalVentAttnA,0.3942343465916322
+58,Middle frontal gyrus anterior,SalVentAttnA,0.3775831359528056
+12,Paracentral gyrus RH,SomMotA,0.37293259814498214
+32,Intraparietal sulcus,ContA,0.3666932967393857
+2,Fusiform gyrus,No network found,0.34835266292875444
+23,Anterior Cingulate Cortex,DefaultB,0.3451154315370323
+7,Superior temporal sulcus with angular gyrus,DefaultB,0.31055975221319293
+28,Paracentral lobule,SomMotA,0.3051295163624625
+50,Postcentral gyrus LH,SomMotA,0.2889984810880342
+40,Precentral gyrus superior,DorsAttnB,0.28200684618701277
+36,Angular gyrus superior,DefaultB,0.25637922221065296
+37,Supramarginal gyrus,SalVentAttnA,0.2534940025831982
+11,Transverse sinus,No network found,0.24874949385211642
+20,Parieto-occipital sulcus middle,VisCent,0.23974284997898448
+17,Superior frontal gyrus medial,SalVentAttnA,0.21273014276739075
+45,Heschl’s gyrus,SomMotA,0.1656363796129752
+38,Intraparietal sulcus LH,DorsAttnB,0.13829685417220233
+39,Dorsomedial prefrontal cortex antero-superior,DefaultB,0.13014120574176793
+61,Middle temporal gyrus,DefaultB,0.11593457232485574
+34,Precentral gyrus medial,SomMotA,0.11227013649135055
+21,Cerebellum I-V,No network found,0.11005547266600912
+48,Intraparietal sulcus RH,ContA,0.06274374634976893
+3,Calcarine cortex posterior,VisCent,0.05079521566913693
+57,Superior parietal lobule,DorsAttnB,0.04573627380655835
+63,Central sulcus,SomMotA,0.040356932995225164
+43,Callosomarginal sulcus,SalVentAttnA,0.036037091717476925
+30,Superior rostral gyrus,DefaultB,0.03368005824331433
+15,ventricles,No network found,0.0003641870538158606
+1,Superior frontal sulcus,DefaultB,-0.0023369983070267776
+52,Inferior frontal gyrus,ContA,-0.004729686857149419
+62,Superior frontal gyrus,DefaultB,-0.030975848695618542
+29,Inferior occipital gyrus,VisCent,-0.04762678510016845
+19,Planum polare,SalVentAttnA,-0.09431123921047994
+27,Superior parietal lobule posterior,DorsAttnB,-0.0971923929794046
+14,Cingulate gyrus mid-posterior,DefaultB,-0.09958449255794483
+41,Postcentral gyrus inferior,SomMotA,-0.10634521676148317
+47,Thalamus,No network found,-0.1534208822942896
+24,Descending occipital gyrus,VisCent,-0.19982606112375637
+42,Lateral occipital cortex,VisCent,-0.20233407707274725
+25,Putamen,No network found,-0.21075252198028688
+22,Superior fornix and isthmus,No network found,-0.23099649667624456
+13,Superior occipital gyrus,VisCent,-0.25686064127486635
+35,Lingual gyrus anterior,VisCent,-0.25930247939255996
+51,Middle frontal gyrus,ContA,-0.2595567072786834
+55,Lingual gyrus,VisCent,-0.3374293283858573
+4,Cingulate cortex posterior,DefaultB,-0.34698587538554965
+6,Insula antero-superior,SalVentAttnA,-0.35544945059159333
+60,Cuneus,VisCent,-0.36735378693508414
+31,Calcarine sulcus anterior,VisCent,-0.370522591731282
+16,Fusiform gyrus posterior,VisCent,-0.37307151320109827
+46,Occipital pole,VisCent,-0.4169212760650227
+49,Inferior frontal sulcus,ContA,-0.44192010550458116
+59,Angular gyrus inferior,DefaultB,-0.491765362842737
+56,Superior occipital sulcus,DorsAttnB,-0.5255149470681162
+64,Caudate,No network found,-0.6470956734355585
