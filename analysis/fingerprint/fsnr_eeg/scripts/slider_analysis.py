@@ -57,6 +57,29 @@ def main():
         print(f"  between-subject calm ~ PDA: r={r:+.2f} p={p:.3f} n={n}")
         rows.append(dict(cohort=coh, x="calm_bs", y="pda_bs", r=r, p=p, n=n))
     pd.DataFrame(rows).to_csv(RES / "slider_summary.csv", index=False)
+
+    # ---- pre-post change ----
+    VARS = SL + ["rt_pda_mean"]
+    print("\n===== within-session change (first vs last feedback RUN, paired) =====")
+    for name, c in groups.items():
+        out = []
+        for v in VARS:
+            fl = [(g.dropna(subset=[v]).sort_values("run")[v].iloc[0],
+                   g.dropna(subset=[v]).sort_values("run")[v].iloc[-1])
+                  for _, g in c.groupby("subject") if g[v].notna().sum() >= 2]
+            if len(fl) >= 3:
+                a, b = np.array([x[0] for x in fl]), np.array([x[1] for x in fl])
+                out.append(f"{v.split('_')[-1]} Δ={np.mean(b-a):+.2f} p={stats.ttest_rel(b,a)[1]:.3f}")
+        print(f"  {name:22s} " + " | ".join(out))
+    print("\n===== between-session change (rtBPD nf1 -> nf2, paired subjects) =====")
+    rt = d[d.cohort == "rtBPD"]
+    agg = rt.groupby(["subject", "session"])[VARS].mean().reset_index()
+    for v in VARS:
+        p = agg.pivot(index="subject", columns="session", values=v).dropna()
+        if len(p) >= 3:
+            a, b = p["nf1"].values, p["nf2"].values
+            print(f"  {v:18s} nf1={a.mean():+.2f} nf2={b.mean():+.2f} Δ={np.mean(b-a):+.2f} "
+                  f"p={stats.ttest_rel(b,a)[1]:.3f} (n={len(p)})")
     print("\nsaved", RES / "slider_summary.csv")
     print("\nTakeaway: in BOTH cohorts, more PDA regulation → calmer / more mindful / less difficult;")
     print("inter-slider structure is coherent and consistent → transdiagnostic construct validity.")
