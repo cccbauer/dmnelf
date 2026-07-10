@@ -70,10 +70,25 @@ standard deviations from a rolling baseline; the fed-back signal was the **prefr
 differential activation, PDA = activation(CEN) − activation(DMN)** (Bauer et al., 2019; Chen
 et al., 2013). A white dot moved upward when DMN activation fell below CEN activation (the target
 state) and downward otherwise; participants up-regulated PDA by practicing **"mental noting"**, a
-Vipassana attention technique taught before scanning. Each feedback run began with a ~30 s rest
-baseline (≈25 TR) followed by continuous feedback. **PDA is therefore both the therapeutic target
-and the fMRI signal decoded here.** Full MURFI/feedback configuration is in
-**[PLACEHOLDER — MURFI setup doc]**.
+Vipassana attention technique taught before scanning. Each feedback run began with a **30 s (25-TR)
+rest baseline** followed by continuous feedback. **PDA is therefore both the therapeutic target and
+the fMRI signal decoded here.**
+
+*Real-time operationalization.* Real-time computation used MURFI (multivariate and univariate
+real-time functional imaging; https://github.com/gablab/murfi2), which processed neurofeedback
+only — not network generation or offline preprocessing. Siemens online motion-corrected volumes
+(MoCo series, realigned to each run's first volume) were streamed to MURFI over Ethernet; the
+personalized DMN and CEN (frontoparietal network, FPN) masks were registered to the first volume
+via FLIRT (falling back to Yeo-template masks if a participant's personalized masks were
+unavailable). For each masked voxel, an incremental GLM (Gentleman's algorithm) was updated on
+every incoming volume, with nuisance regressors for the six relative-displacement realignment
+parameters (from the Siemens MoCo DICOM headers) and linear drift; per-voxel activation at time t
+was the GLM residual (measured minus nuisance-predicted signal), z-scored to the mean and standard
+deviation of the residuals over the **first 25 volumes (30 s baseline)**. Mask-level activation
+used variance-based voxel-efficiency weighting (weights inversely proportional to each voxel's
+30 s-baseline variance), which converges more closely with offline GLMs than a simple mean or
+median (Hinds et al., 2011; Bauer et al., 2022). Feedback latency was < 1 TR (1.2 s); the intrinsic
+hemodynamic delay (~6–8 s) is not resolvable by faster sampling or processing.
 
 ### 2.3 Personalized DMN/CEN localization
 
@@ -139,7 +154,8 @@ signal.
 ### 2.7 fMRI functional signal-to-noise ratio (f-SNR)
 
 Following the law of total variance (Laukkonen 2026; Nath 2026), for each feedback run the within-
-run condition z ∈ {rest (first 25 TR), feedback (remaining volumes, first 5 dropped for HRF lag)}
+run condition z ∈ {rest (first 25 TR — the paradigm's own real-time baseline period, §2.2),
+feedback (remaining volumes, first 5 dropped for HRF lag)}
 gives signal = Var_z(E[r|z]) and noise = E_z(Var(r|z)); f-SNR = signal/noise (dB), computed for
 PDA, CEN and DMN, plus a GLM/pseudo-target formulation (HRF-convolved rest→feedback boxcar) and a
 causal running f-SNR for the real-time-feasible analysis.
@@ -187,8 +203,10 @@ sample sizes; EEG high-γ EMG caveat addressed by controls.]**
   verified against the deployed MNE pipeline (`eeg_preproc.py`): common-average reference, BCG
   correction present, 1 kHz→500 Hz, 1–40 Hz FIR, ICA/ICLabel. *(Confirm the deployed
   `mne_eeg_preprocessing` version matches this snapshot; confirm trigger/clock sync hardware.)*
-- **MURFI / scanner real-time setup** details → §2.2 (feedback GLM, circle-shrink titration,
-  update latency).
+- ✅ **MURFI real-time operationalization** — written (§2.2): incremental GLM (Gentleman),
+  relative-displacement + drift nuisance, 25-volume/30 s baseline z-scoring, voxel-efficiency
+  weighting, FLIRT mask registration w/ Yeo fallback, <1 TR latency. The 30 s baseline validates
+  the f-SNR rest window (§2.7).
 - Confirm **Cohort 1 clinical measures** (schizophrenia symptom scale, meds) and **Cohort 2 BPD
   scale** name → Section 2.1 (needed for the clinical/biomarker angle).
 - Confirm DMNELF vs rtBPD **fMRI protocol identity** (the shared printouts are the REMIND/rtBPD
