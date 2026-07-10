@@ -184,17 +184,19 @@ electrode topographies used Benjamini–Hochberg FDR. **[preregistration: not pr
 ## 3. Results
 **[TO DRAFT from committed analyses — fMRI f-SNR; EEG f-SNR within/LOSO/cross-cohort; EMG control.]**
 
-*Clinical anchor — transdiagnostic (both cohorts).* Regulation of the DMN–CEN target related to
-self-reported state calm in the **same direction in both clinical cohorts**: runs with more PDA
-regulation were rated calmer (schizophrenia r=+0.21; borderline-trait r=+0.20), more mindfully
-engaged (r=+0.42 / +0.11), and less difficult (r=−0.30 / −0.19). The four sliders showed a coherent,
-cross-cohort-consistent structure (e.g. calm↔difficulty −0.45/−0.38; calm↔mindfulness +0.55/+0.16),
-supporting construct validity. Between-subject, calmer participants tended to regulate the target
-more (schizophrenia r=+0.37, n=13; borderline-trait r=+0.29–0.59 depending on the PDA metric,
-n=18–25), a consistently positive but sample-limited association. The EEG frontal-theta f-SNR
-tracked the BOLD PDA (r≈0.12–0.15) but did **not** by itself predict per-run calm (r≈0), bounding
-the EEG marker as a scalable proxy for the (clinically-relevant) target rather than a direct outcome
-predictor.
+*Clinical anchor — replicated, transdiagnostic.* Regulating the DMN–CEN target made participants
+feel calmer, with a near-identical effect across disorder and session: runs with more real-time PDA
+regulation were rated calmer in **schizophrenia (r=+0.21, n=47)**, **rtBPD session 1 (r=+0.22,
+p=0.013, n=124)**, and **rtBPD session 2 (r=+0.23, p=0.050, n=73)** — a robust replication. Calm was
+consistently rated lower on more difficult runs in all three (r=−0.45/−0.30/−0.41), and the four
+sliders formed a coherent, cross-cohort-consistent structure (e.g. calm↔mindfulness +0.55/+0.06/+0.31),
+supporting construct validity. In schizophrenia specifically, mindfulness engagement drove regulation
+(mindful↔PDA r=+0.42, p=0.02). Across the two rtBPD sessions, participants felt **calmer** (6.34→7.47)
+and found the task **easier** (5.31→4.37) — a within-subject practice effect. Between-subject, calmer
+participants tended to regulate more (r=+0.20 to +0.37; sample-limited, n=13–25). The EEG
+frontal-theta f-SNR tracked the BOLD PDA (r≈0.12–0.15) but did **not** by itself predict per-run calm
+(r≈0), bounding the EEG marker as a scalable proxy for the (clinically-relevant) target rather than a
+direct outcome predictor.
 
 ## 4. Discussion
 **[TO DRAFT — transdiagnostic calibration-free marker; signal vs noise channel; limitations incl.
