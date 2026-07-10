@@ -31,9 +31,11 @@ def corr_p(x, y):
 
 def main():
     d = pd.read_csv(RES / "sliders_both.csv")
+    groups = {"DMNELF (schizophrenia)": d[d.cohort == "DMNELF"],
+              "rtBPD nf1": d[(d.cohort == "rtBPD") & (d.session == "nf1")],
+              "rtBPD nf2": d[(d.cohort == "rtBPD") & (d.session == "nf2")]}
     rows = []
-    for coh in ["DMNELF", "rtBPD"]:
-        c = d[d.cohort == coh]
+    for coh, c in groups.items():
         print(f"\n===== {coh}  ({len(c)} runs, {c.subject.nunique()} subjects) =====")
         print("  means:", {s: round(c[s].mean(), 2) for s in SL if c[s].notna().any()},
               "| n:", {s: int(c[s].notna().sum()) for s in SL})
