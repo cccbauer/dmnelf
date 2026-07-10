@@ -191,8 +191,11 @@ p=0.013, n=124)**, and **rtBPD session 2 (r=+0.23, p=0.050, n=73)** — a robust
 consistently rated lower on more difficult runs in all three (r=−0.45/−0.30/−0.41), and the four
 sliders formed a coherent, cross-cohort-consistent structure (e.g. calm↔mindfulness +0.55/+0.06/+0.31),
 supporting construct validity. In schizophrenia specifically, mindfulness engagement drove regulation
-(mindful↔PDA r=+0.42, p=0.02). Across the two rtBPD sessions, participants felt **calmer** (6.34→7.47)
-and found the task **easier** (5.31→4.37) — a within-subject practice effect. Between-subject, calmer
+(mindful↔PDA r=+0.42, p=0.02). Change was a between-session effect, not a within-session one: within-session
+(first vs last feedback run) change was null across all groups, whereas across sessions
+(rtBPD nf1→nf2, paired, n=15) **state calm increased significantly (+0.61, p=0.042; 67% of
+participants)** with regulation trending upward (Δ=+0.03, n.s.) — consistent with clinical
+benefit accruing across, rather than within, sessions. Between-subject, calmer
 participants tended to regulate more (r=+0.20 to +0.37; sample-limited, n=13–25). The EEG
 frontal-theta f-SNR tracked the BOLD PDA (r≈0.12–0.15) but did **not** by itself predict per-run calm
 (r≈0), bounding the EEG marker as a scalable proxy for the (clinically-relevant) target rather than a
