@@ -21,7 +21,8 @@
 
 **Background:** Dysregulated default-mode (DMN)–central-executive (CEN) network interaction is a
 transdiagnostic feature of psychopathology, and real-time fMRI neurofeedback targeting their
-differential activation (PDA = CEN − DMN) is a candidate intervention — but fMRI is not scalable.
+differential activation — Positive Diametric Activity (PDA = CEN − DMN) — is a candidate
+intervention, but fMRI is not scalable.
 Whether a portable, calibration-free EEG marker can index this neurofeedback target across
 disorders is unknown.
 
@@ -56,13 +57,18 @@ implicated across otherwise distinct disorders, a circuit-based intervention tha
 an attractive *transdiagnostic* treatment target.
 
 Real-time fMRI mindfulness-based neurofeedback (mbNF) operationalizes this target directly.
-Participants learn to up-regulate the **prefrontal–default differential activation
-(PDA = activation(CEN) − activation(DMN))** — driving the executive network above the default
-network — using personalized network masks and a mental-noting attention strategy (Chen et al.,
-2013; Bauer et al., 2019, 2020; Zhang et al., 2023). mbNF of PDA reduces DMN connectivity and
-symptoms in adolescents at affective-disorder risk (Zhang et al., 2023) and attenuates auditory
-hallucinations in schizophrenia (Bauer et al., 2020). But fMRI is expensive, non-portable, and
-confined to the scanner, so the intervention cannot scale to the settings where it would matter.
+Participants learn to up-regulate **Positive Diametric Activity (PDA; Bauer et al., 2019)** — the
+differential activation of the executive over the default network, PDA = activation(CEN) −
+activation(DMN) — driving the executive network above the default network, using personalized
+network masks and a mental-noting attention strategy (Chen et al., 2013; Bauer et al., 2019, 2020;
+Zhang et al., 2023). PDA was introduced by Bauer et al. (2019), who showed that this
+CEN-over-DMN index rises during meditation and persists afterward, and that its increase tracks a
+reduction in intrinsic DMN connectivity — grounding it as a mechanistically meaningful target built
+on the causal, inhibitory control the CEN exerts over the DMN (Chen et al., 2013). mbNF of PDA
+reduces DMN connectivity and symptoms in adolescents at affective-disorder risk (Zhang et al.,
+2023) and attenuates auditory hallucinations in schizophrenia (Bauer et al., 2020). But fMRI is
+expensive, non-portable, and confined to the scanner, so the intervention cannot scale to the
+settings where it would matter.
 
 A parallel, theory-driven way to describe this same target is emerging from contemplative
 neuroscience. The **functional signal-to-noise ratio (f-SNR)** framework (Laukkonen, 2026; Nath
@@ -119,9 +125,12 @@ the MURFI real-time functional imaging system (Hinds et al., 2011; Bauer et al.,
 PsychoPy stimulus delivery over a TCP/IP link to the scanner. Each participant's DMN and CEN were
 **personalized** (Section 2.3) and used as networks-of-interest. During feedback, MURFI fit an
 incremental general linear model to each incoming volume and computed each network's activation in
-standard deviations from a rolling baseline; the fed-back signal was the **prefrontal–default
-differential activation, PDA = activation(CEN) − activation(DMN)** (Bauer et al., 2019; Chen
-et al., 2013). A white dot moved upward when DMN activation fell below CEN activation (the target
+standard deviations from a rolling baseline; the fed-back signal was **Positive Diametric Activity
+(PDA), the differential network activation PDA = activation(CEN) − activation(DMN)** (Bauer et al.,
+2019; Chen et al., 2013). Whereas Bauer et al. (2019) originally defined PDA on the fractional
+amplitude of low-frequency fluctuations (CEN fALFF − DMN fALFF), here it is computed in real time
+from the incremental-GLM network activations. A white dot moved upward when DMN activation fell
+below CEN activation (the target
 state) and downward otherwise; participants up-regulated PDA by practicing **"mental noting"**, a
 Vipassana attention technique taught before scanning. Each feedback run began with a **30 s (25-TR)
 rest baseline** followed by continuous feedback. **PDA is therefore both the therapeutic target and
@@ -370,10 +379,14 @@ scaling a transdiagnostic, circuit-based intervention beyond the MRI scanner.
 - Bauer CCC, et al. Real-time fMRI neurofeedback reduces auditory hallucinations… DMN. *Psychiatry
   Res* 2020;284:112770. (schizophrenia mbNF)
 - Bauer CCC, et al. REMind: MURFI real-time functional imaging. 2022.
-- Bauer CCC, et al. From state-to-trait meditation: reconfiguration of CEN and DMN. *eNeuro* 2019.
+- Bauer CCC, Whitfield-Gabrieli S, Díaz JL, Pasaye EH, Barrios FA. From state-to-trait meditation:
+  reconfiguration of central executive and default mode networks. *eNeuro* 2019;6(6):ENEURO.0335-18.2019.
+  **(Origin of the Positive Diametric Activity [PDA] metric, PDA = CEN − DMN.)**
 - Hinds O, et al. Computing moment-to-moment BOLD activation for real-time neurofeedback.
   *NeuroImage* 2011;54:361–368.
-- Chen AC, et al. Causal interactions between fronto-parietal CEN and DMN. *PNAS* 2013.
+- Chen AC, Oathes DJ, Chang C, Bradley T, Zhou Z-W, Williams LM, Glover GH, Deisseroth K, Etkin A.
+  Causal interactions between fronto-parietal central executive and default-mode networks in humans.
+  *Proc Natl Acad Sci USA* 2013;110:19944–19949.
 - Meir-Hasson Y, et al. An EEG finger-print of fMRI deep-regional activation. *NeuroImage* 2014.
 - Donoghue T, et al. Parameterizing neural power spectra into periodic and aperiodic components.
   *Nat Neurosci* 2020 (specparam/FOOOF).
