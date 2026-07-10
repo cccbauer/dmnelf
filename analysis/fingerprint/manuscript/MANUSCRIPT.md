@@ -59,11 +59,13 @@ neurofeedback (mbNF) with simultaneous EEG–fMRI.
 All participants provided informed consent (assent + guardian consent for minors); procedures were
 IRB-approved. **[site IRBs.]**
 
-*Clinical/behavioural outcome.* In rtBPD, after each feedback run participants rated **state calm**
-on a 1–9 slider ("how calm are you feeling"), together with mindfulness-noting and task-difficulty
-sliders (197 runs, 25 participants, both sessions). This per-run state calm serves as the primary
-behavioural outcome for validating the neurofeedback target. **[schizophrenia symptom scale (e.g.
-PANSS) and rtBPD borderline-trait scale — CONFIRM for the trait-level biomarker analyses.]**
+*Behavioural self-report (both cohorts).* After each feedback run, participants in **both** cohorts
+rated four 1–9 sliders: **state calm** ("how calm are you feeling"; the affective/clinical outcome),
+**mindfulness engagement** (mental "noting" in rtBPD / "describing" in DMNELF; harmonised),
+**attention to the feedback** ("ball-check"), and **task difficulty**. Coverage: rtBPD 197 runs
+(25 participants, nf1+nf2); DMNELF 47 rated runs (16 participants). State calm is the primary
+behavioural outcome for validating the neurofeedback target. **[trait-level measures — schizophrenia
+symptom scale (e.g. PANSS) and rtBPD borderline-trait scale — CONFIRM for trait biomarker analyses.]**
 
 ### 2.2 Mindfulness-based neurofeedback paradigm and the DMN–CEN target
 
@@ -182,13 +184,17 @@ electrode topographies used Benjamini–Hochberg FDR. **[preregistration: not pr
 ## 3. Results
 **[TO DRAFT from committed analyses — fMRI f-SNR; EEG f-SNR within/LOSO/cross-cohort; EMG control.]**
 
-*Clinical anchor (rtBPD).* Regulation of the DMN–CEN target related to self-reported calm:
-adolescents who up-regulated PDA more felt calmer (between-subject r≈0.59, p≈0.01, n=18; real-time
-PDA within-run r≈+0.2), and calm tracked lower difficulty (r=−0.38) and more mindfulness noting
-(+0.16) — construct-validating the target as clinically meaningful. The EEG frontal-theta f-SNR
+*Clinical anchor — transdiagnostic (both cohorts).* Regulation of the DMN–CEN target related to
+self-reported state calm in the **same direction in both clinical cohorts**: runs with more PDA
+regulation were rated calmer (schizophrenia r=+0.21; borderline-trait r=+0.20), more mindfully
+engaged (r=+0.42 / +0.11), and less difficult (r=−0.30 / −0.19). The four sliders showed a coherent,
+cross-cohort-consistent structure (e.g. calm↔difficulty −0.45/−0.38; calm↔mindfulness +0.55/+0.16),
+supporting construct validity. Between-subject, calmer participants tended to regulate the target
+more (schizophrenia r=+0.37, n=13; borderline-trait r=+0.29–0.59 depending on the PDA metric,
+n=18–25), a consistently positive but sample-limited association. The EEG frontal-theta f-SNR
 tracked the BOLD PDA (r≈0.12–0.15) but did **not** by itself predict per-run calm (r≈0), bounding
-the EEG marker as a scalable proxy for the (clinically-relevant) target rather than a direct
-outcome predictor.
+the EEG marker as a scalable proxy for the (clinically-relevant) target rather than a direct outcome
+predictor.
 
 ## 4. Discussion
 **[TO DRAFT — transdiagnostic calibration-free marker; signal vs noise channel; limitations incl.
