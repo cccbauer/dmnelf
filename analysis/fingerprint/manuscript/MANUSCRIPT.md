@@ -59,6 +59,12 @@ neurofeedback (mbNF) with simultaneous EEG–fMRI.
 All participants provided informed consent (assent + guardian consent for minors); procedures were
 IRB-approved. **[site IRBs.]**
 
+*Clinical/behavioural outcome.* In rtBPD, after each feedback run participants rated **state calm**
+on a 1–9 slider ("how calm are you feeling"), together with mindfulness-noting and task-difficulty
+sliders (197 runs, 25 participants, both sessions). This per-run state calm serves as the primary
+behavioural outcome for validating the neurofeedback target. **[schizophrenia symptom scale (e.g.
+PANSS) and rtBPD borderline-trait scale — CONFIRM for the trait-level biomarker analyses.]**
+
 ### 2.2 Mindfulness-based neurofeedback paradigm and the DMN–CEN target
 
 Both cohorts completed the identical mbNF paradigm (Zhang et al., 2023; Bauer et al., 2020) using
@@ -176,6 +182,14 @@ electrode topographies used Benjamini–Hochberg FDR. **[preregistration: not pr
 ## 3. Results
 **[TO DRAFT from committed analyses — fMRI f-SNR; EEG f-SNR within/LOSO/cross-cohort; EMG control.]**
 
+*Clinical anchor (rtBPD).* Regulation of the DMN–CEN target related to self-reported calm:
+adolescents who up-regulated PDA more felt calmer (between-subject r≈0.59, p≈0.01, n=18; real-time
+PDA within-run r≈+0.2), and calm tracked lower difficulty (r=−0.38) and more mindfulness noting
+(+0.16) — construct-validating the target as clinically meaningful. The EEG frontal-theta f-SNR
+tracked the BOLD PDA (r≈0.12–0.15) but did **not** by itself predict per-run calm (r≈0), bounding
+the EEG marker as a scalable proxy for the (clinically-relevant) target rather than a direct
+outcome predictor.
+
 ## 4. Discussion
 **[TO DRAFT — transdiagnostic calibration-free marker; signal vs noise channel; limitations incl.
 DMNELF short-rest = mask localizer (mild circularity); no healthy controls (no deficit claim);
@@ -207,7 +221,8 @@ sample sizes; EEG high-γ EMG caveat addressed by controls.]**
   relative-displacement + drift nuisance, 25-volume/30 s baseline z-scoring, voxel-efficiency
   weighting, FLIRT mask registration w/ Yeo fallback, <1 TR latency. The 30 s baseline validates
   the f-SNR rest window (§2.7).
-- Confirm **Cohort 1 clinical measures** (schizophrenia symptom scale, meds) and **Cohort 2 BPD
-  scale** name → Section 2.1 (needed for the clinical/biomarker angle).
+- ✅ **rtBPD state outcome** — per-run `slider_calm` (1–9) harvested from feedback event TSVs;
+  PDA↔calm validated (§3). Still confirm **Cohort 1 schizophrenia symptom scale + meds** and the
+  **rtBPD borderline-trait scale** name for trait-level biomarker analyses → §2.1.
 - Confirm DMNELF vs rtBPD **fMRI protocol identity** (the shared printouts are the REMIND/rtBPD
   protocol) → Section 2.4 + Supplementary Table S1.
