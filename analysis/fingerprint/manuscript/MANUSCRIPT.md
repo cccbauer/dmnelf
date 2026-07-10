@@ -102,14 +102,32 @@ differences.]**
 
 ### 2.5 Simultaneous EEG acquisition and preprocessing
 
-**[PLACEHOLDER — EEG acquisition doc + BrainVision Analyzer]**
-EEG was recorded simultaneously with fMRI from **[N]** scalp electrodes (**[system: BrainAmp
-MR-plus?]**) at **[sampling rate]**. Gradient- and cardioballistic-artifact correction was
-performed in **BrainVision Analyzer** (**[method/params]**), followed by band-pass filtering, ICA
-cleaning, and resampling to 250/500 Hz (MNE-Python). Per-TR EEG features were then computed:
-(i) Hilbert band power (δ/θ/α/β/γ), HRF-convolved (band-power decoder); (ii) single-electrode
-Stockwell time-frequency EEG-fingerprint features (EFP; Meir-Hasson 2014); and (iii) sliding-window
-specparam (periodic/aperiodic 1/f) features.
+*EEG acquisition.* Continuous EEG was recorded simultaneously with fMRI using a 32-channel
+MR-compatible BrainAmp MR amplifier and MR EEG cap (Brain Products GmbH, Gilching, Germany), with
+electrodes positioned according to the international 10–20 system (31 scalp channels plus one ECG
+channel). Data were sampled at 5000 Hz (0.5 µV/bit) with online hardware band-pass filtering
+between 0.1 Hz (10 s time constant) and 250 Hz. All channels were referenced online to Cz (series
+resistance 10 kΩ per channel; 20 kΩ for ECG); electrode-to-skin impedances were checked before each
+session and kept below 25 kΩ where possible. Acquisition and gradient/volume triggers were
+synchronized to the scanner for artifact correction.
+
+*EEG preprocessing.* MRI gradient artifacts were removed in BrainVision Analyzer (v1.26) by average
+artifact subtraction (AAS): a gradient-artifact template, formed by averaging artifact epochs
+time-locked to the MRI volume trigger, was subtracted from the raw signal; gradient-corrected data
+were then downsampled to 1 kHz and exported. All subsequent steps used MNE-Python: (1) ECG R-peak
+detection (NeuroKit2); (2) automatic bad-channel detection (variance and high-frequency-noise
+z-scores); (3) annotation of scanner ramp-up edges; (4) FIR band-pass filtering 1–40 Hz (no
+separate notch, as the 40 Hz low-pass attenuates line noise); (5) **ballistocardiogram (BCG)
+correction** by average-artifact-template subtraction time-locked to the ECG R-peaks (−0.2 to
+0.6 s); (6) downsampling to 500 Hz; (7) independent component analysis (29 components, Picard) with
+automatic artifact-component rejection via ICLabel together with cardiac (`find_bads_ecg`) and EOG
+correlation; (8) spherical-spline interpolation of bad channels; and (9) re-referencing to the
+**common average**. This yielded 500 Hz, average-referenced, 31-channel data for feature extraction.
+
+*Per-TR EEG features.* Three feature sets were computed at the fMRI TR grid: (i) Hilbert band power
+in δ/θ/α/β/γ per channel, HRF-convolved (band-power decoder); (ii) single-electrode Stockwell
+time-frequency EEG-fingerprint features (EFP; Meir-Hasson et al., 2014); and (iii) sliding-window
+specparam periodic/aperiodic (1/f) features (Donoghue et al., 2020).
 
 ### 2.6 fMRI processing and network timeseries
 
@@ -158,14 +176,18 @@ sample sizes; EEG high-γ EMG caveat addressed by controls.]**
   *NeuroImage* 2011;54:361–368.
 - Chen AC, et al. Causal interactions between fronto-parietal CEN and DMN. *PNAS* 2013.
 - Meir-Hasson Y, et al. An EEG finger-print of fMRI deep-regional activation. *NeuroImage* 2014.
+- Donoghue T, et al. Parameterizing neural power spectra into periodic and aperiodic components.
+  *Nat Neurosci* 2020 (specparam/FOOOF).
 - Laukkonen R. Clear Mind (f-SNR framework). 2026. — Nath et al. Meditation depth enhances f-SNR. 2026.
 - Hamilton JP, et al. Depressive rumination, the DMN… *Biol Psychiatry* 2015. — Whitfield-Gabrieli
   & Ford. DMN in psychopathology. *Annu Rev Clin Psychol* 2012.
 
 ## Outstanding items / documents still needed
-- **EEG acquisition** parameters (system, electrodes, sampling) + **BrainVision Analyzer** gradient/
-  BCG artifact-correction method → Section 2.5.
-- **MURFI / scanner real-time setup** details → Section 2.2 (feedback GLM, circle-shrink titration,
+- ✅ **EEG acquisition + preprocessing** — written (§2.5) from the BrainAmp/BrainVision draft +
+  verified against the deployed MNE pipeline (`eeg_preproc.py`): common-average reference, BCG
+  correction present, 1 kHz→500 Hz, 1–40 Hz FIR, ICA/ICLabel. *(Confirm the deployed
+  `mne_eeg_preprocessing` version matches this snapshot; confirm trigger/clock sync hardware.)*
+- **MURFI / scanner real-time setup** details → §2.2 (feedback GLM, circle-shrink titration,
   update latency).
 - Confirm **Cohort 1 clinical measures** (schizophrenia symptom scale, meds) and **Cohort 2 BPD
   scale** name → Section 2.1 (needed for the clinical/biomarker angle).
