@@ -1,0 +1,3 @@
+# per-subject intermediates (regenerable on cluster; keep repo lean)
+results/foxz_*.nii.gz
+results/foxroi_*.csv
