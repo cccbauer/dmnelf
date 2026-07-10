@@ -2,6 +2,13 @@
 
 *Target journal: Biological Psychiatry: Cognitive Neuroscience and Neuroimaging (Archival Report — 4000-word body, 250-word structured abstract, IMRD).*
 
+**Authors:** `[TODO: author list — order + initials]`
+**Affiliations:** `[TODO: affiliations]`
+**Corresponding author:** Clemens C. C. Bauer `[TODO: email + postal address]`
+**Keywords:** `[TODO: 5–6 — e.g. neurofeedback; default-mode network; EEG–fMRI; functional signal-to-noise ratio; transdiagnostic; schizophrenia]`
+**Running title:** `[TODO: ≤ 45 char]`
+**Word count:** body `[TODO]` / abstract `[TODO]`; figures `[TODO]`; tables `[TODO]`; references `[TODO]`.
+
 > Full draft. Introduction, Results (from committed analyses), and Discussion are written;
 > Methods §2.1–2.9 complete. Remaining **[CONFIRM]** items are factual gaps only: schizophrenia
 > symptom scale + medication, borderline-trait scale name, IRB/site details, and per-cohort fMRI
@@ -88,20 +95,22 @@ for a transdiagnostic neurofeedback target.
 Two independent clinical cohorts underwent personalized real-time-fMRI mindfulness-based
 neurofeedback (mbNF) with simultaneous EEG–fMRI.
 - **Cohort 1 (schizophrenia; "DMNELF"):** n=17 adults with a diagnosis of schizophrenia.
-  **[clinical detail/symptom measures — CONFIRM: PANSS or other; medication.]**
+  `[TODO: age/sex; diagnostic instrument (SCID?); symptom scale — PANSS or other; medication status.]`
 - **Cohort 2 (borderline traits; "rtBPD"):** adolescents with *elevated borderline personality
-  traits* (dimensional; no categorical diagnosis) assessed with **[BPD trait scale — CONFIRM name,
-  e.g. BPFSC/PAI-BOR]**. Analyzed at two neurofeedback sessions (nf1: n=19; nf2: n=11).
+  traits* (dimensional; no categorical diagnosis) assessed with `[TODO: BPD trait scale name +
+  cutoff — e.g. BPFSC / PAI-BOR]`. Analyzed at two neurofeedback sessions (nf1: n=19; nf2: n=11).
+  `[TODO: age range; sex.]`
 All participants provided informed consent (assent + guardian consent for minors); procedures were
-IRB-approved. **[site IRBs.]**
+IRB-approved. `[TODO: approving IRB(s) + protocol numbers.]`
 
 *Behavioural self-report (both cohorts).* After each feedback run, participants in **both** cohorts
 rated four 1–9 sliders: **state calm** ("how calm are you feeling"; the affective/clinical outcome),
 **mindfulness engagement** (mental "noting" in rtBPD / "describing" in DMNELF; harmonised),
 **attention to the feedback** ("ball-check"), and **task difficulty**. Coverage: rtBPD 197 runs
 (25 participants, nf1+nf2); DMNELF 47 rated runs (16 participants). State calm is the primary
-behavioural outcome for validating the neurofeedback target. **[trait-level measures — schizophrenia
-symptom scale (e.g. PANSS) and rtBPD borderline-trait scale — CONFIRM for trait biomarker analyses.]**
+behavioural outcome for validating the neurofeedback target. `[TODO: trait-level measures —
+schizophrenia symptom scale (e.g. PANSS) + rtBPD borderline-trait scale — needed for the planned
+trait-severity biomarker analysis.]`
 
 ### 2.2 Mindfulness-based neurofeedback paradigm and the DMN–CEN target
 
@@ -152,12 +161,14 @@ Imaging used a Siemens MAGNETOM Prisma 3T scanner with a 64-channel head/neck co
 MPRAGE was acquired (1.0 mm isotropic, 176 sagittal slices, TR 2530 ms, TE 1.92 ms, TI 1400 ms,
 flip angle 7°, GRAPPA 3). Functional runs used a T2*-weighted multiband gradient-echo EPI sequence
 (TR 1200 ms, TE 30 ms, 2.0 mm isotropic voxels, 72 slices, multiband/slice-acceleration factor 4,
-in-plane GRAPPA 2, phase-encode A≫P). **Feedback runs comprised 150 volumes (3 min)** each
-(DMNELF: 4 runs; rtBPD: 5 runs); resting-state runs comprised 250 volumes. Spin-echo EPI
-field maps with reversed phase-encode (AP/PA) were acquired for susceptibility-distortion
-correction. Exact per-sequence parameters are provided in **Supplementary Table S1** (from the
-scanner protocol printouts). **[CONFIRM DMNELF vs rtBPD protocol identity; any per-cohort
-differences.]**
+in-plane GRAPPA 2, phase-encode A≫P). Feedback runs comprised a 25-volume (30 s) rest baseline
+followed by continuous feedback — `[TODO: confirm feedback-run length per cohort; analysis code
+treats DMNELF as 125 volumes (25 rest + 100 feedback) and rtBPD as 150 volumes; §2.4 previously
+stated 150 for both]` — with DMNELF: 4 feedback runs and rtBPD: 5 feedback runs; resting-state runs
+comprised 250 volumes. Spin-echo EPI field maps with reversed phase-encode (AP/PA) were acquired for
+susceptibility-distortion correction. Exact per-sequence parameters are provided in **Supplementary
+Table S1** (from the scanner protocol printouts). `[TODO: confirm DMNELF vs rtBPD protocol identity;
+any per-cohort differences.]`
 
 ### 2.5 Simultaneous EEG acquisition and preprocessing
 
@@ -190,7 +201,8 @@ specparam periodic/aperiodic (1/f) features (Donoghue et al., 2020).
 
 ### 2.6 fMRI processing and network timeseries
 
-Functional data were preprocessed with fMRIPrep and denoised (**[confounds/GSR]**). Per-TR network
+Functional data were preprocessed with fMRIPrep `[TODO: version]` and denoised (`[TODO: confound
+strategy — e.g. 24 motion + mean WM/CSF + high-pass cosines; band-pass; scrubbing?]`). Per-TR network
 timeseries were extracted for the personalized DMN and CEN, PDA = CEN − DMN, and DiFuMo-64 parcels;
 global-signal-regressed (GSR) variants were computed by residualizing on the fMRIPrep global
 signal.
@@ -214,8 +226,11 @@ selection) to the fMRI PDA and fMRI f-SNR, within-subject, leave-one-subject-out
 ### 2.9 Statistics
 
 Group inference used non-parametric sign-flip permutation tests on subject-level correlations;
-electrode topographies used Benjamini–Hochberg FDR. **[preregistration: not preregistered
-(secondary analysis of neurofeedback data).]** Data/code availability: **[repo statement].**
+electrode topographies used Benjamini–Hochberg FDR. `[TODO: preregistration statement — not
+preregistered (secondary analysis of neurofeedback data)?]`
+
+*Data and code availability.* `[TODO: data-sharing statement + repository/DOI for analysis code.]`
+*Funding.* `[TODO: grants.]` *Financial disclosures.* `[TODO: conflicts of interest — all authors.]`
 
 ## 3. Results
 
@@ -366,17 +381,35 @@ scaling a transdiagnostic, circuit-based intervention beyond the MRI scanner.
 - Hamilton JP, et al. Depressive rumination, the DMN… *Biol Psychiatry* 2015. — Whitfield-Gabrieli
   & Ford. DMN in psychopathology. *Annu Rev Clin Psychol* 2012.
 
-## Outstanding items / documents still needed
-- ✅ **EEG acquisition + preprocessing** — written (§2.5) from the BrainAmp/BrainVision draft +
-  verified against the deployed MNE pipeline (`eeg_preproc.py`): common-average reference, BCG
-  correction present, 1 kHz→500 Hz, 1–40 Hz FIR, ICA/ICLabel. *(Confirm the deployed
-  `mne_eeg_preprocessing` version matches this snapshot; confirm trigger/clock sync hardware.)*
-- ✅ **MURFI real-time operationalization** — written (§2.2): incremental GLM (Gentleman),
-  relative-displacement + drift nuisance, 25-volume/30 s baseline z-scoring, voxel-efficiency
-  weighting, FLIRT mask registration w/ Yeo fallback, <1 TR latency. The 30 s baseline validates
-  the f-SNR rest window (§2.7).
-- ✅ **rtBPD state outcome** — per-run `slider_calm` (1–9) harvested from feedback event TSVs;
-  PDA↔calm validated (§3). Still confirm **Cohort 1 schizophrenia symptom scale + meds** and the
-  **rtBPD borderline-trait scale** name for trait-level biomarker analyses → §2.1.
-- Confirm DMNELF vs rtBPD **fMRI protocol identity** (the shared printouts are the REMIND/rtBPD
-  protocol) → Section 2.4 + Supplementary Table S1.
+## Figures and tables (planned — assets exist in the repo)
+- **Figure 1.** Schematic: DMN–CEN mbNF target (PDA) + the f-SNR framing (signal/noise). `[TODO: build]`
+- **Figure 2.** fMRI f-SNR ≈ PDA restatement; DMN variance quench (global vs DMN vs CEN).
+  Source: `fsnr/results/fig_fsnr_vs_pda_dmn.png`, `fig_dmn_quench.png`.
+- **Figure 3.** Within-subject head-to-head — construct EEG f-SNR vs fitted EFP ceiling.
+  Source: `fsnr_eeg/results/fig_headtohead_within.png`.
+- **Figure 4.** Cross-cohort transfer — construct f-SNR transfers, raw power does not.
+  Source: `fsnr_eeg/results/fig_crosscohort_generalize.png`.
+- **Figure 5.** EEG variability quench + EMG controls (topography, aperiodic).
+  Source: `fsnr_eeg/results/fig_emg_control.png`.
+- **Figure 6.** Clinical anchor — PDA regulation ↔ state calm across cohorts/sessions. `[TODO: build]`
+- **Supplementary Table S1.** Per-sequence MRI parameters (from scanner printouts). `[TODO]`
+
+## Outstanding items — checklist (search `[TODO:` for all inline slots)
+**Factual gaps (author-supplied):**
+- [ ] Cohort 1 (SZ): age/sex, diagnostic instrument, symptom scale (PANSS?), medication → §2.1
+- [ ] Cohort 2 (rtBPD): borderline-trait scale name + cutoff, age range, sex → §2.1
+- [ ] Approving IRB(s) + protocol numbers → §2.1
+- [ ] Feedback-run length per cohort (DMNELF 125 vs rtBPD 150 vol?) + protocol identity → §2.4
+- [ ] fMRIPrep version + confound/GSR strategy → §2.6
+- [ ] Preregistration, data/code availability, funding, financial disclosures → §2.9
+- [ ] Front-matter: authors, affiliations, corresponding-author contact, keywords, running title, word counts
+**Writing/production:**
+- [ ] Build Figures 1 & 6; assemble Figs 2–5 from existing PNGs; Supplementary Table S1
+- [ ] Compile full reference list with DOIs; verify Laukkonen/Nath 2026 citations
+- [ ] Trim body to ≤ 4000 words; finalize 250-word abstract
+**Optional (strengthens paper; awaiting data):**
+- [ ] Trait-severity biomarker analysis (EEG f-SNR / PDA vs symptom scales) once trait scores arrive
+
+**Done:** ✅ EEG acquisition + preprocessing (§2.5, verified vs `eeg_preproc.py`) · ✅ MURFI real-time
+operationalization (§2.2) · ✅ per-run `slider_calm` outcome + PDA↔calm (§3.5) · ✅ Intro / Results /
+Discussion drafted from committed analyses.
