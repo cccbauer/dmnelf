@@ -1,0 +1,2 @@
+cohort,subject,session,run,n_tr,within_dmn_difumo,within_cen_difumo,dmn_cen_difumo,mpfc_pcc,acc_pcc,acc_mpfc,within_dmn_pers,within_cen_pers,dmn_cen_pers
+dmnelf,dmnelf1002,ses-dmnelf,1,349,0.44152280510106956,0.2870904935610166,0.07179070147296937,0.47858090708398593,0.5622393608467592,0.6374447515185476,0.2609892305710794,0.2988789038356482,-0.11926575229634107
