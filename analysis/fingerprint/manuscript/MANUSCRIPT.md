@@ -1,4 +1,10 @@
-# A calibration-free EEG functional signal-to-noise ratio tracks a DMN–CEN neurofeedback target and transfers transdiagnostically
+# A calibration-free EEG fingerprint of a default-mode–executive neurofeedback target in schizophrenia, replicated transdiagnostically
+
+<!-- Alternative titles:
+  - A calibration-free EEG signal-to-noise ratio indexes a DMN–executive neurofeedback target in schizophrenia and generalizes to borderline-trait youth
+  - From fMRI to EEG: a portable fingerprint of the default-mode–executive neurofeedback target, discovered in schizophrenia and replicated transdiagnostically
+  - A scalable EEG proxy for a real-time-fMRI neurofeedback target: discovery in schizophrenia, transdiagnostic replication -->
+
 
 *Target journal: Biological Psychiatry: Cognitive Neuroscience and Neuroimaging (Archival Report — 4000-word body, 250-word structured abstract, IMRD).*
 
@@ -19,93 +25,100 @@
 
 ## Abstract (Background/Methods/Results/Conclusions — 250 words)
 
-**Background:** Dysregulated default-mode (DMN)–central-executive (CEN) network interaction is a
-transdiagnostic feature of psychopathology, and real-time fMRI neurofeedback targeting their
-differential activation — Positive Diametric Activity (PDA = CEN − DMN) — is a candidate
-intervention, but fMRI is not scalable.
-Whether a portable, calibration-free EEG marker can index this neurofeedback target across
-disorders is unknown.
+**Background:** Auditory hallucinations in schizophrenia are often medication-resistant and are
+linked to default-mode-network (DMN) hyperconnectivity with cognitive-control networks.
+Network-based real-time fMRI neurofeedback lets patients regulate this interaction — the
+executive-over-default differential, Positive Diametric Activity (PDA = CEN − DMN) — but fMRI is not
+scalable. Whether a portable, calibration-free EEG marker can index this neurofeedback target, and
+generalize beyond a single disorder, is unknown.
 
-**Methods:** In two independent clinical real-time-fMRI-neurofeedback cohorts with simultaneous
-EEG–fMRI — adults with schizophrenia (n=17) and adolescents with elevated borderline personality
-traits (n=19; n=11 at retest) — we framed the neurofeedback signal as a functional
-signal-to-noise ratio (f-SNR). We tested whether an EEG-derived f-SNR tracks the BOLD PDA,
-comparing a fitted single-electrode decoder against a construct EEG f-SNR requiring no per-subject
-fitting, with within-subject, leave-one-subject-out, and cross-cohort evaluation.
+**Methods:** In a discovery cohort of adults with schizophrenia and auditory hallucinations
+undergoing simultaneous EEG–fMRI mindfulness-based neurofeedback (n=17), we framed the neurofeedback
+target as a functional signal-to-noise ratio (f-SNR) and derived an EEG f-SNR. We tested
+within-subject and leave-one-subject-out prediction of the BOLD PDA, comparing a fitted
+single-electrode decoder against a construct EEG f-SNR requiring no per-subject fitting. We then
+sought independent replication in a developmentally and diagnostically distinct cohort — adolescents
+with elevated borderline personality traits (n=19; n=11 at retest).
 
-**Results:** A frontal-theta EEG band-power f-SNR, with no fitting, matched BOLD PDA within-subject
-(r≈0.12) and transferred from schizophrenia to borderline-trait adolescents (r=0.13 and 0.15
-across sessions; p<0.005), whereas raw EEG power did not — noise-normalization removes
-cohort-specific gain. During regulation, EEG showed reduced high-frequency power variability and a
-more stable aperiodic 1/f slope, not attributable to EMG (topographic and aperiodic controls).
+**Results:** In schizophrenia, a frontal-theta EEG band-power f-SNR, with no fitting, matched the
+BOLD PDA within-subject (r≈0.12) and held out-of-sample (leave-one-subject-out r≈0.12). It
+**replicated** in the borderline-trait cohort (r=0.13 and 0.15 across sessions; p<0.005), whereas
+raw EEG power did not transfer — noise-normalization removes cohort-specific gain. During
+regulation, EEG showed reduced high-frequency power variability and a more stable aperiodic 1/f
+slope, not attributable to EMG (topographic and aperiodic controls).
 
-**Conclusions:** A calibration-free, portable EEG index of DMN–CEN clarity generalizes
-transdiagnostically and developmentally, supporting f-SNR as a deployable neurofeedback biomarker.
+**Conclusions:** A calibration-free, portable EEG index of the DMN–executive neurofeedback target,
+established in schizophrenia and replicated transdiagnostically, supports f-SNR as a deployable
+biomarker toward scalable EEG neurofeedback.
 
 ---
 
 ## 1. Introduction
 
-Imbalanced interaction between the default-mode network (DMN) and the central-executive network
-(CEN) is one of the most reproducible transdiagnostic features of psychopathology. In
-schizophrenia, DMN hyperactivity and hyperconnectivity and failures to suppress the DMN when
-executive engagement is required accompany aberrant salience and positive symptoms
-(Whitfield-Gabrieli & Ford, 2012). In affective and emotion-dysregulation phenotypes — including
-adolescents with elevated borderline personality traits — excessive self-referential DMN processing
-and rumination track symptom severity (Hamilton et al., 2015). Because the same DMN–CEN axis is
-implicated across otherwise distinct disorders, a circuit-based intervention that rebalances it is
-an attractive *transdiagnostic* treatment target.
+Psychiatric disorders are increasingly understood as disorders of interaction among large-scale,
+distributed brain circuits. In schizophrenia, auditory hallucinations are among the most distressing
+symptoms and are frequently resistant to medication, and they have been linked to abnormal
+connectivity of large-scale networks — hyperconnectivity within the default-mode network (DMN) and
+between the DMN and networks implicated in cognitive control (the frontoparietal / central-executive
+network, CEN) as well as regions supporting the experience of hallucinations such as the superior
+temporal gyrus (Whitfield-Gabrieli et al., 2009; Whitfield-Gabrieli & Ford, 2012). More broadly,
+imbalanced DMN–CEN interaction — excessive default-mode processing that the executive system fails to
+regulate — recurs across otherwise distinct disorders, motivating circuit-based interventions that
+target the interaction itself, in line with the Research Domain Criteria.
 
-Real-time fMRI mindfulness-based neurofeedback (mbNF) operationalizes this target directly.
-Participants learn to up-regulate **Positive Diametric Activity (PDA; Bauer et al., 2019)** — the
-differential activation of the executive over the default network, PDA = activation(CEN) −
-activation(DMN) — driving the executive network above the default network, using personalized
+Network-based real-time fMRI neurofeedback (rt-fMRI-NF) operationalizes this target directly, letting
+patients observe and learn to regulate specific network interactions. Participants up-regulate
+**Positive Diametric Activity (PDA; Bauer et al., 2019)** — the differential activation of the
+executive over the default network, PDA = activation(CEN) − activation(DMN) — using personalized
 network masks and a mental-noting attention strategy (Chen et al., 2013; Bauer et al., 2019, 2020;
-Zhang et al., 2023). PDA was introduced by Bauer et al. (2019), who showed that this
-CEN-over-DMN index rises during meditation and persists afterward, and that its increase tracks a
-reduction in intrinsic DMN connectivity — grounding it as a mechanistically meaningful target built
-on the causal, inhibitory control the CEN exerts over the DMN (Chen et al., 2013). mbNF of PDA
-reduces DMN connectivity and symptoms in adolescents at affective-disorder risk (Zhang et al.,
-2023) and attenuates auditory hallucinations in schizophrenia (Bauer et al., 2020). But fMRI is
-expensive, non-portable, and confined to the scanner, so the intervention cannot scale to the
-settings where it would matter.
+Zhang et al., 2023). PDA was introduced by Bauer et al. (2019), who showed that this CEN-over-DMN
+index rises during meditation and persists afterward, and that its increase tracks a reduction in
+intrinsic DMN connectivity — grounding it in the causal, inhibitory control the CEN exerts over the
+DMN (Chen et al., 2013). Mindfulness-based rt-fMRI-NF of PDA attenuates auditory hallucinations in
+schizophrenia (Bauer et al., 2020) and reduces DMN connectivity and symptoms in adolescents at
+affective-disorder risk (Zhang et al., 2023). But fMRI is expensive, non-portable, and confined to
+the scanner, so the intervention cannot scale to the settings where it would matter — motivating a
+search for a portable substitute that could ultimately deliver neurofeedback outside the magnet.
 
-A parallel, theory-driven way to describe this same target is emerging from contemplative
-neuroscience. The **functional signal-to-noise ratio (f-SNR)** framework (Laukkonen, 2026; Nath
-et al., 2026) casts mental "clarity" as the ratio of task-relevant signal variance to
-task-irrelevant noise variance in a neural readout, with the DMN acting as a dominant internal
-noise source; f-SNR is posited to be reduced across psychopathology and increased by meditative
-training. Framing the neurofeedback readout through the law of total variance makes PDA regulation
-and f-SNR two descriptions of one construct — quieting default-mode "noise" relative to
-task-relevant "signal."
+Electroencephalography (EEG) is inexpensive and deployable, and a large EEG–fMRI literature shows
+that EEG features can serve as markers of regional and network-level fMRI activity; a single-electrode
+EEG "fingerprint" can even be fitted to a deep fMRI signal (the EEG-fingerprint / EFP; Meir-Hasson
+et al., 2014). Fitted decoders, however, require per-subject or per-site fMRI calibration — precisely
+what a scalable marker must avoid. A theory-driven route to a calibration-light marker comes from the
+**functional signal-to-noise ratio (f-SNR)** framework (Laukkonen, 2026; Nath et al., 2026), which
+casts mental "clarity" as task-relevant signal variance over task-irrelevant noise variance, with the
+DMN as a dominant internal noise source. Through the law of total variance, PDA regulation and f-SNR
+become two descriptions of one construct — raising executive signal over default-mode noise — and the
+signal/noise normalization is, in principle, dimensionless and therefore portable across subjects and
+sites where raw EEG amplitude is not.
 
-The unmet need is a **portable, calibration-free** index of this target. EEG is inexpensive and
-deployable, and prior work shows that a single-electrode EEG "fingerprint" can be fitted to a deep
-fMRI signal (the EEG-fingerprint / EFP; Meir-Hasson et al., 2014). Fitted decoders, however,
-require per-subject or per-site fMRI calibration — precisely what a scalable marker must avoid — and
-it is unknown whether *any* EEG marker of the DMN–CEN neurofeedback target generalizes across
-disorders and development. Here, in two independent clinical simultaneous-EEG–fMRI mbNF cohorts —
-adults with schizophrenia and adolescents with elevated borderline traits — we ask three questions.
-First, does a faithful fMRI f-SNR built from CEN/DMN/PDA behave as a restatement of the
-neurofeedback target (§2.7)? Second, can a **pure EEG f-SNR**, computed from EEG alone with no
-per-subject fitting, match that target as well as a fitted decoder (§2.8)? Third, and most
-important for deployability, does such a construct **transfer across cohorts** — from schizophrenia
-to borderline-trait adolescents — where a fitted decoder and raw EEG power do not? We show that a
-frontal-theta EEG f-SNR meets all three criteria, providing a calibration-free candidate biomarker
-for a transdiagnostic neurofeedback target.
+Here we test this in two stages. In a **discovery cohort of adults with schizophrenia and auditory
+hallucinations** studied with simultaneous EEG–fMRI during mindfulness-based neurofeedback, we ask:
+(i) does a faithful fMRI f-SNR built from CEN/DMN/PDA behave as a restatement of the neurofeedback
+target (§2.7)?; and (ii) can a **pure EEG f-SNR**, computed from EEG alone with no per-subject
+fitting, match the BOLD target as well as a fitted decoder, within-subject and out-of-sample (§2.8)?
+We then ask the question that matters most for deployability: (iii) does the calibration-free EEG
+f-SNR **replicate in an independent, diagnostically and developmentally distinct cohort** —
+adolescents with elevated borderline personality traits — where raw EEG power and even a fitted
+decoder do not transfer? We show that a frontal-theta EEG f-SNR meets all three criteria: it indexes
+the DMN–executive neurofeedback target in schizophrenia and replicates transdiagnostically, providing
+a calibration-free candidate biomarker on the path to scalable EEG neurofeedback.
 
 ## 2. Methods and Materials
 
 ### 2.1 Participants
 
 Two independent clinical cohorts underwent personalized real-time-fMRI mindfulness-based
-neurofeedback (mbNF) with simultaneous EEG–fMRI.
-- **Cohort 1 (schizophrenia; "DMNELF"):** n=17 adults with a diagnosis of schizophrenia.
-  `[TODO: age/sex; diagnostic instrument (SCID?); symptom scale — PANSS or other; medication status.]`
-- **Cohort 2 (borderline traits; "rtBPD"):** adolescents with *elevated borderline personality
-  traits* (dimensional; no categorical diagnosis) assessed with `[TODO: BPD trait scale name +
-  cutoff — e.g. BPFSC / PAI-BOR]`. Analyzed at two neurofeedback sessions (nf1: n=19; nf2: n=11).
-  `[TODO: age range; sex.]`
+neurofeedback (mbNF) with simultaneous EEG–fMRI. The schizophrenia cohort served as the **discovery
+cohort** in which the EEG fingerprint of the neurofeedback target was established; the borderline-trait
+cohort served as the **independent replication cohort**.
+- **Discovery cohort — schizophrenia ("DMNELF"):** n=17 adults with a diagnosis of schizophrenia
+  and auditory hallucinations. `[TODO: confirm all n=17 had current/persistent AHs; age/sex;
+  diagnostic instrument (SCID?); symptom scale — PANSS/PSYRATS or other; medication status.]`
+- **Replication cohort — borderline traits ("rtBPD"):** adolescents with *elevated borderline
+  personality traits* (dimensional; no categorical diagnosis) assessed with `[TODO: BPD trait scale
+  name + cutoff — e.g. BPFSC / PAI-BOR]`. Analyzed at two neurofeedback sessions (nf1: n=19;
+  nf2: n=11). `[TODO: age range; sex.]`
 All participants provided informed consent (assent + guardian consent for minors); procedures were
 IRB-approved. `[TODO: approving IRB(s) + protocol numbers.]`
 
@@ -266,29 +279,32 @@ fed back (rest-vs-feedback d′ = 0.70 vs 0.82, n.s.). We therefore carried the 
 target (PDA / GLM-PDA)** into the EEG phase: the f-SNR is a clean interpretive restatement of the
 neurofeedback target, not a different target.
 
-### 3.2 A pure EEG f-SNR matches the BOLD target within-subject, near the fitted ceiling
+### 3.2 Discovery in schizophrenia: a pure EEG f-SNR matches the BOLD target, near the fitted ceiling
 
-Computing an f-SNR from EEG alone — the running signal-to-noise (trailing mean/SD) of band power,
-with **no per-subject fitting** — a **frontal-theta EEG f-SNR matched the BOLD PDA within-subject
-at r = 0.119 (p = 0.003)**, roughly 70% of the ceiling set by a fully fitted single-electrode EFP
-decoder (~0.17). Frontal- and posterior-alpha f-SNR performed equivalently (r ≈ 0.113–0.116),
-whereas the oscillatory-÷-aperiodic (specparam) flavor was weaker (r ≈ 0.05–0.10) — per-TR spectral
-parameterization added noise, and simpler band-power won. The signal-to-noise normalization earned
-its keep precisely on the noisy frontal channels most relevant to a portable headset (fitted
-single-site frontal: raw r = 0.088 → f-SNR r = 0.101).
+In the schizophrenia discovery cohort, computing an f-SNR from EEG alone — the running
+signal-to-noise (trailing mean/SD) of band power, with **no per-subject fitting** — a **frontal-theta
+EEG f-SNR matched the BOLD PDA within-subject at r = 0.119 (p = 0.003)**, roughly 70% of the ceiling
+set by a fully fitted single-electrode EFP decoder (~0.17). Frontal- and posterior-alpha f-SNR
+performed equivalently (r ≈ 0.113–0.116), whereas the oscillatory-÷-aperiodic (specparam) flavor was
+weaker (r ≈ 0.05–0.10) — per-TR spectral parameterization added noise, and simpler band-power won.
+The signal-to-noise normalization earned its keep precisely on the noisy frontal channels most
+relevant to a portable headset (fitted single-site frontal: raw r = 0.088 → f-SNR r = 0.101).
+Crucially, the construct held **out-of-sample within schizophrenia**: applied leave-one-subject-out,
+the fixed frontal-theta f-SNR retained its match to the BOLD PDA (out-of-fold r = 0.116), confirming
+that no per-subject information is required.
 
-### 3.3 The pure EEG f-SNR transfers transdiagnostically — where raw power does not
+### 3.3 Replication in an independent, diagnostically distinct cohort — where raw power fails
 
-The decisive test is generalization with no re-fitting. Applied leave-one-subject-out within
-schizophrenia, the fixed frontal-theta f-SNR held (out-of-fold r = 0.116). Applied **across
-cohorts** — trained construct, zero fitting, carried from schizophrenic adults to borderline-trait
-adolescents — it **transferred: rtBPD nf1 r = +0.126 (p = 5e-4, positive in 79% of subjects) and
-nf2 r = +0.147 (p = 5e-3, 91% of subjects)**. Critically, **raw band power did not transfer**
-(r ≈ 0.00–0.03, n.s.): the noise-normalization divides out cohort- and montage-specific gain,
-rendering the f-SNR cohort-invariant, exactly as the framework predicts. The zero-fitting construct
-even matched or exceeded the *fitted* EFP decoder cross-cohort (EFP PDA nf1 r = 0.067; nf2 r =
-0.153). A calibration-free, portable-frontal EEG index thus indexes the fMRI neurofeedback target on
-an independent clinical population it was never tuned to.
+The decisive test is whether the fingerprint established in schizophrenia holds in a cohort it was
+never tuned to. Carried unchanged — zero re-fitting — to the borderline-trait adolescents, the same
+frontal-theta EEG f-SNR **replicated: rtBPD session 1 r = +0.126 (p = 5e-4, positive in 79% of
+subjects) and session 2 r = +0.147 (p = 5e-3, 91% of subjects)**. Critically, **raw band power did
+not replicate** (r ≈ 0.00–0.03, n.s.): the noise-normalization divides out cohort- and
+montage-specific gain, rendering the f-SNR cohort-invariant, exactly as the framework predicts. The
+zero-fitting construct even matched or exceeded the *fitted* EFP decoder in the replication cohort
+(EFP PDA nf1 r = 0.067; nf2 r = 0.153). A calibration-free, portable-frontal EEG index thus indexes
+the fMRI neurofeedback target across disorder and development, on an independent clinical population
+it was never trained on.
 
 ### 3.4 During regulation, EEG high-frequency variability quenches and the 1/f slope stabilizes — not EMG
 
@@ -322,12 +338,13 @@ direct outcome predictor.
 
 ## 4. Discussion
 
-Across two independent clinical simultaneous-EEG–fMRI neurofeedback cohorts, a **calibration-free
-frontal-theta EEG f-SNR indexed the DMN–CEN neurofeedback target (PDA)**. With no per-subject
-fitting it reached ~70% of a fully fitted decoder's within-subject accuracy, and — the central
-result — it **transferred transdiagnostically and developmentally**, from adults with schizophrenia
-to adolescents with elevated borderline traits (r = 0.13 and 0.15 across sessions), where raw EEG
-power did not transfer at all and even the fitted single-electrode decoder was unstable. The
+In a schizophrenia discovery cohort studied with simultaneous EEG–fMRI, a **calibration-free
+frontal-theta EEG f-SNR indexed the DMN–executive neurofeedback target (PDA)** — within-subject and
+out-of-sample — reaching ~70% of a fully fitted decoder's accuracy with no per-subject fitting. The
+central result is that this fingerprint then **replicated in an independent, diagnostically and
+developmentally distinct cohort** — adolescents with elevated borderline traits (r = 0.13 and 0.15
+across sessions) — where raw EEG power did not transfer at all and even the fitted single-electrode
+decoder was unstable. The
 mechanism is simple and is the f-SNR framework's own prediction: dividing signal by an endogenous
 noise estimate removes the cohort-, montage-, and gain-specific scaling that makes raw EEG power
 non-portable, yielding a dimensionless "clarity" index that is cohort-invariant. This is, to our
