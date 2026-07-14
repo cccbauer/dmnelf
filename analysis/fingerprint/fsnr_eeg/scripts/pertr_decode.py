@@ -21,7 +21,8 @@ Construct (no fitting): frontal/posterior oscillatory-aperiodic f-SNR = periodic
 from pathlib import Path
 import numpy as np, glob, re, sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from within_fb_decode import loro, sflip, zs, BASELINE_TR, HRF_DROP, TARGETS, BANDS
+from within_fb_decode import loro, sflip, zs, BASELINE_TR, HRF_DROP, TARGETS, BANDS, ALPHAS
+from sklearn.linear_model import RidgeCV
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 PERTR = Path(__file__).resolve().parents[1] / "results" / "pertr_fsnr"
@@ -88,12 +89,78 @@ def construct(bp_npz, pertr_npz, target):
     return (np.nanmean(oa) if oa else np.nan), (np.nanmean(th) if th else np.nan)
 
 
-def main():
-    bps = {re.search(r"(dmnelf\w+)_bandpower", f).group(1): f
-           for f in glob.glob(str(DATA / "*_bandpower.npz")) if not QA.search(f)}
+def loso_group(pairs, kind, target):
+    """General/group decoder: leave-one-SUBJECT-out. Train on all others (concat runs),
+    predict the held-out subject with NO per-subject calibration. Returns per-subject r."""
+    data = [build(b, p, kind, target) for b, p in pairs]
+    data = [(np.vstack(Xs), np.concatenate(ys)) for Xs, ys in data if Xs]
+    subj_r = []
+    for i in range(len(data)):
+        Xte, yte = data[i]
+        Xtr = np.vstack([data[j][0] for j in range(len(data)) if j != i])
+        ytr = np.concatenate([data[j][1] for j in range(len(data)) if j != i])
+        mu, sd = Xtr.mean(0), Xtr.std(0) + 1e-12
+        m = RidgeCV(alphas=ALPHAS).fit((Xtr - mu) / sd, ytr)
+        p = m.predict((Xte - mu) / sd)
+        if np.std(p) > 1e-9:
+            subj_r.append(np.corrcoef(yte, p)[0, 1])
+    return np.array(subj_r)
+
+
+def get_pairs(cohort):
+    bp_glob = str(DATA / "*_bandpower.npz") if cohort == "dmnelf" \
+        else str(DATA / "rtbpd_nf1" / "*_bandpower.npz")
+    bps = {re.search(rf"({cohort}\w+)_bandpower", f).group(1): f
+           for f in glob.glob(bp_glob) if not (cohort == "dmnelf" and QA.search(f))}
     subs = sorted(s for s in bps if (PERTR / f"{s}_pertr.npz").exists())
-    print(f"DMNELF: {len(subs)} subjects with both band-power + per-TR f-SNR\n")
-    pairs = [(bps[s], str(PERTR / f"{s}_pertr.npz")) for s in subs]
+    return [(bps[s], str(PERTR / f"{s}_pertr.npz")) for s in subs]
+
+
+def cross_cohort(train_pairs, test_pairs, kind, target):
+    """TRANSFER: one model fit on ALL train-cohort subjects, applied to each test subject
+    with NO refitting. Returns per-test-subject r."""
+    Xtr = np.vstack([x for b, p in train_pairs for x in build(b, p, kind, target)[0]])
+    ytr = np.concatenate([y for b, p in train_pairs for y in build(b, p, kind, target)[1]])
+    mu, sd = Xtr.mean(0), Xtr.std(0) + 1e-12
+    m = RidgeCV(alphas=ALPHAS).fit((Xtr - mu) / sd, ytr)
+    r = []
+    for b, p in test_pairs:
+        Xs, ys = build(b, p, kind, target)
+        if not Xs:
+            continue
+        Xte, yte = np.vstack(Xs), np.concatenate(ys)
+        pr = m.predict((Xte - mu) / sd)
+        if np.std(pr) > 1e-9:
+            r.append(np.corrcoef(yte, pr)[0, 1])
+    return np.array(r)
+
+
+def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--cohort", default="dmnelf", choices=["dmnelf", "rtbpd"])
+    ap.add_argument("--transfer", action="store_true",
+                    help="train general decoder on ALL DMNELF, test on rtBPD (cross-cohort)")
+    ap.add_argument("--null", type=int, default=0, help="circular-shift null iterations (0=skip)")
+    a = ap.parse_args()
+
+    if a.transfer:
+        tr, te = get_pairs("dmnelf"), get_pairs("rtbpd")
+        print(f"CROSS-COHORT transfer: train on {len(tr)} DMNELF (schizophrenia), "
+              f"test on {len(te)} rtBPD (borderline traits) — NO refitting\n")
+        print(f"{'feature':16s} " + "  ".join(f"{t:>13s}" for t in TARGETS))
+        for kind in ["bandpower", "bandpower+pertr"]:
+            cells = []
+            for tg in TARGETS:
+                r = cross_cohort(tr, te, kind, tg); o, pv, _ = sflip(r)
+                cells.append(f"{o:+.3f}(p{pv:.2f})")
+            print(f"{kind:16s} " + "  ".join(f"{c:>13s}" for c in cells))
+        return
+
+    subs_pairs = get_pairs(a.cohort)
+    print(f"{a.cohort} ({'nf1' if a.cohort=='rtbpd' else 'discovery'}): "
+          f"{len(subs_pairs)} subjects with both band-power + per-TR f-SNR\n")
+    pairs = subs_pairs
 
     print("=== within-feedback LORO decoding (per target) ===")
     print(f"{'feature':16s} " + "  ".join(f"{t:>13s}" for t in TARGETS))
@@ -104,6 +171,15 @@ def main():
             o, pv, _ = sflip(r); cells.append(f"{o:+.3f}(p{pv:.2f})")
         print(f"{kind:16s} " + "  ".join(f"{c:>13s}" for c in cells))
 
+    print("\n=== GENERAL/group decoder: leave-one-SUBJECT-out (no per-subject calibration) ===")
+    print(f"{'feature':16s} " + "  ".join(f"{t:>13s}" for t in TARGETS))
+    for kind in ["bandpower", "bandpower+pertr"]:
+        cells = []
+        for tg in TARGETS:
+            r = loso_group(pairs, kind, tg); o, pv, _ = sflip(r)
+            cells.append(f"{o:+.3f}(p{pv:.2f})")
+        print(f"{kind:16s} " + "  ".join(f"{c:>13s}" for c in cells))
+
     print("\n=== zero-fitting per-TR f-SNR constructs (frontal), in-block ===")
     for tg in TARGETS:
         oa = np.array([construct(b, p, tg)[0] for b, p in pairs])
@@ -111,12 +187,14 @@ def main():
         oo, op, _ = sflip(oa); to, tp, _ = sflip(th)
         print(f"  {tg}: osc/aperiodic r={oo:+.3f}(p{op:.2f})   theta-tSNR r={to:+.3f}(p{tp:.2f})")
 
+    if a.null <= 0:
+        return
     print("\n=== circular-shift null (best feature set, in-block LORO) ===")
     best = "bandpower+pertr"
     for tg in TARGETS:
         obs = np.nanmean([loro(*build(b, p, best, tg)) for b, p in pairs])
         nulls = []
-        for _ in range(100):
+        for _ in range(a.null):
             rs = []
             for b, p in pairs:
                 Xs, ys = build(b, p, best, tg)
