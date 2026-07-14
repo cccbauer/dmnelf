@@ -1,0 +1,10 @@
+subject,target,ttype,mode,window,r
+rtbpd011,CEN,orig,best,fb,0.4498483190648817
+rtbpd011,CEN,orig,frontal,fb,0.4739802733431674
+rtbpd011,CEN,orig,all,fb,0.5248119430706072
+rtbpd011,DMN,orig,best,fb,0.2975445217549269
+rtbpd011,DMN,orig,frontal,fb,0.3596167655467122
+rtbpd011,DMN,orig,all,fb,0.38780341204220287
+rtbpd011,PDA,orig,best,fb,0.24898578000259822
+rtbpd011,PDA,orig,frontal,fb,0.27079553457391886
+rtbpd011,PDA,orig,all,fb,0.2230300966818349

@@ -96,24 +96,27 @@ def loro_best(rd_list, nch):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--subject", required=True)
-    ap.add_argument("--cenmean-dir", required=True)
+    ap.add_argument("--cenmean-dir", default=None)   # clean CEN (DMNELF); omit for rtBPD
+    ap.add_argument("--config", default=None)          # config_rtbpd.yaml / _nf2 for rtBPD
     ap.add_argument("--cache", required=True)
     ap.add_argument("--out", required=True)
     a = ap.parse_args()
-    cfg = load_config()
+    cfg = load_config(a.config) if a.config else load_config()
     tr = cfg["data"]["fmri"]["tr"]; n_delays = int(round(cfg["efp"]["delay_window_s"] / tr)) + 1
     cache_dir = Path(a.cache); out = Path(a.out); out.mkdir(parents=True, exist_ok=True); sub = a.subject
     if not (cache_dir / f"{sub}_efp.npz").exists():
         build_subject_features(cfg, sub, cache_dir)
     runs, ch_names = load_subject_features(cache_dir, sub)
     nch = len(ch_names); fidx = [i for i, c in enumerate(ch_names) if c in FRONTAL]
-    cen_clean = np.load(Path(a.cenmean_dir) / f"cenmean_dmnelf_{sub}.npz", allow_pickle=True)
 
-    # target vectors per run: orig CEN/DMN/PDA (cache) + clean CEN (cenmean)
+    # target vectors per run: orig CEN/DMN/PDA (cache) + clean CEN (cenmean, DMNELF only)
     tvecs = {("CEN", "orig"): {rd["run"]: np.asarray(rd["tgt_tr"]["CEN"], float) for rd in runs},
              ("DMN", "orig"): {rd["run"]: np.asarray(rd["tgt_tr"]["DMN"], float) for rd in runs},
-             ("PDA", "orig"): {rd["run"]: np.asarray(rd["tgt_tr"]["PDA"], float) for rd in runs},
-             ("CEN", "clean"): {rd["run"]: np.asarray(cen_clean[f"run{rd['run']}"], float) for rd in runs}}
+             ("PDA", "orig"): {rd["run"]: np.asarray(rd["tgt_tr"]["PDA"], float) for rd in runs}}
+    cmf = Path(a.cenmean_dir) / f"cenmean_dmnelf_{sub}.npz" if a.cenmean_dir else None
+    if cmf and cmf.exists():
+        cc = np.load(cmf, allow_pickle=True)
+        tvecs[("CEN", "clean")] = {rd["run"]: np.asarray(cc[f"run{rd['run']}"], float) for rd in runs}
 
     rows = []
     for (tgt, ttype), tvec in tvecs.items():
