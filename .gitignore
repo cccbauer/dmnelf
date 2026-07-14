@@ -43,3 +43,6 @@ murfi-rt-PyProject/scripts/img/
 
 # per-TR f-SNR feature caches (regenerable on cluster)
 analysis/fingerprint/fsnr_eeg/results/pertr_fsnr/*.npz
+
+# CEN ceiling target/reliability caches (regenerable on cluster)
+analysis/fingerprint/fsnr_eeg/results/cen_ceiling/*.npz
