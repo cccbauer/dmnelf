@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """
-efp_cen_group.py  (local)  —  aggregate honest EFP CEN re-scoring
------------------------------------------------------------------
-Reads efp_cen_clean_<sub>.csv (from efp_cen_clean.py) and reports group EFP CEN r per
-condition (clean/orig x fb/full), sign-flip p, and the decomposition:
-  state-step share  = clean/full - clean/fb
-  confound share    = orig/fb   - clean/fb
-Verdict vs band-power baseline (~0.08) and the frozen full-run number (~0.279).
+efp_cen_group.py  (local)  —  aggregate honest EFP re-scoring (CEN/DMN/PDA x electrode modes)
+---------------------------------------------------------------------------------------------
+Reads efp_cen_clean_<sub>.csv. Reports group LORO feedback-block r for each target x mode
+(best / frontal / all), with sign-flip p. Answers: (1) DMN/PDA honest numbers, (2) does
+combining electrodes (frontal / all) beat single-best?
 """
 from pathlib import Path
 import numpy as np, pandas as pd, glob
@@ -18,33 +16,29 @@ RNG = np.random.default_rng(0)
 def sflip(a, n=10000):
     a = a[np.isfinite(a)]
     if len(a) < 3:
-        return np.nan, np.nan, len(a)
+        return np.nan, np.nan
     obs = a.mean(); null = (RNG.choice([-1, 1], (n, len(a))) * np.abs(a)).mean(1)
-    return obs, float((np.abs(null) >= abs(obs)).mean()), len(a)
+    return obs, float((np.abs(null) >= abs(obs)).mean())
 
 
 def main():
     files = glob.glob(str(RES / "efp_cen_clean_*.csv"))
     if not files:
-        print("no efp_cen_clean CSVs yet"); return
+        print("no CSVs yet"); return
     d = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
-    print(f"EFP CEN honest re-scoring — {d.subject.nunique()} subjects\n")
-    print(f"  {'target':6s} {'window':5s} {'EFP CEN r':>10s} {'p':>7s} {'n':>4s}")
-    cell = {}
-    for target in ["clean", "orig"]:
-        for window in ["fb", "full"]:
-            s = d[(d.target == target) & (d.window == window)]
-            o, p, n = sflip(s.efp_cen_r.values)
-            cell[(target, window)] = o
-            print(f"  {target:6s} {window:5s} {o:>+10.3f} {p:>7.3f} {n:>4d}")
-    print()
-    print(f"  frozen reference (orig/full, block-CV): ~0.279")
-    print(f"  band-power+per-TR baseline (clean/fb):   ~0.08")
-    print(f"  --- decomposition ---")
-    print(f"  state-step share (clean/full - clean/fb): {cell[('clean','full')]-cell[('clean','fb')]:+.3f}")
-    print(f"  confound share   (orig/fb  - clean/fb):   {cell[('orig','fb')]-cell[('clean','fb')]:+.3f}")
-    print(f"\n  HONEST EFP CEN (clean/fb) = {cell[('clean','fb')]:+.3f}")
-    print("  verdict: >>0.08 -> EFP representation is the CEN win; ~0.08 -> edge was state+motion.")
+    n = d.subject.nunique()
+    print(f"EFP honest re-scoring (LORO, feedback block) — {n} subjects\n")
+    modes = ["best", "frontal", "all"]
+    print(f"  {'target':10s} " + "  ".join(f"{m:>14s}" for m in modes))
+    for tgt, ttype in [("CEN", "orig"), ("CEN", "clean"), ("DMN", "orig"), ("PDA", "orig")]:
+        cells = []
+        for m in modes:
+            s = d[(d.target == tgt) & (d.ttype == ttype) & (d["mode"] == m)]
+            o, p = sflip(s.r.values)
+            cells.append(f"{o:+.3f}{'*' if p < 0.05 else ' '}(p{p:.2f})")
+        print(f"  {tgt+'/'+ttype:10s} " + "  ".join(f"{c:>14s}" for c in cells))
+    print("\n  best=single-electrode(nested) | frontal=multivar 11 frontal | all=multivar 31")
+    print("  * p<.05 sign-flip. Does frontal/all beat best? Is CEN/PDA/DMN different?")
 
 
 if __name__ == "__main__":
