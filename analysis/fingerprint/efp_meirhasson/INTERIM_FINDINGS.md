@@ -45,6 +45,18 @@ EEG↔single-network BOLD would be unprecedented (field best ~0.3–0.5). We rul
 - Joint CEN+DMN decoding — plain multi-output ridge = solo (null by construction); reduced-rank(1)
   helps DMN in DMNELF only, hurts in rtBPD → no robust gain.
 - PDA transfer (differential is motion-robust within-cohort but does not cross cohorts on clean).
+- **Deep learning on raw EEG (R-EEGNet, Stabile 2025) — decisive NULL, in every regime.** Compact
+  CNN (learnable freq filters → depthwise spatial → separable + linear head, ~2.6k params) on raw
+  15 s / 1–40 Hz / 80 Hz windows [31,1200] → clean CEN/DMN, trained on DMNELF only (17 subj),
+  rtBPD held out. Results ≈ **chance everywhere**: cross-subject LOSO CEN −0.005/DMN +0.002 (full
+  aug) and +0.004/+0.012 (light aug); frozen→rtBPD transfer ≤0.02; **within-subject LORO +0.007/
+  +0.013** (per-subject r's pure noise, −0.13…+0.21). Augmentation exonerated (light = full ≈ 0).
+  It fails even in the *easy* within-subject regime where EFP linear gets ~0.11. Cause: ~285
+  windows/subj on a weak, distributed target (vs the paper's 792/session on *focal* motor mu/beta) —
+  raw-EEG DL has no inductive bias to find it; hand-crafted Stockwell band-power + ridge does.
+  **This settles the representation question: the ~0.11 ceiling is not a linearity limit — a CNN
+  with learnable frequency filters does *worse*, not better.** Deep route closed; EFP linear stays
+  the decoder. (`../deep_eeg/`: `extract_windows.py`, `model.py`, `train.py`, `results_dmnelf_loso.txt`)
 
 ## Bottom line for the manuscript
 A **neural (<20 Hz), personalized** EEG fingerprint decodes the DMN–executive networks at ~0.11

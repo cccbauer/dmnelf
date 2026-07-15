@@ -1,3 +1,4 @@
+### deep_train_8373194.out
 device=cuda | DMNELF n=17 | band='full'
   LOSO dmnelf001: CEN=-0.076 DMN=-0.039
   LOSO dmnelf004: CEN=+0.038 DMN=+0.030
@@ -16,7 +17,34 @@ device=cuda | DMNELF n=17 | band='full'
   LOSO dmnelf1001: CEN=+0.105 DMN=-0.002
   LOSO dmnelf1002: CEN=-0.028 DMN=+0.034
   LOSO dmnelf1003: CEN=+0.001 DMN=+0.071
-
 DMNELF LOSO  CEN=-0.005  DMN=+0.002  (EFP ~0.11/0.10)
 transfer rtbpd_nf1: CEN=+0.018 DMN=+0.009 (n=19)
 transfer rtbpd_nf2: CEN=+0.014 DMN=+0.008 (n=11)
+
+### deep_loso_light_8374273.out
+device=cuda | DMNELF n=17 | mode=loso aug=light band='full'
+DMNELF LOSO (light)  CEN=+0.004  DMN=+0.012
+transfer rtbpd_nf1 (light): CEN=+0.021 DMN=+0.017 (n=19)
+transfer rtbpd_nf2 (light): CEN=+0.013 DMN=+0.005 (n=11)
+
+### deep_loro_8374274.out
+device=cuda | DMNELF n=17 | mode=loro aug=light band='full'
+  LORO dmnelf001: CEN=+0.033 DMN=-0.020
+  LORO dmnelf004: CEN=-0.119 DMN=-0.082
+  LORO dmnelf005: CEN=+0.089 DMN=-0.000
+  LORO dmnelf006: CEN=-0.083 DMN=+0.031
+  LORO dmnelf007: CEN=-0.093 DMN=+0.041
+  LORO dmnelf008: CEN=-0.077 DMN=-0.072
+  LORO dmnelf009: CEN=-0.132 DMN=+0.039
+  LORO dmnelf010: CEN=+0.086 DMN=+0.181
+  LORO dmnelf011: CEN=-0.088 DMN=-0.034
+  LORO dmnelf012: CEN=+0.090 DMN=-0.030
+  LORO dmnelf013: CEN=+0.207 DMN=+0.148
+  LORO dmnelf014: CEN=+0.081 DMN=+0.016
+  LORO dmnelf015: CEN=+0.051 DMN=-0.010
+  LORO dmnelf016: CEN=-0.017 DMN=-0.079
+  LORO dmnelf1001: CEN=-0.014 DMN=-0.051
+  LORO dmnelf1002: CEN=+0.128 DMN=+0.074
+  LORO dmnelf1003: CEN=-0.023 DMN=+0.068
+DMNELF within-subj LORO (light)  CEN=+0.007  DMN=+0.013
+
