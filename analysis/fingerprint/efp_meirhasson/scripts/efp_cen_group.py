@@ -30,7 +30,8 @@ def main():
     print(f"EFP honest re-scoring (LORO, feedback block) — {n} subjects\n")
     modes = ["best", "frontal", "all", "epoc", "epoc_afproxy"]
     print(f"  {'target':10s} " + "  ".join(f"{m:>14s}" for m in modes))
-    for tgt, ttype in [("CEN", "orig"), ("CEN", "clean"), ("DMN", "orig"), ("PDA", "orig")]:
+    for tgt, ttype in [("CEN", "orig"), ("CEN", "clean"), ("DMN", "orig"), ("DMN", "clean"),
+                       ("PDA", "orig"), ("PDA", "clean")]:
         cells = []
         for m in modes:
             s = d[(d.target == tgt) & (d.ttype == ttype) & (d["mode"] == m)]

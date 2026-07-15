@@ -13,23 +13,27 @@ Calibration-free cross-subject transfer is weak (~0.07); **one calibration run l
 
 ## 2. Expected performance on EPOC X — MEASURED (the go/no-go)
 We restricted our EFP to exactly the electrodes EPOC X carries ("virtual-EPOC" ablation,
-`efp_cen_clean.py` mode `epoc`) and re-ran the honest LORO. Group feedback-block r (n=17):
+`efp_cen_clean.py` mode `epoc`) and re-ran the honest LORO. Group feedback-block r (n=17). **All
+targets shown on the motion-cleaned (confound-regressed) target — the honest, deployable numbers:**
 
-| Target | best (1 ch) | all (31 ch) | **epoc (12 ch)** | epoc + AF proxy |
-|---|---|---|---|---|
-| **CEN / clean** (honest) | 0.110 | 0.103 | **0.095** \* | 0.098 \* |
-| CEN / orig (motion-retained) | 0.114 | 0.231 | 0.191 \* | 0.210 \* |
-| DMN / orig | 0.097 | 0.214 | 0.217 \* | 0.211 \* |
-| PDA / orig | 0.197 | 0.208 | 0.196 \* | 0.202 \* |
+| Target (clean) | best (1 ch) | all (31 ch) | **epoc (12 ch)** | epoc + AF proxy | epoc/all |
+|---|---|---|---|---|---|
+| **CEN** | 0.110 \* | 0.103 \* | **0.095** \* | 0.098 \* | ~92% |
+| **DMN** | 0.040 \* | 0.060 \* | **0.061** \* | 0.060 \* | ~100% |
+| **PDA** = CEN−DMN | 0.041 | 0.063 \* | **0.051** \* | 0.056 \* | ~81% |
 
-\* p < 0.05 (sign-flip). **Verdict: GO.** On the honest motion-cleaned CEN target the EPOC-12 montage
-retains **0.095 vs 0.103 (~92%)** of the full 31-channel decoder and stays significant. This is the
-key, somewhat surprising result: **even though EPOC X has none of the centro-parietal midline
-electrodes where the CEN field peaks (Pz/POz/Cz/P3/P4/CP1/CP2), volume conduction to the posterior
-P7/P8/O1/O2 ring recovers most of the signal.** Adding Fp1/Fp2 as AF3/AF4 proxies nudges CEN to 0.098.
-Caveat: only CEN has a confound-cleaned target here; DMN/PDA rows use the motion-retained `orig`
-targets (inflated ~2×), but show the same ~90–100% epoc/all retention, so the montage is not the
-bottleneck for any target.
+\* p < 0.05 (sign-flip). **Verdict: GO.** Two things to read here:
+
+1. **The EPOC montage is not the bottleneck.** Despite EPOC X having none of the centro-parietal
+   midline electrodes where the CEN field peaks (Pz/POz/Cz/P3/P4/CP1/CP2), **volume conduction to the
+   posterior P7/P8/O1/O2 ring recovers 81–100% of the full 31-channel decoder** across CEN/DMN/PDA, all
+   still significant. Adding Fp1/Fp2 as AF3/AF4 proxies helps marginally (CEN 0.095→0.098, PDA
+   0.051→0.056). The midline gap costs ~8–19% relative, not the signal.
+2. **Absolute magnitudes are honest and modest.** CEN is the robust channel (**~0.095 on EPOC**);
+   **DMN ~0.061** and **direct PDA ~0.051** are weaker but real. NB: the motion-*retained* (`orig`)
+   targets inflate these ~3× (DMN 0.217, PDA 0.196 on epoc) — those are **artefact, not signal**, and
+   are not the deployment target. Design around **CEN as the primary readout**; derive PDA from the
+   separately decoded CEN and DMN rather than leaning on the weaker direct-PDA model.
 
 ## 3. Hardware & montage
 **EPOC X:** 14 saline felt channels `AF3 F7 F3 FC5 T7 P7 O1 O2 P8 T8 FC6 F4 F8 AF4`; CMS/DRL reference

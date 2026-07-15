@@ -19,3 +19,13 @@ dmnelf009,CEN,clean,frontal,fb,-0.12938060870690285
 dmnelf009,CEN,clean,all,fb,-0.13196529113473046
 dmnelf009,CEN,clean,epoc,fb,-0.10674867711227597
 dmnelf009,CEN,clean,epoc_afproxy,fb,-0.1248730216361919
+dmnelf009,DMN,clean,best,fb,0.11002415730102416
+dmnelf009,DMN,clean,frontal,fb,0.17312431434753114
+dmnelf009,DMN,clean,all,fb,0.27778826503011395
+dmnelf009,DMN,clean,epoc,fb,0.2755581772519826
+dmnelf009,DMN,clean,epoc_afproxy,fb,0.2850029254161163
+dmnelf009,PDA,clean,best,fb,-0.056502119521607705
+dmnelf009,PDA,clean,frontal,fb,0.03082023823417731
+dmnelf009,PDA,clean,all,fb,0.07683998044600837
+dmnelf009,PDA,clean,epoc,fb,0.03566627089323457
+dmnelf009,PDA,clean,epoc_afproxy,fb,0.042011591773858686

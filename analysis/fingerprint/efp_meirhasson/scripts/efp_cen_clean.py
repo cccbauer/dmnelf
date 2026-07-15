@@ -43,6 +43,8 @@ def run_designs(runs, n_delays, target_vec_by_run, window):
             X, off = make_delay_design(rd["bp_tr"][ci], n_delays)
             Xs.append((X - X.mean(0)) / (X.std(0) + 1e-12))
         nvalid = Xs[0].shape[0]; t_idx = off + np.arange(nvalid)
+        if rd["run"] not in target_vec_by_run:
+            continue
         y_full = target_vec_by_run[rd["run"]]
         y = y_full[off:off + nvalid]
         mask = (t_idx >= BASELINE_TR + HRF_DROP) if window == "fb" else np.ones(nvalid, bool)
@@ -122,7 +124,15 @@ def main():
     cmf = Path(a.cenmean_dir) / f"cenmean_dmnelf_{sub}.npz" if a.cenmean_dir else None
     if cmf and cmf.exists():
         cc = np.load(cmf, allow_pickle=True)
-        tvecs[("CEN", "clean")] = {rd["run"]: np.asarray(cc[f"run{rd['run']}"], float) for rd in runs}
+        # clean confound-regressed CEN, DMN, and PDA (= clean CEN - clean DMN), per run where present
+        cen_c = {rd["run"]: np.asarray(cc[f"run{rd['run']}"], float)
+                 for rd in runs if f"run{rd['run']}" in cc.files}
+        dmn_c = {rd["run"]: np.asarray(cc[f"run{rd['run']}_dmn"], float)
+                 for rd in runs if f"run{rd['run']}_dmn" in cc.files}
+        tvecs[("CEN", "clean")] = cen_c
+        if dmn_c:
+            tvecs[("DMN", "clean")] = dmn_c
+            tvecs[("PDA", "clean")] = {r: cen_c[r] - dmn_c[r] for r in cen_c if r in dmn_c}
 
     rows = []
     for (tgt, ttype), tvec in tvecs.items():
