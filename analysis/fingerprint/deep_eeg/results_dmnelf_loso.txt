@@ -1,0 +1,22 @@
+device=cuda | DMNELF n=17 | band='full'
+  LOSO dmnelf001: CEN=-0.076 DMN=-0.039
+  LOSO dmnelf004: CEN=+0.038 DMN=+0.030
+  LOSO dmnelf005: CEN=-0.048 DMN=+0.048
+  LOSO dmnelf006: CEN=+0.096 DMN=-0.018
+  LOSO dmnelf007: CEN=-0.012 DMN=-0.000
+  LOSO dmnelf008: CEN=-0.037 DMN=-0.071
+  LOSO dmnelf009: CEN=+0.094 DMN=+0.032
+  LOSO dmnelf010: CEN=-0.036 DMN=-0.074
+  LOSO dmnelf011: CEN=-0.029 DMN=+0.122
+  LOSO dmnelf012: CEN=+0.009 DMN=+0.023
+  LOSO dmnelf013: CEN=-0.023 DMN=-0.045
+  LOSO dmnelf014: CEN=-0.017 DMN=-0.063
+  LOSO dmnelf015: CEN=-0.092 DMN=-0.055
+  LOSO dmnelf016: CEN=-0.034 DMN=+0.042
+  LOSO dmnelf1001: CEN=+0.105 DMN=-0.002
+  LOSO dmnelf1002: CEN=-0.028 DMN=+0.034
+  LOSO dmnelf1003: CEN=+0.001 DMN=+0.071
+
+DMNELF LOSO  CEN=-0.005  DMN=+0.002  (EFP ~0.11/0.10)
+transfer rtbpd_nf1: CEN=+0.018 DMN=+0.009 (n=19)
+transfer rtbpd_nf2: CEN=+0.014 DMN=+0.008 (n=11)
