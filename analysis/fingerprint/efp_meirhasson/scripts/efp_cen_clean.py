@@ -23,6 +23,10 @@ from efp_features import load_config, build_subject_features, load_subject_featu
 BASELINE_TR, HRF_DROP = 25, 5
 ALPHAS = np.logspace(-2, 5, 15)
 FRONTAL = ["Fp1", "Fp2", "F3", "F4", "F7", "F8", "Fz", "FC1", "FC2", "FC5", "FC6"]
+# Emotiv EPOC X 14-ch montage: 12 of our cap's electrodes are present (AF3/AF4 absent).
+# NB: EPOC X has NO centro-parietal midline (Pz/POz/Cz/P3/P4/CP1/CP2) where our CEN signal peaks.
+EPOC12 = ["F7", "F3", "FC5", "T7", "P7", "O1", "O2", "P8", "T8", "FC6", "F4", "F8"]
+EPOC_AFPROXY = EPOC12 + ["Fp1", "Fp2"]   # Fp1->AF3, Fp2->AF4 nearest-neighbour proxies
 
 
 def nmse(y, p):
@@ -108,6 +112,8 @@ def main():
         build_subject_features(cfg, sub, cache_dir)
     runs, ch_names = load_subject_features(cache_dir, sub)
     nch = len(ch_names); fidx = [i for i, c in enumerate(ch_names) if c in FRONTAL]
+    eidx = [i for i, c in enumerate(ch_names) if c in EPOC12]
+    eidx2 = [i for i, c in enumerate(ch_names) if c in EPOC_AFPROXY]
 
     # target vectors per run: orig CEN/DMN/PDA (cache) + clean CEN (cenmean, DMNELF only)
     tvecs = {("CEN", "orig"): {rd["run"]: np.asarray(rd["tgt_tr"]["CEN"], float) for rd in runs},
@@ -121,7 +127,8 @@ def main():
     rows = []
     for (tgt, ttype), tvec in tvecs.items():
         rd_list = run_designs(runs, n_delays, tvec, "fb")
-        for mode, cols in [("best", None), ("frontal", fidx), ("all", list(range(nch)))]:
+        for mode, cols in [("best", None), ("frontal", fidx), ("all", list(range(nch))),
+                           ("epoc", eidx), ("epoc_afproxy", eidx2)]:
             r = loro_best(rd_list, nch) if mode == "best" else loro_multivar(rd_list, cols)
             rows.append(dict(subject=sub, target=tgt, ttype=ttype, mode=mode, window="fb", r=r))
             print(f"  {sub} {tgt}/{ttype} {mode}: r={r:+.3f}", flush=True)

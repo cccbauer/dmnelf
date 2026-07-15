@@ -28,7 +28,7 @@ def main():
     d = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)
     n = d.subject.nunique()
     print(f"EFP honest re-scoring (LORO, feedback block) — {n} subjects\n")
-    modes = ["best", "frontal", "all"]
+    modes = ["best", "frontal", "all", "epoc", "epoc_afproxy"]
     print(f"  {'target':10s} " + "  ".join(f"{m:>14s}" for m in modes))
     for tgt, ttype in [("CEN", "orig"), ("CEN", "clean"), ("DMN", "orig"), ("PDA", "orig")]:
         cells = []
@@ -38,7 +38,8 @@ def main():
             cells.append(f"{o:+.3f}{'*' if p < 0.05 else ' '}(p{p:.2f})")
         print(f"  {tgt+'/'+ttype:10s} " + "  ".join(f"{c:>14s}" for c in cells))
     print("\n  best=single-electrode(nested) | frontal=multivar 11 frontal | all=multivar 31")
-    print("  * p<.05 sign-flip. Does frontal/all beat best? Is CEN/PDA/DMN different?")
+    print("  epoc=EPOC-X 12ch subset | epoc_afproxy=+Fp1/Fp2 as AF3/AF4")
+    print("  * p<.05 sign-flip. EPOC-X deployment: how much does epoc lose vs all (no midline)?")
 
 
 if __name__ == "__main__":
