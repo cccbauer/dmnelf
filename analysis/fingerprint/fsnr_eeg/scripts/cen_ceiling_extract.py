@@ -23,7 +23,8 @@ from nilearn.maskers import NiftiMasker
 from nilearn.interfaces.fmriprep import load_confounds
 
 COH = {"dmnelf": dict(root="/projects/swglab/data/DMNELF", ses="ses-dmnelf"),
-       "rtbpd": dict(root="/projects/swglab/data/rtBPD", ses="ses-nf1")}
+       "rtbpd": dict(root="/projects/swglab/data/rtBPD", ses="ses-nf1"),
+       "rtbpd_nf2": dict(root="/projects/swglab/data/rtBPD", ses="ses-nf2")}
 TR = 1.2
 BASELINE_TR, HRF_DROP = 25, 5
 SMOOTH = [1, 3, 5]
@@ -52,10 +53,13 @@ def main():
     a = ap.parse_args(); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     c = COH[a.cohort]; sub = a.subject; ses = c["ses"]
     fp = f"{c['root']}/derivatives/fmriprep_25.2.5_fmap"
-    cen = f"{c['root']}/derivatives/network_masks/sub-{sub}/sub-{sub}_space-MNI152NLin6Asym_res-2_cen_mask.nii.gz"
+    mdir = f"{c['root']}/derivatives/network_masks/sub-{sub}"
+    cen = f"{mdir}/sub-{sub}_space-MNI152NLin6Asym_res-2_cen_mask.nii.gz"
+    dmn = f"{mdir}/sub-{sub}_space-MNI152NLin6Asym_res-2_dmn_mask.nii.gz"
     if not os.path.exists(cen):
         print(f"{sub}: no CEN mask"); return
     masker = NiftiMasker(cen, standardize="zscore_sample", detrend=True, t_r=TR)
+    dmasker = NiftiMasker(dmn, standardize="zscore_sample", detrend=True, t_r=TR) if os.path.exists(dmn) else None
     rows = []; means = {}
     for img in sorted(glob.glob(f"{fp}/sub-{sub}/{ses}/func/sub-{sub}_{ses}_task-feedback_run-*_space-MNI152NLin6Asym_res-2_desc-preproc_bold.nii.gz")):
         run = int(img.split("run-")[1][:2])
@@ -72,6 +76,8 @@ def main():
             G = np.column_stack([np.ones(T), g])
             Vg = V - G @ np.linalg.lstsq(G, V, rcond=None)[0]
             means[f"run{run}"] = V.mean(1); means[f"run{run}_gsr"] = Vg.mean(1)
+            if dmasker is not None:  # clean DMN mask-mean (same confound regression)
+                means[f"run{run}_dmn"] = dmasker.fit_transform(img, confounds=confs.drop(columns=gcol)).mean(1)
             fb = slice(BASELINE_TR + HRF_DROP, T)
             quick = {}
             for denoise, Vd in [("raw", V), ("gsr", Vg)]:

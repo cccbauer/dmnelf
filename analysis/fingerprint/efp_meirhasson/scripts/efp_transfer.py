@@ -22,23 +22,45 @@ ALPHAS = np.logspace(-2, 5, 15)
 B = "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_meirhasson"
 TRAIN_CACHE = f"{B}/results/features_cache"
 TEST = {"nf1": f"{B}/results/features_cache_rtbpd", "nf2": f"{B}/results/features_cache_rtbpd_nf2"}
+CLEAN_DIR = "/home/cccbauer/cenrel_out"
+CLEAN_PREFIX = {TRAIN_CACHE: "cenmean_dmnelf_", TEST["nf1"]: "cenmean_rtbpd_",
+                TEST["nf2"]: "cenmean_rtbpd_nf2_"}   # clean confound-regressed targets
 
 
 def subjects(cache):
     return sorted(Path(p).name.replace("_efp.npz", "") for p in glob.glob(f"{cache}/*_efp.npz"))
 
 
+def clean_target(cm, run, target):
+    """Clean CEN=run{N}, DMN=run{N}_dmn, PDA=CEN-DMN. Returns None if unavailable."""
+    ck, dk = f"run{run}", f"run{run}_dmn"
+    if target == "CEN":
+        return np.asarray(cm[ck], float) if ck in cm.files else None
+    if target == "DMN":
+        return np.asarray(cm[dk], float) if dk in cm.files else None
+    if ck in cm.files and dk in cm.files:
+        return np.asarray(cm[ck], float) - np.asarray(cm[dk], float)
+    return None
+
+
 def subj_designs(cache, sub, target, n_delays):
-    """Per-channel feedback-block design (per-run z-scored) + y, concatenated over runs."""
+    """Per-channel feedback-block design (per-run z-scored) + CLEAN y, concatenated over runs."""
     runs, ch = load_subject_features(Path(cache), sub); nch = len(ch)
+    cmf = Path(CLEAN_DIR) / f"{CLEAN_PREFIX[cache]}{sub}.npz"
+    if not cmf.exists():
+        return None
+    cm = np.load(cmf, allow_pickle=True)
     per_ch = [[] for _ in range(nch)]; ys = []
     for rd in runs:
+        yv = clean_target(cm, rd["run"], target)
+        if yv is None:
+            continue
         Xs, off = [], None
         for ci in range(nch):
             X, off = make_delay_design(rd["bp_tr"][ci], n_delays)
             Xs.append((X - X.mean(0)) / (X.std(0) + 1e-12))
         nvalid = Xs[0].shape[0]; t_idx = off + np.arange(nvalid)
-        y = np.asarray(rd["tgt_tr"][target], float)[off:off + nvalid]
+        y = yv[off:off + nvalid]
         m = (t_idx >= BASELINE_TR + HRF_DROP) & np.isfinite(y)
         if m.sum() < 20:
             continue
