@@ -10,7 +10,7 @@ all (multivariate). Reports per-rtBPD-subject r -> group mean + sign-flip p.
 
 Runs on cluster (caches there). Output: efp_transfer.csv (session, target, mode, r per subject).
 """
-import argparse, glob
+import argparse, glob, os
 from pathlib import Path
 import numpy as np, pandas as pd
 from scipy.stats import zscore, pearsonr
@@ -19,6 +19,7 @@ from efp_features import load_config, load_subject_features, make_delay_design
 
 BASELINE_TR, HRF_DROP = 25, 5
 ALPHAS = np.logspace(-2, 5, 15)
+MAXBAND = int(os.environ.get("EFP_MAXBAND", "10"))  # keep bands [0:MAXBAND]; 8 = <20 Hz (drop EMG)
 B = "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_meirhasson"
 TRAIN_CACHE = f"{B}/results/features_cache"
 TEST = {"nf1": f"{B}/results/features_cache_rtbpd", "nf2": f"{B}/results/features_cache_rtbpd_nf2"}
@@ -57,7 +58,7 @@ def subj_designs(cache, sub, target, n_delays):
             continue
         Xs, off = [], None
         for ci in range(nch):
-            X, off = make_delay_design(rd["bp_tr"][ci], n_delays)
+            X, off = make_delay_design(rd["bp_tr"][ci][:MAXBAND], n_delays)   # band cutoff
             Xs.append((X - X.mean(0)) / (X.std(0) + 1e-12))
         nvalid = Xs[0].shape[0]; t_idx = off + np.arange(nvalid)
         y = yv[off:off + nvalid]
