@@ -38,6 +38,17 @@ EEG↔single-network BOLD would be unprecedented (field best ~0.3–0.5). We rul
 - **PI frontal-midline-theta question:** on clean targets, Fz/frontal-midline theta is **weakly
   anti-correlated with DMN** (~−0.03, Scheeringa's predicted sign; the orig +0.29 was arousal), and
   sig-negative with CEN full-run (−0.058*), but effects are tiny. **Hemispheric theta asymmetry (R−L): null.**
+- **Zotev 2025 (HBM) portable theta indices — tested, do NOT give a deployable index** (`fta_zotev.py`).
+  Tested his exact features vs our clean CEN/DMN/PDA, within-subject, DMNELF(17)+rtBPD-nf1(19):
+  **FTA = ln P(F3)−ln P(F4)** (his motion-robust NF target) is **NULL** in both cohorts, all targets
+  (~0) — the L−R subtraction cancels the little common theta F3 carries; motion-robustness bought at
+  the cost of signal. **F3-θ and CEN-PC** (PCA of F3/F4/Fz/P3/P4 θ) give only a weak *negative* CEN
+  coupling (DMNELF −0.057**/−0.058**, PDA −0.040**/−0.041**; rtBPD-nf1 CEN −0.038**) that **collapses
+  to ~0 in the feedback block** (state-step inflation) — same sign/magnitude as the Fz result. Answers
+  the reviewer question "why not frontal-theta asymmetry (Zotev)?": it doesn't track the DMN–CEN target
+  within feedback. Corroborates that the signal is distributed centro-parietal & multivariate, not
+  focal-frontal-theta. (Not tested locally: rtBPD DMN/PDA + nf2 — targets not extracted; DMNELF already
+  covers all three and FTA is null across all.)
 
 ## What did NOT help
 - Downsampling / timescale; higher sampling rate.
