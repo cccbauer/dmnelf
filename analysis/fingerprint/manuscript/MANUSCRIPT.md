@@ -1,9 +1,8 @@
-# A calibration-free EEG fingerprint of a default-mode–executive neurofeedback target in schizophrenia, replicated transdiagnostically
+# A portable, personalized EEG decoder of a default-mode–executive neurofeedback target, replicated across two clinical cohorts
 
 <!-- Alternative titles:
-  - A calibration-free EEG signal-to-noise ratio indexes a DMN–executive neurofeedback target in schizophrenia and generalizes to borderline-trait youth
-  - From fMRI to EEG: a portable fingerprint of the default-mode–executive neurofeedback target, discovered in schizophrenia and replicated transdiagnostically
-  - A scalable EEG proxy for a real-time-fMRI neurofeedback target: discovery in schizophrenia, transdiagnostic replication -->
+  - From fMRI to EEG: a personalized, motion-controlled decoder of a default-mode–executive neurofeedback target, replicated transdiagnostically and deployable on consumer hardware
+  - A replicated EEG decoder of a DMN–executive neurofeedback target: personalized within-subject, calibratable across cohorts, portable to a 14-channel headset -->
 
 
 *Target journal: Biological Psychiatry: Cognitive Neuroscience and Neuroimaging (Archival Report — 4000-word body, 250-word structured abstract, IMRD).*
@@ -11,45 +10,48 @@
 **Authors:** `[TODO: author list — order + initials]`
 **Affiliations:** `[TODO: affiliations]`
 **Corresponding author:** Clemens C. C. Bauer `[TODO: email + postal address]`
-**Keywords:** `[TODO: 5–6 — e.g. neurofeedback; default-mode network; EEG–fMRI; functional signal-to-noise ratio; transdiagnostic; schizophrenia]`
+**Keywords:** `[TODO: 5–6 — e.g. neurofeedback; default-mode network; EEG–fMRI; EEG fingerprint; transdiagnostic; schizophrenia]`
 **Running title:** `[TODO: ≤ 45 char]`
 **Word count:** body `[TODO]` / abstract `[TODO]`; figures `[TODO]`; tables `[TODO]`; references `[TODO]`.
 
-> Full draft. Introduction, Results (from committed analyses), and Discussion are written;
-> Methods §2.1–2.9 complete. Remaining **[CONFIRM]** items are factual gaps only: schizophrenia
-> symptom scale + medication, borderline-trait scale name, IRB/site details, and per-cohort fMRI
-> protocol identity. Scope note: resting-state connectivity analyses (restfc/, fox_seed/) are
-> internal negative/validation results and are deliberately **excluded** from this paper.
+> Full draft, reframed around the honest decoding analysis (all numbers on confound-regressed
+> targets, leave-one-run-out, feedback block; see `efp_meirhasson/EFP_SPINE.md`). Introduction,
+> Results, and Discussion are written; Methods §2.1–2.9 complete. Remaining **[CONFIRM]** items are
+> factual gaps only: schizophrenia symptom scale + medication, borderline-trait scale name, IRB/site
+> details, per-cohort fMRI protocol identity. Scope note: resting-state connectivity analyses
+> (restfc/, fox_seed/) are internal negative/validation results and are deliberately **excluded**.
 
 ---
 
 ## Abstract (Background/Methods/Results/Conclusions — 250 words)
 
 **Background:** Auditory hallucinations in schizophrenia are often medication-resistant and are
-linked to default-mode-network (DMN) hyperconnectivity with cognitive-control networks.
-Network-based real-time fMRI neurofeedback lets patients regulate this interaction — the
-executive-over-default differential, Positive Diametric Activity (PDA = CEN − DMN) — but fMRI is not
-scalable. Whether a portable, calibration-free EEG marker can index this neurofeedback target, and
-generalize beyond a single disorder, is unknown.
+linked to default-mode-network (DMN) hyperconnectivity with cognitive-control networks. Network-based
+real-time fMRI neurofeedback lets patients regulate this interaction — the executive-over-default
+differential, Positive Diametric Activity (PDA = CEN − DMN) — but fMRI is not scalable. Whether a
+portable EEG decoder can index this neurofeedback target, and generalize beyond a single disorder, is
+unknown.
 
 **Methods:** In a discovery cohort of adults with schizophrenia and auditory hallucinations
-undergoing simultaneous EEG–fMRI mindfulness-based neurofeedback (n=17), we framed the neurofeedback
-target as a functional signal-to-noise ratio (f-SNR) and derived an EEG f-SNR. We tested
-within-subject and leave-one-subject-out prediction of the BOLD PDA, comparing a fitted
-single-electrode decoder against a construct EEG f-SNR requiring no per-subject fitting. We then
-sought independent replication in a developmentally and diagnostically distinct cohort — adolescents
-with elevated borderline personality traits (n=19; n=11 at retest).
+undergoing simultaneous EEG–fMRI mindfulness-based neurofeedback (n=17), we trained an EEG decoder
+(single-electrode Stockwell time-frequency fingerprint; Meir-Hasson et al., 2014) of the personalized
+BOLD CEN, DMN and PDA. All coupling was evaluated against **confound-regressed** BOLD targets,
+leave-one-run-out, within the feedback block. We tested within-subject decoding, frozen cross-cohort
+transfer and one-run calibration in an independent cohort — adolescents with elevated borderline
+traits (n=19; n=11 at retest) — and a virtual 14-channel consumer-headset montage. Deep-learning,
+frontal-theta and signal-to-noise-normalized alternatives served as controls.
 
-**Results:** In schizophrenia, a frontal-theta EEG band-power f-SNR, with no fitting, matched the
-BOLD PDA within-subject (r≈0.12) and held out-of-sample (leave-one-subject-out r≈0.12). It
-**replicated** in the borderline-trait cohort (r=0.13 and 0.15 across sessions; p<0.005), whereas
-raw EEG power did not transfer — noise-normalization removes cohort-specific gain. During
-regulation, EEG showed reduced high-frequency power variability and a more stable aperiodic 1/f
-slope, not attributable to EMG (topographic and aperiodic controls).
+**Results:** A personalized EEG decoder tracked the BOLD networks within-subject and **replicated
+across both cohorts and three sessions** (CEN r≈0.08–0.10; DMN r≈0.06–0.09). The executive network
+(CEN) was the robust readout; the PDA differential decoded weakly (r≈0.06). Calibration-free transfer
+was weak (CEN r≈0.07–0.10) but significant and improved with a single calibration run (r≈0.12). The
+decoder survived restriction to a 14-channel consumer montage (CEN r≈0.095). Deep learning,
+frontal-theta and signal-to-noise normalization did not improve on the linear decoder, and the signal
+was neural (<20 Hz, distributed centro-parietal), not myogenic.
 
-**Conclusions:** A calibration-free, portable EEG index of the DMN–executive neurofeedback target,
-established in schizophrenia and replicated transdiagnostically, supports f-SNR as a deployable
-biomarker toward scalable EEG neurofeedback.
+**Conclusions:** A personalized, motion-controlled EEG decoder indexes a DMN–executive neurofeedback
+target, replicates transdiagnostically, and is deployable on consumer hardware — a rigorous step
+toward scalable EEG neurofeedback.
 
 ---
 
@@ -81,28 +83,29 @@ the scanner, so the intervention cannot scale to the settings where it would mat
 search for a portable substitute that could ultimately deliver neurofeedback outside the magnet.
 
 Electroencephalography (EEG) is inexpensive and deployable, and a large EEG–fMRI literature shows
-that EEG features can serve as markers of regional and network-level fMRI activity; a single-electrode
-EEG "fingerprint" can even be fitted to a deep fMRI signal (the EEG-fingerprint / EFP; Meir-Hasson
-et al., 2014). Fitted decoders, however, require per-subject or per-site fMRI calibration — precisely
-what a scalable marker must avoid. A theory-driven route to a calibration-light marker comes from the
-**functional signal-to-noise ratio (f-SNR)** framework (Laukkonen, 2026; Nath et al., 2026), which
-casts mental "clarity" as task-relevant signal variance over task-irrelevant noise variance, with the
-DMN as a dominant internal noise source. Through the law of total variance, PDA regulation and f-SNR
-become two descriptions of one construct — raising executive signal over default-mode noise — and the
-signal/noise normalization is, in principle, dimensionless and therefore portable across subjects and
-sites where raw EEG amplitude is not.
+that EEG features can serve as markers of regional and network-level fMRI activity — including a
+single-electrode "EEG fingerprint" fitted to a deep-region fMRI signal (the EEG-fingerprint / EFP;
+Meir-Hasson et al., 2014), which has since guided EEG-only neurofeedback of limbic targets. Whether
+such a decoder can be built for a **cortical DMN–executive network target**, whether it **replicates
+in a cohort it was never tuned to**, and whether it **survives the move to a consumer headset**, are
+open questions — and they are the questions that decide deployability. They are also easy to answer
+over-optimistically: cross-modal EEG↔BOLD coupling is inflated both by motion shared between the two
+signals and by cross-validation that leaks autocorrelated within-run samples, so an honest evaluation
+must regress physiological/motion confounds out of the BOLD target and hold out whole runs.
 
-Here we test this in two stages. In a **discovery cohort of adults with schizophrenia and auditory
-hallucinations** studied with simultaneous EEG–fMRI during mindfulness-based neurofeedback, we ask:
-(i) does a faithful fMRI f-SNR built from CEN/DMN/PDA behave as a restatement of the neurofeedback
-target (§2.7)?; and (ii) can a **pure EEG f-SNR**, computed from EEG alone with no per-subject
-fitting, match the BOLD target as well as a fitted decoder, within-subject and out-of-sample (§2.8)?
-We then ask the question that matters most for deployability: (iii) does the calibration-free EEG
-f-SNR **replicate in an independent, diagnostically and developmentally distinct cohort** —
-adolescents with elevated borderline personality traits — where raw EEG power and even a fitted
-decoder do not transfer? We show that a frontal-theta EEG f-SNR meets all three criteria: it indexes
-the DMN–executive neurofeedback target in schizophrenia and replicates transdiagnostically, providing
-a calibration-free candidate biomarker on the path to scalable EEG neurofeedback.
+Here we take that honest route in two clinical cohorts studied with simultaneous EEG–fMRI during the
+identical mindfulness-based neurofeedback paradigm. In a **discovery cohort of adults with
+schizophrenia and auditory hallucinations**, we ask (i) can a personalized EEG decoder track the
+confound-regressed BOLD CEN, DMN and PDA within-subject, out-of-sample across runs? We then ask the
+questions that matter for deployment: (ii) does the decoder **replicate**, unchanged, in an
+independent, diagnostically and developmentally distinct cohort — adolescents with elevated
+borderline personality traits — both zero-shot and after a single calibration run?; and (iii) does it
+**survive restriction to a 14-channel consumer montage**? Finally, because several popular routes
+promise more, we test them head-to-head as controls: an end-to-end deep network on raw EEG, a
+frontal-theta asymmetry index, and a signal-to-noise-normalized ("f-SNR") feature. We show that a
+personalized EEG decoder indexes the DMN–executive target — most robustly its executive (CEN)
+component — replicates transdiagnostically, and is portable to consumer hardware, while none of the
+more elaborate alternatives improves on it.
 
 ## 2. Methods and Materials
 
@@ -110,7 +113,7 @@ a calibration-free candidate biomarker on the path to scalable EEG neurofeedback
 
 Two independent clinical cohorts underwent personalized real-time-fMRI mindfulness-based
 neurofeedback (mbNF) with simultaneous EEG–fMRI. The schizophrenia cohort served as the **discovery
-cohort** in which the EEG fingerprint of the neurofeedback target was established; the borderline-trait
+cohort** in which the EEG decoder of the neurofeedback target was established; the borderline-trait
 cohort served as the **independent replication cohort**.
 - **Discovery cohort — schizophrenia ("DMNELF"):** n=17 adults with a diagnosis of schizophrenia
   and auditory hallucinations. `[TODO: confirm all n=17 had current/persistent AHs; age/sex;
@@ -216,34 +219,59 @@ automatic artifact-component rejection via ICLabel together with cardiac (`find_
 correlation; (8) spherical-spline interpolation of bad channels; and (9) re-referencing to the
 **common average**. This yielded 500 Hz, average-referenced, 31-channel data for feature extraction.
 
-*Per-TR EEG features.* Three feature sets were computed at the fMRI TR grid: (i) Hilbert band power
-in δ/θ/α/β/γ per channel, HRF-convolved (band-power decoder); (ii) single-electrode Stockwell
-time-frequency EEG-fingerprint features (EFP; Meir-Hasson et al., 2014); and (iii) sliding-window
-specparam periodic/aperiodic (1/f) features (Donoghue et al., 2020).
+*Per-TR EEG features.* Features were computed at the fMRI TR grid: (i) single-electrode Stockwell
+time-frequency EEG-fingerprint features (EFP; Meir-Hasson et al., 2014) — a 10-band × sliding-delay
+design per electrode, the primary decoder; (ii) Hilbert band power in δ/θ/α/β/γ per channel,
+HRF-convolved (a band-power reference and the substrate for the frontal-theta and signal-to-noise
+controls); and (iii) for the deep-learning control, minimally processed 15-s raw-EEG windows
+(1–40 Hz, resampled to 80 Hz; §2.8).
 
-### 2.6 fMRI processing and network timeseries
+### 2.6 fMRI processing and confound-regressed network targets
 
-Functional data were preprocessed with fMRIPrep `[TODO: version]` and denoised (`[TODO: confound
-strategy — e.g. 24 motion + mean WM/CSF + high-pass cosines; band-pass; scrubbing?]`). Per-TR network
-timeseries were extracted for the personalized DMN and CEN, PDA = CEN − DMN, and DiFuMo-64 parcels;
-global-signal-regressed (GSR) variants were computed by residualizing on the fMRIPrep global
-signal.
+Functional data were preprocessed with fMRIPrep `[TODO: version]`. Per-TR network timeseries were
+extracted for the personalized DMN and CEN as variance-efficiency-weighted mask means, with
+**PDA = CEN − DMN**. Because motion and physiological signals shared between EEG and BOLD inflate
+cross-modal coupling, the decoding targets were **confound-regressed**: each network timeseries was
+residualized on the full motion model, mean white-matter and CSF signals, and a discrete-cosine
+high-pass basis `[TODO: confirm exact confound set + fMRIPrep version]`. Global-signal-regressed
+(GSR) variants were computed additionally. All decoding results below use these **clean
+(confound-regressed) targets**; uncleaned targets — which retain ~2–3× inflation from motion — are
+reported only where explicitly noted, to quantify the confound.
 
-### 2.7 fMRI functional signal-to-noise ratio (f-SNR)
+### 2.7 EEG decoding of the BOLD networks
 
-Following the law of total variance (Laukkonen 2026; Nath 2026), for each feedback run the within-
-run condition z ∈ {rest (first 25 TR — the paradigm's own real-time baseline period, §2.2),
-feedback (remaining volumes, first 5 dropped for HRF lag)}
-gives signal = Var_z(E[r|z]) and noise = E_z(Var(r|z)); f-SNR = signal/noise (dB), computed for
-PDA, CEN and DMN, plus a GLM/pseudo-target formulation (HRF-convolved rest→feedback boxcar) and a
-causal running f-SNR for the real-time-feasible analysis.
+The primary decoder was the single-electrode EFP (Meir-Hasson et al., 2014): for each electrode, the
+Stockwell time-frequency decomposition was summarized into 10 frequency bands and a sliding set of
+EEG→BOLD delays, and ridge regression mapped this [band × delay] design to the target network
+timeseries. Two honest-evaluation rules were applied throughout, matching the two inflation modes
+identified above: (1) **leave-one-run-out (LORO)** cross-validation — never contiguous- or k-fold CV
+within pooled runs, which leaks HRF-autocorrelated neighbouring samples; and (2) restriction to the
+**feedback block** (rest baseline plus a 5-TR HRF lag dropped), removing the rest→feedback state-step
+that otherwise inflates full-run correlations. We evaluated three electrode configurations — the
+single best electrode (nested inner-LORO selection), a frontal multivariate set, and an all-electrode
+multivariate ridge — and report the coupling as the out-of-fold Pearson correlation between predicted
+and observed network timeseries.
 
-### 2.8 EEG f-SNR and cross-modal matching
+*Deployment analyses.* (a) **Within-subject:** LORO within each cohort/session (DMNELF, rtBPD nf1,
+rtBPD nf2). (b) **Cross-cohort transfer:** a decoder trained on all DMNELF was frozen and applied,
+unchanged, to each rtBPD subject (zero re-fitting). (c) **One-run calibration:** the frozen decoder
+was adapted using a single rtBPD feedback run and tested on that subject's remaining runs; per-run
+z-scoring removed cohort- and montage-specific gain. (d) **Consumer-headset feasibility:** a "virtual
+EPOC X" analysis restricted the decoder to the 12 electrodes of the 14-channel Emotiv EPOC X montage
+present in our cap (with Fp1/Fp2 as AF3/AF4 proxies), quantifying the loss from a portable montage
+that lacks centro-parietal midline coverage.
 
-A pure EEG f-SNR was computed from EEG alone in two flavors — band-power running signal-to-noise,
-and oscillatory÷aperiodic (specparam) — and matched (HRF-aligned, leak-free nested single-site
-selection) to the fMRI PDA and fMRI f-SNR, within-subject, leave-one-subject-out, and cross-cohort
-(DMNELF→rtBPD). A supervised single-electrode/multivariate decoder provided the fitted ceiling.
+### 2.8 Control models
+
+Three alternatives were tested against the linear EFP on the identical clean targets, LORO, and
+feedback block. (i) **Deep learning:** a compact convolutional network on raw EEG (R-EEGNet; Stabile
+et al., 2025 — EEGNet blocks + a linear regression head, ~2.6k parameters) trained on 15-s windows,
+evaluated within-subject, leave-one-subject-out, and as a frozen DMNELF→rtBPD transfer. (ii)
+**Frontal-theta:** frontal-midline theta and the frontal theta asymmetry FTA = ln P(F3) − ln P(F4)
+(Zotev et al., 2025; Scheeringa et al., 2008), plus a 5-electrode CEN-node theta component. (iii)
+**Signal-to-noise normalization ("f-SNR"):** a running signal-to-noise transform of band power
+(trailing mean/SD), tested both as a fitted decoder and as an a-priori construct, against raw band
+power.
 
 ### 2.9 Statistics
 
@@ -256,139 +284,129 @@ preregistered (secondary analysis of neurofeedback data)?]`
 
 ## 3. Results
 
-### 3.1 The fMRI f-SNR is a faithful restatement of the neurofeedback target
+### 3.1 A personalized EEG decoder tracks the DMN–executive networks within-subject
 
-We first confirmed that a law-of-total-variance f-SNR built from the personalized networks behaves
-as intended (n=17, 67 feedback runs). The group regulated correctly — PDA increased from rest to
-feedback (β_PDA = +0.18, up in 78% of runs; CEN +0.14; DMN −0.04) — and PDA was the cleanest
-signal-to-noise contrast of the three networks (f-SNR −14.5 dB > CEN > DMN). The run-level f-SNR
-tracked the *signal* channel: higher f-SNR accompanied stronger PDA/CEN regulation (GLM f-SNR vs
-β_PDA r = +0.58) but was unrelated to DMN mean suppression (β_DMN r ≈ 0). Thus "more PDA → higher
-f-SNR" holds as the operative axis.
+In the schizophrenia discovery cohort (n=17), the personalized EFP decoder tracked the
+confound-regressed BOLD networks out-of-sample across runs (LORO, feedback block): **CEN r = 0.10**
+(p = 0.02), DMN r = 0.06, PDA r = 0.06 (multivariate; single-best-electrode CEN r = 0.11). Two
+features of this result define the honest ceiling and recur throughout. First, the **executive
+network (CEN) is the robust readout**: the PDA *differential* — the neurofeedback target itself —
+decodes only weakly (r ≈ 0.06), because differencing two modestly-decoded networks discards shared
+signal. Second, these magnitudes are what remains **after confound regression**: on uncleaned
+targets the same decoder reports 2–3× larger values (e.g. PDA 0.20, DMN 0.21), essentially all of
+which is motion shared between EEG and BOLD and disappears once the target is cleaned. Coupling was
+also **neural, not myogenic** — restricting the decoder to < 20 Hz (below the EMG band) left it
+essentially unchanged, and its scalp distribution was **centro-parietal**, opposite the temporal
+topography of temporalis EMG.
 
-The framework's second claim — the DMN as a *noise* source — held only in the variance domain and
-only non-specifically. DMN endogenous variance quenched from rest to feedback (+2.2 dB, p = 1e-4,
-75% of runs), but a raw whole-brain reference quenched more (global +3.1 dB > DMN +2.2 > CEN
-+1.25; DMN−CEN +0.96 dB, p = .05; DMN−global n.s.), a dedicated long-rest control showed no quench
-(ruling out an onset transient), and the amount of DMN quench did not predict f-SNR or regulation
-success (r ≈ −0.02 to +0.19). Signal-amplification and noise-reduction are therefore **dissociable
-axes**, and the state-separating, individually-reliable information lives in the signal channel. A
-causal real-time running f-SNR was well modulated (feedback > rest +1.07 dB, p = 1e-4, 84% of runs;
-ICC = 0.51) and controllable (tracks β_PDA, r = 0.77) but did not out-separate the raw PDA already
-fed back (rest-vs-feedback d′ = 0.70 vs 0.82, n.s.). We therefore carried the **signal-channel
-target (PDA / GLM-PDA)** into the EEG phase: the f-SNR is a clean interpretive restatement of the
-neurofeedback target, not a different target.
+### 3.2 Within-subject decoding replicates across cohorts and sessions
 
-### 3.2 Discovery in schizophrenia: a pure EEG f-SNR matches the BOLD target, near the fitted ceiling
+Carried to the independent borderline-trait cohort and evaluated the same way (within-subject LORO,
+clean targets), the decoder **replicated**: rtBPD session 1 (n=19) **CEN r = 0.095, DMN r = 0.090**;
+rtBPD session 2 (n=11) **CEN r = 0.084, DMN r = 0.090**. Thus personalized EEG decoding of the
+DMN/executive networks holds at r ≈ 0.08–0.10 across **two diagnostically and developmentally
+distinct clinical cohorts and three imaging sessions** — a robust, reproducible level of cross-modal
+coupling for a single-network BOLD target (Table 1).
 
-In the schizophrenia discovery cohort, computing an f-SNR from EEG alone — the running
-signal-to-noise (trailing mean/SD) of band power, with **no per-subject fitting** — a **frontal-theta
-EEG f-SNR matched the BOLD PDA within-subject at r = 0.119 (p = 0.003)**, roughly 70% of the ceiling
-set by a fully fitted single-electrode EFP decoder (~0.17). Frontal- and posterior-alpha f-SNR
-performed equivalently (r ≈ 0.113–0.116), whereas the oscillatory-÷-aperiodic (specparam) flavor was
-weaker (r ≈ 0.05–0.10) — per-TR spectral parameterization added noise, and simpler band-power won.
-The signal-to-noise normalization earned its keep precisely on the noisy frontal channels most
-relevant to a portable headset (fitted single-site frontal: raw r = 0.088 → f-SNR r = 0.101).
-Crucially, the construct held **out-of-sample within schizophrenia**: applied leave-one-subject-out,
-the fixed frontal-theta f-SNR retained its match to the BOLD PDA (out-of-fold r = 0.116), confirming
-that no per-subject information is required.
+### 3.3 Calibration-free transfer is weak but real, and improves with one calibration run
 
-### 3.3 Replication in an independent, diagnostically distinct cohort — where raw power fails
+The stricter test is a decoder trained on one cohort and applied to another **without re-fitting**.
+Frozen on all DMNELF and applied unchanged to rtBPD, the decoder transferred **weakly but mostly
+significantly** — CEN r = 0.066 (nf1) and 0.102 (nf2); DMN r ≈ 0.045 — well below the within-subject
+level, confirming that a fully calibration-free portable marker is not yet in hand. A **single
+calibration run** closed much of the gap: adapting the frozen decoder on one rtBPD run raised
+CEN transfer to r = 0.075 (nf1) and **0.117 (nf2)**, approaching the within-subject ceiling. The
+deployable path is therefore **personalized or one-run-calibrated**, not zero-shot.
 
-The decisive test is whether the fingerprint established in schizophrenia holds in a cohort it was
-never tuned to. Carried unchanged — zero re-fitting — to the borderline-trait adolescents, the same
-frontal-theta EEG f-SNR **replicated: rtBPD session 1 r = +0.126 (p = 5e-4, positive in 79% of
-subjects) and session 2 r = +0.147 (p = 5e-3, 91% of subjects)**. Critically, **raw band power did
-not replicate** (r ≈ 0.00–0.03, n.s.): the noise-normalization divides out cohort- and
-montage-specific gain, rendering the f-SNR cohort-invariant, exactly as the framework predicts. The
-zero-fitting construct even matched or exceeded the *fitted* EFP decoder in the replication cohort
-(EFP PDA nf1 r = 0.067; nf2 r = 0.153). A calibration-free, portable-frontal EEG index thus indexes
-the fMRI neurofeedback target across disorder and development, on an independent clinical population
-it was never trained on.
+### 3.4 The decoder survives a 14-channel consumer montage
 
-### 3.4 During regulation, EEG high-frequency variability quenches and the 1/f slope stabilizes — not EMG
+Restricting the decoder to the electrodes of a 14-channel consumer headset (Emotiv EPOC X) tested
+portability directly. Although the EPOC X carries **none of the centro-parietal midline electrodes**
+where the CEN field peaks, volume conduction to its posterior ring (P7/P8/O1/O2) preserved most of
+the signal: **CEN r = 0.095 versus 0.103 on the full 31-channel cap (~92% retained; p < 0.05)**, with
+DMN and PDA showing 81–100% retention. The montage is not the bottleneck; the ~8% loss from missing
+midline coverage is recoverable, and a portable, personalized decoder is feasible on consumer
+hardware (deployment specification in Supplementary Material).
 
-Mirroring the BOLD variance quench, EEG band-power variance dropped from rest to feedback in the
-high bands (beta +1.6 dB, p = 2e-4; gamma +3.7 dB, p = 1e-4; low bands flat). This was neural, not
-myogenic: the quench was **midline-strongest, not temporal** (beta midline +1.56 vs temporal
-+1.06 dB) — opposite the temporalis-EMG topography — the **broadband aperiodic offset was flat**
-(−0.2 dB, n.s.), and the **aperiodic 1/f exponent stabilized** (+1.2 dB, p = 8e-4). Active
-mental-noting in novices would not reduce facial EMG relative to eyes-closed rest in any case.
-Reduced high-frequency variability with a more stable 1/f slope during regulation is the
-stability/criticality face of the f-SNR construct.
+### 3.5 Neither deep learning, frontal-theta, nor signal-to-noise normalization improves on the linear decoder
 
-### 3.5 Clinical anchor — the neurofeedback target tracks state calm, transdiagnostically
+Three popular alternatives, tested head-to-head on the identical clean targets, all **failed to beat
+the linear EFP**. (i) An end-to-end **deep network on raw EEG** (R-EEGNet) was at chance in every
+regime — within-subject (CEN r ≈ 0.01), leave-one-subject-out (r ≈ 0.00), and frozen transfer
+(r ≈ 0.02) — with ~285 windows per subject too few for a raw-EEG model to learn a distributed,
+weak target that hand-crafted spectral features do capture. (ii) **Frontal-theta** indices, including
+the motion-robust asymmetry FTA = ln P(F3) − ln P(F4) (Zotev et al., 2025), were null within the
+feedback block (FTA r ≈ 0.00; frontal-theta ≈ 0), because the left–right subtraction cancels the
+little common signal the channels carry. (iii) **Signal-to-noise normalization** ("f-SNR") did not
+help and often hurt: the best feedback-block match to PDA was **raw** posterior band power
+(r = 0.090), while its signal-to-noise transform was ~0 — normalization removed signal rather than
+cohort gain. The linear, spectral, personalized decoder is thus not merely adequate but the ceiling
+among the approaches tested; the ~0.10 coupling reflects a genuine information limit, not a modelling
+shortfall.
 
-*Clinical anchor — replicated, transdiagnostic.* Regulating the DMN–CEN target made participants
-feel calmer, with a near-identical effect across disorder and session: runs with more real-time PDA
-regulation were rated calmer in **schizophrenia (r=+0.21, n=47)**, **rtBPD session 1 (r=+0.22,
-p=0.013, n=124)**, and **rtBPD session 2 (r=+0.23, p=0.050, n=73)** — a robust replication. Calm was
-consistently rated lower on more difficult runs in all three (r=−0.45/−0.30/−0.41), and the four
-sliders formed a coherent, cross-cohort-consistent structure (e.g. calm↔mindfulness +0.55/+0.06/+0.31),
-supporting construct validity. In schizophrenia specifically, mindfulness engagement drove regulation
-(mindful↔PDA r=+0.42, p=0.02). Change was a between-session effect, not a within-session one: within-session
-(first vs last feedback run) change was null across all groups, whereas across sessions
-(rtBPD nf1→nf2, paired, n=15) **state calm increased significantly (+0.61, p=0.042; 67% of
-participants)** with regulation trending upward (Δ=+0.03, n.s.) — consistent with clinical
-benefit accruing across, rather than within, sessions. Between-subject, calmer
-participants tended to regulate more (r=+0.20 to +0.37; sample-limited, n=13–25). The EEG
-frontal-theta f-SNR tracked the BOLD PDA (r≈0.12–0.15) but did **not** by itself predict per-run calm
-(r≈0), bounding the EEG marker as a scalable proxy for the (clinically-relevant) target rather than a
-direct outcome predictor.
+### 3.6 Clinical anchor — the neurofeedback target tracks state calm, transdiagnostically
+
+Regulating the DMN–CEN target made participants feel calmer, with a near-identical effect across
+disorder and session: runs with more real-time PDA regulation were rated calmer in **schizophrenia
+(r = +0.21, n=47)**, **rtBPD session 1 (r = +0.22, p = 0.013, n=124)**, and **rtBPD session 2
+(r = +0.23, p = 0.050, n=73)**. Calm was consistently rated lower on more difficult runs in all three
+(r = −0.45/−0.30/−0.41), and the four sliders formed a coherent, cross-cohort-consistent structure,
+supporting construct validity. Change was a between-session effect: within-session (first vs last
+feedback run) change was null, whereas across sessions (rtBPD nf1→nf2, paired, n=15) **state calm
+increased significantly (+0.61, p = 0.042; 67% of participants)** — consistent with clinical benefit
+accruing across, rather than within, sessions. The EEG decoder tracks the BOLD *target* (r ≈ 0.10)
+but did not by itself predict per-run calm (r ≈ 0), bounding it as a scalable proxy for the
+(clinically-relevant) target rather than a direct outcome predictor.
 
 ## 4. Discussion
 
-In a schizophrenia discovery cohort studied with simultaneous EEG–fMRI, a **calibration-free
-frontal-theta EEG f-SNR indexed the DMN–executive neurofeedback target (PDA)** — within-subject and
-out-of-sample — reaching ~70% of a fully fitted decoder's accuracy with no per-subject fitting. The
-central result is that this fingerprint then **replicated in an independent, diagnostically and
-developmentally distinct cohort** — adolescents with elevated borderline traits (r = 0.13 and 0.15
-across sessions) — where raw EEG power did not transfer at all and even the fitted single-electrode
-decoder was unstable. The
-mechanism is simple and is the f-SNR framework's own prediction: dividing signal by an endogenous
-noise estimate removes the cohort-, montage-, and gain-specific scaling that makes raw EEG power
-non-portable, yielding a dimensionless "clarity" index that is cohort-invariant. This is, to our
-knowledge, the first demonstration that an EEG marker of a real-time-fMRI neurofeedback target
-generalizes across distinct disorders without recalibration.
+In a schizophrenia discovery cohort studied with simultaneous EEG–fMRI, a **personalized EEG decoder
+indexed the DMN–executive neurofeedback target** — most robustly its executive (CEN) component — and
+this coupling **replicated in an independent, diagnostically and developmentally distinct cohort** of
+adolescents with elevated borderline traits, across two of their sessions. The decoder transferred
+zero-shot only weakly but was recoverable with a single calibration run, and it survived restriction
+to a 14-channel consumer montage. To our knowledge this is the first demonstration that an EEG
+decoder of a cortical, network-level real-time-fMRI neurofeedback target reproduces across distinct
+disorders and is portable to consumer hardware.
 
-Two interpretive points follow. First, the neurofeedback target decomposes into **dissociable
-signal and noise channels**: regulation both amplifies task-relevant signal (CEN/PDA) and quenches
-endogenous variability (in BOLD, largely global rather than DMN-specific; in EEG, high-frequency
-power variability with a stabilizing 1/f slope). The individually reliable, state-separating
-information lives in the signal channel, so the f-SNR is best understood as an **interpretable
-restatement of PDA regulation rather than a superior control signal** — for closed-loop control the
-raw PDA remains preferable. What the f-SNR uniquely buys is *portability*: an EEG-only, deployable
-proxy for a target that otherwise requires an MRI scanner. Second, the marker's value is bounded and
-we state it plainly: the EEG f-SNR tracks the *target* (PDA), but it did not by itself predict the
-per-run clinical state (calm; r ≈ 0). It is a scalable index of the mechanism being trained, not a
-direct read-out of the therapeutic outcome.
+We state the magnitude and its boundaries plainly. Cross-modal single-TR coupling has an
+intrinsically modest ceiling, and after regressing out shared motion and physiology our effect sizes
+(r ≈ 0.08–0.10) are correspondingly small; they index *reliable, transferable coupling*, not
+high moment-to-moment fidelity. Crucially, that ceiling is a genuine information limit rather than a
+modelling shortfall: an end-to-end deep network, a motion-robust frontal-theta index, and a
+signal-to-noise-normalized feature all failed to exceed the compact linear decoder, and much of the
+apparent signal in naïve analyses is motion that vanishes once the BOLD target is confound-regressed.
+Two consequences follow for deployment. First, the **executive network, not the PDA differential, is
+the portable readout** — differencing two weakly-decoded networks discards shared variance, so an
+EEG-guided implementation should read out CEN (and DMN) and reconstruct the target from them rather
+than decode PDA directly. Second, a truly **calibration-free** marker is not yet in hand; the honest,
+deployable path is personalized or briefly calibrated decoding, which a one-run adaptation shows is
+practical.
 
-That therapeutic outcome, however, is itself anchored to the target transdiagnostically. In both
-disorders and at retest, more PDA regulation went with feeling calmer (r ≈ +0.21–0.23), the
-self-report structure was coherent across cohorts, and state calm increased across neurofeedback
-sessions (Δ = +0.61, p = 0.042) rather than within a single session — consistent with clinical
-benefit accruing with repeated practice. A portable EEG index of this same target could extend
-mechanism-linked monitoring, and eventually neurofeedback itself, beyond the scanner.
+The therapeutic target is itself anchored to outcome transdiagnostically. In both disorders and at
+retest, more PDA regulation went with feeling calmer (r ≈ +0.21–0.23), the self-report structure was
+coherent across cohorts, and state calm increased across neurofeedback sessions (Δ = +0.61,
+p = 0.042) rather than within a single session — consistent with benefit accruing with repeated
+practice. A portable EEG index of this same target could extend mechanism-linked monitoring, and
+eventually neurofeedback itself, beyond the scanner.
 
-**Limitations.** Cross-modal single-TR coupling has an intrinsically modest ceiling, and our effect
-sizes (r ≈ 0.12–0.15), while robust and replicated, are correspondingly small; they should be read
-as evidence of *reliable, transferable coupling*, not of high moment-to-moment fidelity. We studied
-two clinical samples with **no healthy comparison group**, so we demonstrate transdiagnostic
-*tracking and transfer* of the neurofeedback target, not a transdiagnostic f-SNR *deficit*; group
-differences in f-SNR remain to be tested. Samples were modest (schizophrenia n=17; borderline-trait
-n=19, n=11 at retest). In the schizophrenia cohort the personalized DMN/CEN masks were derived from
-a short in-session resting run, which localizes networks but should be kept conceptually separate
-from the EEG–PDA coupling tested here. High-frequency EEG in the scanner is vulnerable to myogenic
-contamination; we addressed this directly with topographic (midline > temporal) and aperiodic
-(flat broadband offset, stabilizing 1/f exponent) controls that are inconsistent with an EMG
-account, but scalp EEG during fMRI remains noisy. Finally, linking the marker to **trait-level
-symptom severity** in each disorder is a natural next step and is in progress **[trait-severity
-scales — CONFIRM names; §2.1]**.
+**Limitations.** Effect sizes are small (r ≈ 0.08–0.10) and the PDA differential in particular
+decodes weakly (~0.06). We studied two clinical samples with **no healthy comparison group**, so we
+demonstrate transdiagnostic *tracking and transfer* of the neurofeedback target, not a
+transdiagnostic group *deficit*. Samples were modest (schizophrenia n=17; borderline-trait n=19,
+n=11 at retest). In the schizophrenia cohort the personalized DMN/CEN masks were derived from a short
+in-session resting run. High-frequency EEG in the scanner is vulnerable to myogenic contamination; we
+addressed this with band (<20 Hz), topographic (centro-parietal, not temporal) and cross-validation
+controls, but scalp EEG during fMRI remains noisy. The consumer-montage result is a virtual-montage
+estimate and requires bench and simultaneous-EEG–fMRI validation on the physical headset before field
+use. Finally, linking the marker to **trait-level symptom severity** in each disorder is a natural
+next step and is in progress **[trait-severity scales — CONFIRM names; §2.1]**.
 
-**Conclusion.** A pure, calibration-free EEG f-SNR — frontal-theta band-power signal-to-noise, no
-fitting — matches the DMN–CEN neurofeedback target and generalizes across disorder and development
-where conventional EEG features fail. It offers a deployable, interpretable candidate biomarker for
-scaling a transdiagnostic, circuit-based intervention beyond the MRI scanner.
+**Conclusion.** A personalized, motion-controlled EEG decoder indexes a DMN–executive neurofeedback
+target, replicates across disorder and development, is calibratable from a single run, and is
+deployable on consumer hardware — while more elaborate alternatives do not improve on it. It offers a
+rigorous, deployable candidate for scaling a transdiagnostic, circuit-based intervention beyond the
+MRI scanner.
 
 ## References (to compile)
 - Zhang J, et al. Reducing DMN connectivity with mbNF: a pilot in adolescents with affective
@@ -405,23 +423,23 @@ scaling a transdiagnostic, circuit-based intervention beyond the MRI scanner.
   Causal interactions between fronto-parietal central executive and default-mode networks in humans.
   *Proc Natl Acad Sci USA* 2013;110:19944–19949.
 - Meir-Hasson Y, et al. An EEG finger-print of fMRI deep-regional activation. *NeuroImage* 2014.
-- Donoghue T, et al. Parameterizing neural power spectra into periodic and aperiodic components.
-  *Nat Neurosci* 2020 (specparam/FOOOF).
-- Laukkonen R. Clear Mind (f-SNR framework). 2026. — Nath et al. Meditation depth enhances f-SNR. 2026.
-- Hamilton JP, et al. Depressive rumination, the DMN… *Biol Psychiatry* 2015. — Whitfield-Gabrieli
-  & Ford. DMN in psychopathology. *Annu Rev Clin Psychol* 2012.
+- Stabile … et al. R-EEGNet: a compact EEGNet regression of fMRI network activity. *EUSIPCO* 2025.
+- Zotev V, et al. Frontal theta EEG asymmetry neurofeedback with simultaneous fMRI. *Hum Brain Mapp*
+  2025;46:e70127. — Scheeringa R, et al. Frontal theta EEG and the default-mode network. 2008.
+- Whitfield-Gabrieli & Ford. DMN in psychopathology. *Annu Rev Clin Psychol* 2012.
 
 ## Figures and tables (planned — assets exist in the repo)
-- **Figure 1.** Schematic: DMN–CEN mbNF target (PDA) + the f-SNR framing (signal/noise). `[TODO: build]`
-- **Figure 2.** fMRI f-SNR ≈ PDA restatement; DMN variance quench (global vs DMN vs CEN).
-  Source: `fsnr/results/fig_fsnr_vs_pda_dmn.png`, `fig_dmn_quench.png`.
-- **Figure 3.** Within-subject head-to-head — construct EEG f-SNR vs fitted EFP ceiling.
-  Source: `fsnr_eeg/results/fig_headtohead_within.png`.
-- **Figure 4.** Cross-cohort transfer — construct f-SNR transfers, raw power does not.
-  Source: `fsnr_eeg/results/fig_crosscohort_generalize.png`.
-- **Figure 5.** EEG variability quench + EMG controls (topography, aperiodic).
-  Source: `fsnr_eeg/results/fig_emg_control.png`.
+- **Figure 1.** Schematic: DMN–CEN mbNF target (PDA); fMRI→EEG decoding; deployment. `[TODO: build]`
+- **Figure 2.** Within-subject decoding replicates across cohorts/sessions (CEN/DMN/PDA bars,
+  DMNELF + rtBPD nf1/nf2). Source: `efp_meirhasson/EFP_SPINE.md`; build from `results/cen_clean/`.
+- **Figure 3.** Transfer + calibration ladder (0-shot vs +1-run vs within). Source:
+  `efp_meirhasson/results/efp_calibrate_mv.csv`.
+- **Figure 4.** Consumer-montage feasibility (EPOC-12 vs full cap; topomap). Source:
+  `efp_meirhasson/DEPLOY_EPOC.md`, `efp_topomap.png`.
+- **Figure 5.** Controls fail: deep, frontal-theta, f-SNR vs linear EFP; confound-cleaning effect.
+  Source: `deep_eeg/`, `fsnr_eeg/results/eeg_fsnr_honest.txt`, `fta_zotev.py`.
 - **Figure 6.** Clinical anchor — PDA regulation ↔ state calm across cohorts/sessions. `[TODO: build]`
+- **Table 1.** Within-subject decoding r (CEN/DMN/PDA) × cohort/session, clean targets, LORO.
 - **Supplementary Table S1.** Per-sequence MRI parameters (from scanner printouts). `[TODO]`
 
 ## Outstanding items — checklist (search `[TODO:` for all inline slots)
@@ -430,16 +448,18 @@ scaling a transdiagnostic, circuit-based intervention beyond the MRI scanner.
 - [ ] Cohort 2 (rtBPD): borderline-trait scale name + cutoff, age range, sex → §2.1
 - [ ] Approving IRB(s) + protocol numbers → §2.1
 - [ ] Feedback-run length per cohort (DMNELF 125 vs rtBPD 150 vol?) + protocol identity → §2.4
-- [ ] fMRIPrep version + confound/GSR strategy → §2.6
+- [ ] fMRIPrep version + exact confound set for target cleaning → §2.6
 - [ ] Preregistration, data/code availability, funding, financial disclosures → §2.9
 - [ ] Front-matter: authors, affiliations, corresponding-author contact, keywords, running title, word counts
 **Writing/production:**
-- [ ] Build Figures 1 & 6; assemble Figs 2–5 from existing PNGs; Supplementary Table S1
-- [ ] Compile full reference list with DOIs; verify Laukkonen/Nath 2026 citations
+- [ ] Build Figures 1 & 6; assemble Figs 2–5 from committed results; Table 1; Supplementary Table S1
+- [ ] Compile full reference list with DOIs; verify Stabile 2025, Zotev 2025, Scheeringa citations
+- [ ] Extract clean rtBPD DMN/PDA targets to complete the within-subject PDA replication row (currently CEN/DMN)
 - [ ] Trim body to ≤ 4000 words; finalize 250-word abstract
 **Optional (strengthens paper; awaiting data):**
-- [ ] Trait-severity biomarker analysis (EEG f-SNR / PDA vs symptom scales) once trait scores arrive
+- [ ] Trait-severity biomarker analysis (EEG decoder / PDA vs symptom scales) once trait scores arrive
 
 **Done:** ✅ EEG acquisition + preprocessing (§2.5, verified vs `eeg_preproc.py`) · ✅ MURFI real-time
-operationalization (§2.2) · ✅ per-run `slider_calm` outcome + PDA↔calm (§3.5) · ✅ Intro / Results /
-Discussion drafted from committed analyses.
+operationalization (§2.2) · ✅ per-run `slider_calm` outcome + PDA↔calm (§3.6) · ✅ Honest decoding
+spine — within/transfer/calibration/EPOC + controls (`EFP_SPINE.md`) · ✅ Intro / Results / Discussion
+reframed on confound-regressed, LORO numbers.
