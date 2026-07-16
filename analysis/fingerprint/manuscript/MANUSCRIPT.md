@@ -453,19 +453,25 @@ MRI scanner.
   2025;46:e70127. — Scheeringa R, et al. Frontal theta EEG and the default-mode network. 2008.
 - Whitfield-Gabrieli & Ford. DMN in psychopathology. *Annu Rev Clin Psychol* 2012.
 
-## Figures and tables (planned — assets exist in the repo)
-- **Figure 1.** Schematic: DMN–CEN mbNF target (PDA); fMRI→EEG decoding; deployment. `[TODO: build]`
-- **Figure 2.** Within-subject decoding replicates across cohorts/sessions (CEN/DMN/PDA bars,
-  DMNELF + rtBPD nf1/nf2). Source: `efp_meirhasson/EFP_SPINE.md`; build from `results/cen_clean/`.
-- **Figure 3.** Transfer + calibration ladder (0-shot vs +1-run vs within). Source:
-  `efp_meirhasson/results/efp_calibrate_mv.csv`.
-- **Figure 4.** Consumer-montage feasibility (EPOC-12 vs full cap; topomap). Source:
-  `efp_meirhasson/DEPLOY_EPOC.md`, `efp_topomap.png`.
-- **Figure 5.** Controls fail: deep, frontal-theta, f-SNR vs linear EFP; confound-cleaning effect.
-  Source: `deep_eeg/`, `fsnr_eeg/results/eeg_fsnr_honest.txt`, `fta_zotev.py`.
-- **Figure 6.** Clinical anchor — PDA regulation ↔ state calm across cohorts/sessions. `[TODO: build]`
-- **Table 1.** Within-subject decoding r (CEN/DMN/PDA) × cohort/session, clean targets, LORO.
-- **Supplementary Table S1.** Per-sequence MRI parameters (from scanner printouts). `[TODO]`
+## Figures and tables (BUILT — `manuscript/figures/`; plan in `manuscript/FIGURES.md`)
+Pipeline-walking narrative: preprocessing → method → fingerprint → replication/transfer → deployment.
+- **Figure 1.** ✅ EEG preprocessing chain on real signal — raw gradient artifact (±3 mV) →
+  gradient-corrected → 1–40 Hz → BCG-removed → ICA-removed → final; + ECG/R-peaks + rejected-ICA
+  topographies. `fig1_preprocessing.png`.
+- **Figure 2.** ✅ The EFP method (Meir-Hasson-visual): Stockwell spectrogram → 10 equal-energy bands
+  → [band × delay] design → learned fingerprint weights (peak ~8-TR ≈ HRF lag) → prediction.
+  `fig2_efp_method.png`.
+- **Figure 3.** ✅ The DMNELF fingerprint: predicted↔observed CEN timeseries, **best (dmnelf1002
+  r=+0.37) vs worst (dmnelf009 r=−0.13)** + clean centro-parietal decodability topography.
+  `fig3_fingerprint_timeseries.png`.
+- **Figure 4.** ✅ Within-subject replication bars (CEN/DMN/PDA × 3 cohorts) + calibration ladder
+  (0-shot → +1-run → within). `fig4_replication_calibration.png`.
+- **Figure 5.** ✅ Consumer-headset feasibility — EPOC-12 vs full cap (~92% CEN). `fig5_epoc_deployment.png`.
+- **Figure 6.** ✅ Rigor + clinical: confound-cleaning (motion inflation) | controls fail (EFP vs
+  deep/theta/f-SNR) | PDA↔calm across cohorts. `fig6_rigor_clinical.png`.
+- **Table 1.** ✅ Within-subject decoding r (CEN/DMN/PDA) × cohort/session (`table1_build.py`).
+- **Figure 0 (overview schematic)** + **Supplementary Table S1** (per-sequence MRI params): `[TODO]`.
+- Optional polish: Fig 3 personalized DMN/CEN mask render (network masks on cluster).
 
 ## Outstanding items — checklist (search `[TODO:` for all inline slots)
 **Factual gaps (author-supplied):**
@@ -477,7 +483,8 @@ MRI scanner.
 - [ ] Preregistration, data/code availability, funding, financial disclosures → §2.9
 - [ ] Front-matter: authors, affiliations, corresponding-author contact, keywords, running title, word counts
 **Writing/production:**
-- [ ] Build Figures 1 & 6; assemble Figs 2–5 from committed results; Supplementary Table S1
+- [x] ✅ Figures 1–6 + Table 1 built (`manuscript/figures/`, `figX_*.png`)
+- [ ] Figure 0 overview schematic (author-supplied or draft); Supplementary Table S1
 - [ ] Compile full reference list with DOIs; verify Stabile 2025, Zotev 2025, Scheeringa citations
 - [x] ✅ Table 1 complete — within-subject clean CEN/DMN/PDA × all 3 cohorts (`table1_build.py`)
 - [ ] Trim body to ≤ 4000 words; finalize 250-word abstract
