@@ -59,6 +59,11 @@ MISSING_RUNS = {
 SFREQ_TARGET    = 250.0  # default, overridden by --sfreq argument
 HIGHPASS        = 1.0
 LOWPASS         = 40.0
+# Infraslow-preserving high-pass for the *saved* neural copy. The amplifier is
+# DC-coupled, so sub-1 Hz (incl. <0.1 Hz infraslow) is in the raw EDF; the 1 Hz
+# HIGHPASS above is used only to fit a stable ICA/BCG, whose cleaning is then
+# applied to this low-HP copy. None => legacy behaviour (save the 1-40 Hz copy).
+NEURAL_HIGHPASS = 0.01
 N_ICA           = 29
 BCG_TMIN        = -0.2
 BCG_TMAX        = 0.6
@@ -72,7 +77,19 @@ EDGE_THRESH     = 3.0
 # PREPROCESSING FUNCTION
 # ═══════════════════════════════════════════════════════════════════════════
 
-def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0):
+def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0,
+                   neural_highpass=None, capture=None):
+    """Preprocess one run.
+
+    capture : dict | None
+        When provided, per-stage raw copies + ICA metadata are stored into it (for
+        figure extraction) and the final FIF save is skipped.
+    neural_highpass : float | None
+        If set (e.g. 0.01), fit bad-channel/BCG/ICA on a 1 Hz-high-passed copy
+        but APPLY the cleaning to a copy high-passed at this (much lower) cutoff,
+        preserving infraslow content. Output desc gets an 'IS{cutoff}' suffix so
+        the 1-40 Hz baseline files are not overwritten. None => legacy 1-40 Hz.
+    """
     import mne
     mne.set_log_level('WARNING')
 
@@ -87,10 +104,15 @@ def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0):
                             + "_task-" + task + "_run-" + run
                             + "_desc-bvaAC1kHz_eeg.edf")
     sfreq_tag  = str(int(sfreq_target)) + "Hz"
-    
+    # Distinct desc for the infraslow-preserving output so it sits alongside the
+    # 1-40 Hz baseline rather than overwriting it.
+    is_tag     = ""
+    if neural_highpass is not None:
+        is_tag = "IS" + ("%g" % neural_highpass).replace("0.", "p").replace(".", "p")
+
     output_fif = out_dir / (subject + "_" + session
                             + "_task-" + task + "_run-" + run
-                            + "_desc-preproc" + sfreq_tag + "_eeg.fif")
+                            + "_desc-preproc" + sfreq_tag + is_tag + "_eeg.fif")
 
     tag = subject + " task-" + task + " run-" + run
     print("\n" + "=" * 60)
@@ -122,6 +144,9 @@ def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0):
           + "  ch=" + str(len(raw.ch_names))
           + "  dur=" + str(round(raw.times[-1], 1)) + "s"
           + ("  ECG=" + ecg_ch_name if ecg_ch_name else "  no ECG"))
+
+    if capture is not None:                       # stage 1: gradient-corrected EDF input
+        capture['gradient_corrected'] = raw.copy()
 
     # ── 2. R-peak detection ────────────────────────────────
     cardiac_events = None
@@ -212,11 +237,27 @@ def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0):
                  qc_dir, subject, session, task, run)
 
     # ── 6. Filter ─────────────────────────────────────────
+    # raw_filtered (1-40 Hz) is used to fit a STABLE BCG/ICA. In infraslow mode
+    # raw_neural (neural_highpass-40 Hz) is the copy we actually clean + save, so
+    # the <1 Hz infraslow band survives.
     print("  Filtering " + str(HIGHPASS) + "-" + str(LOWPASS) + "Hz...")
     raw_filtered = raw.copy().filter(
         HIGHPASS, LOWPASS, picks='eeg',
         method='fir', verbose=False
     )
+    if capture is not None:                       # stage 2: 1-40 Hz filtered (pre-BCG)
+        capture['filtered'] = raw_filtered.copy()
+        capture['rpeaks'] = cardiac_events
+        capture['ecg'] = (raw.get_data(picks=ecg_ch_name)[0] if ecg_ch_name else None)
+        capture['sfreq_1k'] = float(raw_filtered.info['sfreq'])
+    raw_neural = None
+    if neural_highpass is not None:
+        print("  Infraslow copy: filtering " + str(neural_highpass)
+              + "-" + str(LOWPASS) + "Hz...")
+        raw_neural = raw.copy().filter(
+            neural_highpass, LOWPASS, picks='eeg',
+            method='fir', verbose=False
+        )
 
     # ── 7. BCG correction via ECG epochs ──────────────────
     if ecg_ch_name is not None and cardiac_events is not None:
@@ -243,17 +284,30 @@ def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0):
                 bcg_template  = epochs_bcg.average()
                 template_data = bcg_template.get_data()  # (n_eeg, n_times)
                 n_tmpl        = template_data.shape[1]
-                eeg_picks     = mne.pick_types(raw_filtered.info, eeg=True)
-                raw_data      = raw_filtered.get_data(picks='eeg').copy()
+                # exclude=[] keeps ALL eeg channels (incl. bad ones, interpolated
+                # later) so get_data and the write-back below use the same picks —
+                # otherwise pick_types drops bads (29) while get_data keeps them (31).
+                eeg_picks     = mne.pick_types(raw_filtered.info, eeg=True, exclude=[])
+                raw_data      = raw_filtered.get_data(picks=eeg_picks).copy()
                 sfreq_f       = raw_filtered.info['sfreq']
+                # Same heartbeat-aligned template is subtracted from the infraslow
+                # copy too (identical timebase here, pre-downsample).
+                neural_picks  = (mne.pick_types(raw_neural.info, eeg=True, exclude=[])
+                                 if raw_neural is not None else None)
+                neural_data   = (raw_neural.get_data(picks=neural_picks).copy()
+                                 if raw_neural is not None else None)
                 n_applied     = 0
                 for r_samp in cardiac_events:
                     onset = r_samp + int(BCG_TMIN * sfreq_f)
                     end   = onset + n_tmpl
                     if onset >= 0 and end <= raw_data.shape[1]:
                         raw_data[:, onset:end] -= template_data
+                        if neural_data is not None:
+                            neural_data[:, onset:end] -= template_data
                         n_applied += 1
                 raw_filtered._data[eeg_picks, :] = raw_data
+                if raw_neural is not None:
+                    raw_neural._data[neural_picks, :] = neural_data
                 print("  BCG applied to " + str(n_applied) + " heartbeats")
             else:
                 print("  BCG skipped (too few clean epochs: " + str(n_epochs) + ")")
@@ -264,15 +318,22 @@ def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0):
     else:
         print("  BCG skipped — no R-peaks detected (flag for QC)")
 
+    if capture is not None:                       # stage 3: post-BCG (heartbeat removed)
+        capture['post_bcg'] = raw_filtered.copy()
+
     # ── 8. Downsample ─────────────────────────────────────
     if raw_filtered.info['sfreq'] > sfreq_target:
         print("  Downsampling to " + str(sfreq_target) + "Hz...")
         raw_filtered.resample(sfreq_target, verbose=False)
+        if raw_neural is not None:
+            raw_neural.resample(sfreq_target, verbose=False)
 
     # ── 9. Set montage ────────────────────────────────────
     try:
         montage = mne.channels.make_standard_montage('standard_1020')
         raw_filtered.set_montage(montage, on_missing='ignore', verbose=False)
+        if raw_neural is not None:
+            raw_neural.set_montage(montage, on_missing='ignore', verbose=False)
     except Exception as e:
         print("  Montage failed: " + str(e))
 
@@ -377,14 +438,23 @@ def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0):
           + "  eog=" + str(eog_components)
           + "  iclabel=" + str(iclabel_extra) + ")")
     
+    # In infraslow mode, the cleaning (ICA fit on the 1 Hz copy) is applied to the
+    # low-HP neural copy, which is what gets saved.
+    apply_target = raw_neural if raw_neural is not None else raw_filtered
     if artifact_components:
         ica.exclude = artifact_components
-        raw_clean   = raw_filtered.copy()
+        raw_clean   = apply_target.copy()
         ica.apply(raw_clean, verbose=False)
         print("  ICA excluded: " + str(artifact_components))
     else:
-        raw_clean = raw_filtered
+        raw_clean = apply_target
         print("  ICA: no components excluded")
+
+    if capture is not None:                       # stage 4: post-ICA + component metadata
+        capture['post_ica'] = raw_clean.copy()
+        capture['ica'] = ica
+        capture['artifact_components'] = list(artifact_components)
+        capture['ica_labels'] = labels
 
     # ── 11. Interpolate + reference ───────────────────────
     if raw_clean.info['bads']:
@@ -392,6 +462,11 @@ def preprocess_run(subject, task, run, overwrite=False, sfreq_target=250.0):
         print("  Bad channels interpolated")
     raw_clean.set_eeg_reference('average', projection=False, verbose=False)
     print("  Average reference applied")
+
+    if capture is not None:                       # stage 5: final (CAR, interp) — skip save
+        capture['final'] = raw_clean.copy()
+        print("  [capture mode] intermediates captured; skipping FIF save")
+        return True
 
     # ── 12. QC image — preproc ────────────────────────────
     print("  Saving preproc QC image...")
@@ -577,7 +652,13 @@ def main():
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--sfreq", type=float, default=250.0,
                         help="Target sampling frequency (default: 250)")
+    parser.add_argument("--infraslow", action="store_true",
+                        help="Preserve infraslow: fit BCG/ICA on 1 Hz copy, apply "
+                             "to a NEURAL_HIGHPASS-40 Hz copy, save with IS desc.")
+    parser.add_argument("--neural-highpass", type=float, default=NEURAL_HIGHPASS,
+                        help="High-pass (Hz) for the infraslow copy (default: %(default)s)")
     args = parser.parse_args()
+    neural_hp = args.neural_highpass if args.infraslow else None
 
     if args.all or (args.subject and not args.task) or \
        (not args.subject and not args.task and not args.run):
@@ -591,7 +672,8 @@ def main():
                         if (task, run) in MISSING_RUNS[subject]:
                             continue
                     ok = preprocess_run(subject, task, run,
-                                        args.overwrite, args.sfreq)
+                                        args.overwrite, args.sfreq,
+                                        neural_highpass=neural_hp)
                     if ok:
                         n_ok += 1
                     else:
@@ -601,7 +683,8 @@ def main():
         print("=" * 60)
 
     elif args.subject and args.task and args.run:
-        preprocess_run(args.subject, args.task, args.run, args.overwrite, args.sfreq)
+        preprocess_run(args.subject, args.task, args.run, args.overwrite, args.sfreq,
+                       neural_highpass=neural_hp)
     else:
         parser.print_help()
 
