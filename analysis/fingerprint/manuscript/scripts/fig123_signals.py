@@ -136,7 +136,7 @@ def fig2():
     axE = fig.add_subplot(gs[4])
     o, p = z["obs_CEN"][:120], z["pred_CEN"][:120]
     axE.plot(o, color="#333333", lw=1.2, label="observed CEN")
-    axE.plot(p, color="#2166ac", lw=1.2, label="predicted")
+    axE.plot(p, color="#d7301f", lw=1.2, label="predicted")
     axE.set_title(f"E  prediction\n(CEN r={float(z['r_CEN']):.2f})", loc="left", fontsize=9.5, weight="bold")
     axE.set_xlabel("TR"); axE.legend(frameon=False, fontsize=8)
     fig.suptitle("The EEG fingerprint (EFP) decoding method", fontsize=12, weight="bold", y=1.06)
@@ -144,28 +144,51 @@ def fig2():
     plt.close(fig); print("wrote fig2")
 
 
-# ───────────────────────── Figure 3: best vs worst timeseries ─────────────────────────
+# ───────────────────────── Figure 3: masks + best vs worst timeseries ─────────────────────────
+def render_masks():
+    """Personalized DMN (orange) + CEN (blue) masks on a glass brain -> assets/mask_render.png."""
+    out = A / "mask_render.png"
+    dmn, cen = A / f"{BEST}_dmn_mask.nii.gz", A / f"{BEST}_cen_mask.nii.gz"
+    if out.exists() or not (dmn.exists() and cen.exists()):
+        return out if out.exists() else None
+    from nilearn import plotting
+    disp = plotting.plot_glass_brain(None, display_mode="lyrz", figure=plt.figure(figsize=(9, 2.4)))
+    disp.add_contours(str(cen), colors=["#d7301f"], filled=True, alpha=0.55, linewidths=0.8)   # CEN red
+    disp.add_contours(str(dmn), colors=["#2c7fb8"], filled=True, alpha=0.55, linewidths=0.8)   # DMN blue
+    disp.savefig(str(out), dpi=150); disp.close()
+    return out
+
+
 def fig3():
     zb = np.load(A / f"efp_{BEST}.npz", allow_pickle=True)
     zw = np.load(A / f"efp_{WORST}.npz", allow_pickle=True)
+    mask_png = render_masks()
     fig = plt.figure(figsize=(14, 6))
-    gs = fig.add_gridspec(2, 2, width_ratios=[2.6, 1], hspace=0.4, wspace=0.3)
+    gs = fig.add_gridspec(2, 2, width_ratios=[2.4, 1], hspace=0.45, wspace=0.25)
     for i, (z, role) in enumerate([(zb, "best"), (zw, "worst")]):
         ax = fig.add_subplot(gs[i, 0])
         o, p = z["obs_CEN"][:150], z["pred_CEN"][:150]
         ax.plot(o, color="#333333", lw=1.3, label="observed CEN (BOLD)")
-        ax.plot(p, color="#2166ac" if i == 0 else "#b2182b", lw=1.3, label="EEG-predicted")
-        ax.set_title(f"{role.upper()} — {z['subject']}  (CEN r = {float(z['r_CEN']):+.2f})",
+        ax.plot(p, color="#d7301f", lw=1.3, alpha=1.0 if i == 0 else 0.85, label="EEG-predicted CEN")
+        ax.set_title(f"{'BEST' if i==0 else 'WORST'} — {z['subject']}  (CEN r = {float(z['r_CEN']):+.2f})",
                      loc="left", fontsize=11, weight="bold")
         ax.set_ylabel("z-scored activation"); ax.margins(x=0); ax.legend(frameon=False, fontsize=9, ncol=2)
         if i == 1:
             ax.set_xlabel("feedback TR")
-    # right: scalp topography of CEN decodability (reuse committed clean topomap)
-    axt = fig.add_subplot(gs[:, 1])
+    # A: personalized masks (DMN orange / CEN blue) + PDA definition
+    axm = fig.add_subplot(gs[0, 1])
+    if mask_png and mask_png.exists():
+        axm.imshow(plt.imread(mask_png)); axm.axis("off")
+        axm.set_title("Personalized networks\nCEN (red) · DMN (blue) · PDA = CEN − DMN",
+                      fontsize=9, weight="bold")
+    else:
+        axm.axis("off")
+    # B: scalp topography of CEN decodability (committed clean topomap)
+    axt = fig.add_subplot(gs[1, 1])
     topo = FIG.parent.parent / "efp_meirhasson" / "results" / "efp_topomap.png"
     if topo.exists():
         axt.imshow(plt.imread(topo)); axt.axis("off")
-        axt.set_title("CEN decodability\n(clean, centro-parietal)", fontsize=10, weight="bold")
+        axt.set_title("CEN decodability\n(clean, centro-parietal)", fontsize=9, weight="bold")
     else:
         axt.axis("off")
     fig.suptitle("The DMNELF fingerprint: EEG tracks the CEN network — best vs worst subject",

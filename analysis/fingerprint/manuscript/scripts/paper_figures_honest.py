@@ -19,7 +19,7 @@ EFP = FP / "efp_meirhasson" / "results"
 FS = FP / "fsnr_eeg" / "results"
 OUT = FP / "manuscript" / "figures"; OUT.mkdir(parents=True, exist_ok=True)
 RNG = np.random.default_rng(0)
-C = {"CEN": "#2c7fb8", "DMN": "#d95f0e", "PDA": "#31a354"}
+C = {"CEN": "#d7301f", "DMN": "#2c7fb8", "PDA": "#31a354"}   # CEN red, DMN blue, PDA green
 COH = [("DMNELF (SZ)", "cen_clean"), ("rtBPD nf1", "cen_clean_rt_nf1_clean"),
        ("rtBPD nf2", "cen_clean_rt_nf2_clean")]
 plt.rcParams.update({"font.size": 11, "axes.spines.top": False, "axes.spines.right": False,
@@ -63,7 +63,7 @@ def fig4():
 
     cal = pd.read_csv(EFP / "efp_calibrate_mv.csv")
     order = ["transfer", "dmnelf+cal1", "within_loro"]; lab = ["0-shot\ntransfer", "+1-run\ncalibration", "within-\nsubject"]
-    for sess, mk, col in [("nf1", "o", "#2c7fb8"), ("nf2", "s", "#762a83")]:
+    for sess, mk, col in [("nf1", "o", "#d7301f"), ("nf2", "s", "#fc8d59")]:   # CEN red family, by shade
         ys = [cal[(cal.session == sess) & (cal.target == "CEN") & (cal.scheme == s)].r.mean() for s in order]
         axB.plot(range(3), ys, mk + "-", color=col, label=f"CEN {sess}", lw=2, ms=7)
     axB.set_xticks(range(3)); axB.set_xticklabels(lab); axB.axhline(0, color="k", lw=.6)
@@ -106,7 +106,7 @@ def fig6():
     # B: controls fail (CEN readout by method) — committed honest values
     methods = ["EFP\n(linear)", "deep\n(R-EEGNet)", "frontal\ntheta/FTA", "f-SNR"]
     cen_by = [grp(d, "CEN", "clean", "all")[0], 0.004, 0.005, 0.012]   # deep/theta/fsnr: committed nulls
-    cols = ["#2c7fb8", "#bbbbbb", "#bbbbbb", "#bbbbbb"]
+    cols = ["#d7301f", "#bbbbbb", "#bbbbbb", "#bbbbbb"]   # EFP (CEN) red; controls grey
     axs[1].bar(range(4), cen_by, color=cols)
     axs[1].axhline(0, color="k", lw=.6); axs[1].set_xticks(range(4)); axs[1].set_xticklabels(methods, fontsize=9)
     axs[1].set_ylabel("CEN decoding  r"); axs[1].set_title("B  Only the linear decoder works",
