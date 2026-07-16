@@ -16,9 +16,10 @@
 
 > Full draft, reframed around the honest decoding analysis (all numbers on confound-regressed
 > targets, leave-one-run-out, feedback block; see `efp_meirhasson/EFP_SPINE.md`). Introduction,
-> Results, and Discussion are written; Methods §2.1–2.9 complete. Remaining **[CONFIRM]** items are
-> factual gaps only: schizophrenia symptom scale + medication, borderline-trait scale name, IRB/site
-> details, per-cohort fMRI protocol identity. Scope note: resting-state connectivity analyses
+> Results, and Discussion are written; Methods §2.1–2.9 complete; MRI acquisition confirmed from the
+> Prisma protocols (§2.4 + Supp Table S1). Remaining **[CONFIRM]** items are factual gaps only:
+> schizophrenia symptom scale + medication, borderline-trait scale name, IRB/site details,
+> fMRIPrep version + confound strategy. Scope note: resting-state connectivity analyses
 > (restfc/, fox_seed/) are internal negative/validation results and are deliberately **excluded**.
 
 ---
@@ -175,25 +176,32 @@ analysis (Melodic ICA), matching components to canonical DMN/CEN atlas maps, thr
 upper 10% of voxel loadings, and binarizing (Zhang et al., 2023).
 - **DMNELF (schizophrenia):** masks derived from a **single short resting-state run** acquired in
   the same session as feedback.
-- **rtBPD (adolescents):** masks derived in a **separate localizer session** from **long
-  resting-state runs acquired in both phase-encoding directions (2× AP/PA)**, during which the
-  mindfulness ("mental noting") training was delivered; the feedback paradigm was identical to
-  DMNELF.
+- **rtBPD (adolescents):** masks derived in a **separate localizer session** from **two long
+  resting-state runs (250 volumes each)**, during which the mindfulness ("mental noting") training
+  was delivered; the feedback paradigm was identical to DMNELF.
 
 ### 2.4 MRI acquisition
 
-Imaging used a Siemens MAGNETOM Prisma 3T scanner with a 64-channel head/neck coil. A T1-weighted
-MPRAGE was acquired (1.0 mm isotropic, 176 sagittal slices, TR 2530 ms, TE 1.92 ms, TI 1400 ms,
-flip angle 7°, GRAPPA 3). Functional runs used a T2*-weighted multiband gradient-echo EPI sequence
-(TR 1200 ms, TE 30 ms, 2.0 mm isotropic voxels, 72 slices, multiband/slice-acceleration factor 4,
-in-plane GRAPPA 2, phase-encode A≫P). Feedback runs comprised a 25-volume (30 s) rest baseline
-followed by continuous feedback — `[TODO: confirm feedback-run length per cohort; analysis code
-treats DMNELF as 125 volumes (25 rest + 100 feedback) and rtBPD as 150 volumes; §2.4 previously
-stated 150 for both]` — with DMNELF: 4 feedback runs and rtBPD: 5 feedback runs; resting-state runs
-comprised 250 volumes. Spin-echo EPI field maps with reversed phase-encode (AP/PA) were acquired for
-susceptibility-distortion correction. Exact per-sequence parameters are provided in **Supplementary
-Table S1** (from the scanner protocol printouts). `[TODO: confirm DMNELF vs rtBPD protocol identity;
-any per-cohort differences.]`
+Imaging used a Siemens MAGNETOM Prisma 3T scanner (¹H 123.26 MHz) with a 64-channel head/neck coil.
+Full per-sequence parameters are in **Supplementary Table S1**; the two cohorts used the same
+functional sequence and differed only in slice coverage, phase-encode direction, and run counts.
+
+*Anatomical.* DMNELF acquired a 4-echo vNav MPRAGE with prospective motion correction (1.0 mm
+isotropic, 176 sagittal slices, TR 2530 ms, TE 1.69/3.55/5.41/7.27 ms, TI 1400 ms, flip 7°,
+GRAPPA 3); rtBPD (localizer session) acquired a standard single-echo MPRAGE (1.0 mm isotropic,
+176 slices, TR 2530 ms, TE 1.92 ms, TI 1400 ms, flip 7°, GRAPPA 3).
+
+*Functional.* All functional runs in both cohorts used a T2\*-weighted simultaneous-multislice
+gradient-echo EPI sequence: TR 1200 ms, TE 30 ms, 2.0 mm isotropic voxels, FoV 256 mm, base
+resolution 128, flip 61°, multiband/slice-acceleration factor 4, in-plane GRAPPA 2, bandwidth
+2170 Hz/px, echo spacing 0.57 ms, fat saturation. The cohorts differed only in **slice coverage and
+phase-encode direction — DMNELF: 68 slices, A≫P; rtBPD: 72 slices, P≫A**. Each feedback run began
+with a 25-volume (30 s) rest baseline followed by continuous PDA feedback; feedback runs comprised
+**125 volumes in DMNELF (4 runs) and 150 volumes in rtBPD (5 runs)**. Network-localization
+resting-state runs were 250 volumes in rtBPD (2 runs, separate session) and short 26-volume
+in-session runs in DMNELF (§2.3). Spin-echo EPI field maps with reversed phase-encode (AP/PA;
+TR 6000 ms, TE 41 ms DMNELF / 43 ms rtBPD, 2.0 mm) were acquired for susceptibility-distortion
+correction.
 
 ### 2.5 Simultaneous EEG acquisition and preprocessing
 
@@ -470,7 +478,9 @@ Pipeline-walking narrative: preprocessing → method → fingerprint → replica
 - **Figure 6.** ✅ Rigor + clinical: confound-cleaning (motion inflation) | controls fail (EFP vs
   deep/theta/f-SNR) | PDA↔calm across cohorts. `fig6_rigor_clinical.png`.
 - **Table 1.** ✅ Within-subject decoding r (CEN/DMN/PDA) × cohort/session (`table1_build.py`).
-- **Figure 0 (overview schematic)** + **Supplementary Table S1** (per-sequence MRI params): `[TODO]`.
+- **Figure 0.** ✅ Study overview schematic (target → sim EEG–fMRI → frozen EFP decoder → portable
+  deployment). `fig0_overview.png`.
+- **Supplementary Table S1.** ✅ Per-sequence, per-cohort MRI parameters — [SUPPLEMENTARY.md](../SUPPLEMENTARY.md).
 - Optional polish: Fig 3 personalized DMN/CEN mask render (network masks on cluster).
 
 ## Outstanding items — checklist (search `[TODO:` for all inline slots)
@@ -478,13 +488,14 @@ Pipeline-walking narrative: preprocessing → method → fingerprint → replica
 - [ ] Cohort 1 (SZ): age/sex, diagnostic instrument, symptom scale (PANSS?), medication → §2.1
 - [ ] Cohort 2 (rtBPD): borderline-trait scale name + cutoff, age range, sex → §2.1
 - [ ] Approving IRB(s) + protocol numbers → §2.1
-- [ ] Feedback-run length per cohort (DMNELF 125 vs rtBPD 150 vol?) + protocol identity → §2.4
+- [x] ✅ MRI acquisition confirmed from Prisma protocols → §2.4 + Supp Table S1 (DMNELF 68 slices/A≫P/
+  125-vol feedback ×4; rtBPD 72 slices/P≫A/150-vol feedback ×5; shared func sequence)
 - [ ] fMRIPrep version + exact confound set for target cleaning → §2.6
 - [ ] Preregistration, data/code availability, funding, financial disclosures → §2.9
 - [ ] Front-matter: authors, affiliations, corresponding-author contact, keywords, running title, word counts
 **Writing/production:**
 - [x] ✅ Figures 1–6 + Table 1 built (`manuscript/figures/`, `figX_*.png`)
-- [ ] Figure 0 overview schematic (author-supplied or draft); Supplementary Table S1
+- [x] ✅ Figure 0 overview schematic + Supplementary Table S1 built
 - [ ] Compile full reference list with DOIs; verify Stabile 2025, Zotev 2025, Scheeringa citations
 - [x] ✅ Table 1 complete — within-subject clean CEN/DMN/PDA × all 3 cohorts (`table1_build.py`)
 - [ ] Trim body to ≤ 4000 words; finalize 250-word abstract
