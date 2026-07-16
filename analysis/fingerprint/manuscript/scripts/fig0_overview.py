@@ -55,7 +55,7 @@ def main():
     panel(ax, xs[1], W, "2 · Simultaneous EEG–fMRI",
           "3T Prisma · 31-ch MR-EEG cap · TR 1.2 s · 2 mm · MB4.\n"
           "Feedback: 30 s rest → continuous PDA.\n"
-          "DMNELF 4×101 vol · rtBPD 5×150 vol.")
+          "DMNELF 4×125 vol · rtBPD 5×150 vol.")
     hx = xs[1] + W / 2
     ax.add_patch(Circle((hx, 0.60), 0.062, fc="#eee", ec=INK, lw=1.3, transform=ax.transAxes))     # head
     rng = np.random.default_rng(0)
