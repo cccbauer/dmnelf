@@ -11,16 +11,18 @@ cross-cohort)**, **feedback block only**. This is the honest standard establishe
 | single-electrode transfer CEN 0.138 / PDA 0.067 | `cross_cohort_efp.py` uses `orig` targets | multivariate clean transfer CEN 0.066–0.102 |
 | frozen-EFP within CEN 0.279 / PDA 0.258 | block-CV leakage | LORO clean CEN 0.10 / PDA 0.06 |
 
-## Within-subject personalized decoding (clean, LORO, feedback) — the core, REPLICATED
-| Cohort | n | CEN | DMN | PDA | source |
-|---|---|---|---|---|---|
-| DMNELF (schizophrenia) | 17 | **0.10** | 0.06 | 0.06 | `efp_cen_group.py` (all-electrode) |
-| rtBPD nf1 (borderline traits) | 19 | **0.095** | 0.090 | — | `efp_calibrate_mv.csv` `within_loro` |
-| rtBPD nf2 (retest) | 11 | **0.084** | 0.090 | — | `efp_calibrate_mv.csv` `within_loro` |
+## Within-subject personalized decoding (clean, LORO, feedback, multivariate) — the core, REPLICATED
+Complete Table 1 (`table1_build.py`; sign-flip p: \* <.05 \*\* <.01):
+| Cohort | n | CEN | DMN | PDA |
+|---|---|---|---|---|
+| DMNELF (schizophrenia) | 17 | **0.103\*** | 0.060\*\* | 0.063\* |
+| rtBPD nf1 (borderline traits) | 19 | **0.096\*\*** | 0.099\*\* | 0.063\* |
+| rtBPD nf2 (retest) | 11 | **0.080** | 0.092\*\* | 0.086\* |
 
-→ Personalized EEG decoding of the DMN/CEN networks **replicates across 2 clinical cohorts + 3
-sessions** at r ≈ 0.08–0.10 (CEN, DMN). **PDA — the differential NF target — is the weakest readout
-(~0.06); CEN is the robust one.** (rtBPD clean PDA not yet extracted; DMNELF PDA 0.06 is the estimate.)
+→ Personalized EEG decoding of **all three networks — CEN, DMN, and the PDA target itself —
+replicates across 2 clinical cohorts + 3 sessions** at r ≈ 0.06–0.10. **PDA is the smallest effect
+(~0.06–0.09) but is now significant and replicated in every session**; CEN/DMN are marginally more
+robust. An EEG readout is best reconstructed from CEN+DMN rather than decoded from PDA directly.
 
 ## 0-shot cross-cohort transfer (frozen DMNELF → rtBPD, clean, multivariate)
 | | CEN | DMN | source |

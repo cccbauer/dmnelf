@@ -102,7 +102,8 @@ def loro_best(rd_list, nch):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--subject", required=True)
-    ap.add_argument("--cenmean-dir", default=None)   # clean CEN (DMNELF); omit for rtBPD
+    ap.add_argument("--cenmean-dir", default=None)   # clean-target dir; omit to skip clean targets
+    ap.add_argument("--clean-prefix", default="cenmean_dmnelf_")   # cenmean_rtbpd_ / cenmean_rtbpd_nf2_
     ap.add_argument("--config", default=None)          # config_rtbpd.yaml / _nf2 for rtBPD
     ap.add_argument("--cache", required=True)
     ap.add_argument("--out", required=True)
@@ -121,7 +122,7 @@ def main():
     tvecs = {("CEN", "orig"): {rd["run"]: np.asarray(rd["tgt_tr"]["CEN"], float) for rd in runs},
              ("DMN", "orig"): {rd["run"]: np.asarray(rd["tgt_tr"]["DMN"], float) for rd in runs},
              ("PDA", "orig"): {rd["run"]: np.asarray(rd["tgt_tr"]["PDA"], float) for rd in runs}}
-    cmf = Path(a.cenmean_dir) / f"cenmean_dmnelf_{sub}.npz" if a.cenmean_dir else None
+    cmf = Path(a.cenmean_dir) / f"{a.clean_prefix}{sub}.npz" if a.cenmean_dir else None
     if cmf and cmf.exists():
         cc = np.load(cmf, allow_pickle=True)
         # clean confound-regressed CEN, DMN, and PDA (= clean CEN - clean DMN), per run where present
