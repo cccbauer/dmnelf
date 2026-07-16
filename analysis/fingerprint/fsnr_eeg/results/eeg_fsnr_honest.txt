@@ -1,0 +1,25 @@
+Honest EEG band-power f-SNR (clean targets + LORO + feedback block) — n=17
+
+=== FITTED-LORO ceiling: nested single-site, leave-one-run-out ===
+  target/montage                    raw              f-SNR
+  PDA/all              +0.079 (p0.025)   -0.018 (p0.457)
+  PDA/frontal          +0.050 (p0.189)   -0.007 (p0.831)
+  PDA/post             +0.090 (p0.021)   +0.044 (p0.109)
+  CEN/all              +0.061 (p0.092)   +0.012 (p0.703)
+  CEN/frontal          +0.044 (p0.311)   +0.036 (p0.129)
+  CEN/post             +0.072 (p0.018)   -0.000 (p0.994)
+  DMN/all              -0.013 (p0.596)   +0.079 (p0.028)
+  DMN/frontal          +0.022 (p0.412)   +0.044 (p0.128)
+  DMN/post             -0.023 (p0.367)   +0.038 (p0.242)
+
+=== A-PRIORI construct (NO fitting): raw vs f-SNR ===
+  target/construct                      raw              f-SNR
+  PDA/frontal_theta        -0.019 (p0.574)   -0.043 (p0.080)
+  PDA/frontal_alpha        -0.050 (p0.103)   -0.018 (p0.428)
+  PDA/post_alpha           -0.072 (p0.027)   -0.041 (p0.047)
+  CEN/frontal_theta        -0.039 (p0.256)   +0.005 (p0.721)
+  CEN/frontal_alpha        -0.079 (p0.007)   +0.034 (p0.179)
+  CEN/post_alpha           -0.092 (p0.003)   +0.004 (p0.873)
+  DMN/frontal_theta        -0.015 (p0.459)   +0.060 (p0.033)
+  DMN/frontal_alpha        -0.012 (p0.591)   +0.050 (p0.087)
+  DMN/post_alpha           +0.003 (p0.894)   +0.048 (p0.043)
