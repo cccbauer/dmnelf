@@ -18,10 +18,25 @@ Remaining before a live session: run against the **physical EPOC X** (Cortex/LSL
 display-agnostic and pass headless on recorded EEG.
 
 ## Run a session
+Two feedback front-ends, both driven by the same decoder:
+
+**Ball task (matches the scanner paradigm)** — `eeg_balltask.py` is a faithful EEG port of the MRI
+`rt-network_feedback.py`: white ball between a top **CEN (yellow)** and bottom **DMN (blue)** circle,
+rising when CEN > DMN, hits reset the ball + shrink the circle, 30 s +/Relax baseline, post-run
+sliders, per-volume CSV. MURFI is swapped for `EEGActivationCommunicator` (drop-in: same
+`update()` / `get_roi_activation('cen'|'dmn', frame)` interface, backed by our decoder).
 ```bash
-python run_nf.py --source cortex --subject P001 --calibrate --feedback psychopy   # live
-python run_nf.py --source replay --replay testdata/…_250Hz.fif --feedback none \
-                 --calibrate --speed 0                                            # dry-run
+python eeg_balltask.py --participant rtbpd001 --run 1 --feedback Feedback --source cortex
+# offline dry-run of the pipeline (needs PsychoPy for the window):
+python eeg_balltask.py --participant test --source replay --replay testdata/…_250Hz.fif \
+                       --run-sec 60 --baseline-sec 6 --windowed
+```
+`--scale-factor` tunes ball speed (default 10; tune in a pilot since EEG activation units differ
+from MURFI's).
+
+**Simple bars** — `run_nf.py` + `feedback_psychopy.py` (thermometer bars) for a minimal display:
+```bash
+python run_nf.py --source cortex --subject P001 --calibrate --feedback psychopy
 ```
 
 ## Setup
