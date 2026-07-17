@@ -37,11 +37,18 @@ INTERNAL_SCALER = 10
 MIN_RADIUS = 0.03
 
 
+def _creds():
+    import yaml
+    f = HERE / "credentials.yaml"
+    return yaml.safe_load(f.read_text()) if f.exists() else {}
+
+
 def make_source(a):
-    from sources import CortexSource, LSLSource, ReplaySource
+    from sources import CortexSource, LSLSource, ReplaySource, EmokitSource
+    if a.source == "emokit":
+        return EmokitSource(_creds().get("emokit_serial"))
     if a.source == "cortex":
-        import yaml
-        c = yaml.safe_load((HERE / "credentials.yaml").read_text())
+        c = _creds()
         return CortexSource(c.get("client_id"), c.get("client_secret"), c.get("license_id"),
                             c.get("headset_id"))
     if a.source == "lsl":
@@ -66,7 +73,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--participant", default="test"); ap.add_argument("--run", default="1")
     ap.add_argument("--feedback", default="Feedback", choices=["Feedback", "No Feedback"])
-    ap.add_argument("--source", default="cortex", choices=["cortex", "lsl", "replay"])
+    ap.add_argument("--source", default="cortex", choices=["cortex", "lsl", "replay", "emokit"])
     ap.add_argument("--replay", default=None); ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--calib", default=None)
     ap.add_argument("--scale-factor", type=float, default=DEFAULT_SCALE_FACTOR)

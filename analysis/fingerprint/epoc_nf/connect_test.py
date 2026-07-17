@@ -21,21 +21,23 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from sources import CortexSource, LSLSource, ReplaySource
+from sources import CortexSource, LSLSource, ReplaySource, EmokitSource
 
 
 def load_credentials():
     import yaml
     f = HERE / "credentials.yaml"
-    if not f.exists():
-        raise SystemExit("Missing credentials.yaml — copy credentials.example.yaml and fill in "
-                         "your Cortex client_id / client_secret.")
-    return yaml.safe_load(f.read_text())
+    return yaml.safe_load(f.read_text()) if f.exists() else {}
 
 
 def make_source(args):
+    if args.source == "emokit":                    # license-free, straight from the USB dongle
+        return EmokitSource(load_credentials().get("emokit_serial"))
     if args.source == "cortex":
         c = load_credentials()
+        if not c.get("client_id"):
+            raise SystemExit("Missing credentials.yaml — copy credentials.example.yaml and fill in "
+                             "your Cortex client_id / client_secret.")
         return CortexSource(c.get("client_id"), c.get("client_secret"),
                             c.get("license_id"), c.get("headset_id"))
     if args.source == "lsl":
@@ -49,7 +51,7 @@ def make_source(args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--source", default="cortex", choices=["cortex", "lsl", "replay"])
+    ap.add_argument("--source", default="cortex", choices=["cortex", "lsl", "replay", "emokit"])
     ap.add_argument("--replay", default=None); ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--seconds", type=float, default=8.0)
     a = ap.parse_args()

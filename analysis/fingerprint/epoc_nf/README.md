@@ -60,6 +60,15 @@ python connect_test.py --source replay --replay eeg.fif --speed 0   # no hardwar
 Prints sample rate, channel list, per-channel RMS and a poor-contact (flat-line) check — re-wet the
 felt sensors on any channel flagged ⚠ before recording.
 
+## License-free (emokit/CyKit) — status: BLOCKED on this EPOC X
+`EmokitSource` + `pair_headset.py` + `decode_probe.py` read the dongle directly (no Cortex license).
+Verified on this unit (serial `UD2020…`): the dongle pairs and streams **AES-encrypted** 32-byte
+reports at ~128 Hz, but **none of the 11 known emokit/CyKit serial-derived key models decode it**
+(counter-validation ~0.25 = noise for all). The EPOC X firmware hardened its encryption (key tied to
+the Cortex authorization, not a static serial derivation), so the older-EPOC bypass does **not** work
+here. These tools still work for original EPOC / EPOC+.
+→ For this EPOC X, use the **Cortex API** path (`--source cortex`) with an EmotivPRO / raw-EEG license.
+
 ## Acquisition paths
 - **Cortex API** (`cortex.py`, `CortexSource`): the standard raw-EEG route. Handshake =
   requestAccess → authorize → queryHeadsets → controlDevice(connect) → createSession → subscribe(eeg).

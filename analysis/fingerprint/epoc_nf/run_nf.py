@@ -30,10 +30,13 @@ from feedback_psychopy import make_feedback
 
 
 def make_source(a):
-    from sources import CortexSource, LSLSource, ReplaySource
+    from sources import CortexSource, LSLSource, ReplaySource, EmokitSource
+    import yaml
+    cf = HERE / "credentials.yaml"
+    c = yaml.safe_load(cf.read_text()) if cf.exists() else {}
+    if a.source == "emokit":
+        return EmokitSource(c.get("emokit_serial"))
     if a.source == "cortex":
-        import yaml
-        c = yaml.safe_load((HERE / "credentials.yaml").read_text())
         return CortexSource(c.get("client_id"), c.get("client_secret"), c.get("license_id"),
                             c.get("headset_id"))
     if a.source == "lsl":
@@ -43,7 +46,7 @@ def make_source(a):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--source", default="cortex", choices=["cortex", "lsl", "replay"])
+    ap.add_argument("--source", default="cortex", choices=["cortex", "lsl", "replay", "emokit"])
     ap.add_argument("--replay", default=None); ap.add_argument("--speed", type=float, default=1.0)
     ap.add_argument("--subject", default="P000")
     ap.add_argument("--feedback", default="psychopy", choices=["psychopy", "none"])

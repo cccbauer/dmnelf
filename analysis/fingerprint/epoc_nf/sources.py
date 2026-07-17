@@ -92,6 +92,52 @@ class LSLSource(EEGSource):
         self._inlet = None
 
 
+class EmokitSource(EEGSource):
+    """License-free raw EEG straight from the USB dongle via emokit (openyou/emokit).
+
+    Bypasses Cortex/EmotivPRO entirely. Built for EPOC / EPOC+ — EPOC X support is not guaranteed
+    (newer dongle); if the headset does not enumerate, use CyKit or the Cortex path instead.
+    Needs:  pip install emokit hidapi   (+ `brew install hidapi` on macOS).  128 Hz, 14 channels.
+    """
+
+    def __init__(self, serial_number=None):
+        self.serial_number = serial_number
+        self._h = None
+
+    def open(self):
+        from emokit.emotiv import Emotiv
+        self._h = Emotiv(display_output=False, verbose=False, serial_number=self.serial_number)
+        try:
+            self._h.__enter__()
+        except Exception:
+            pass                                   # some builds start the reader in __init__
+        self.sfreq = 128.0
+        # emokit exposes all 14 EPOC electrodes; keep those the model needs, in cap order
+        self.channels = [c for c in EPOC_CHANNELS]
+        return self
+
+    def samples(self):
+        while True:
+            p = self._h.dequeue()
+            if p is None:
+                time.sleep(0.001); continue
+            try:
+                vals = [float(p.sensors[c]["value"]) for c in self.channels]
+            except (KeyError, TypeError):
+                continue
+            yield time.time(), np.array(vals, float)
+
+    def close(self):
+        if self._h is not None:
+            try:
+                self._h.__exit__(None, None, None)
+            except Exception:
+                try:
+                    self._h.close()
+                except Exception:
+                    pass
+
+
 class ReplaySource(EEGSource):
     """Stream a recorded EEG file at real-time rate (or faster) for offline testing.
 
