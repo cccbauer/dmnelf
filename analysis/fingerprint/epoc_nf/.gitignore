@@ -2,3 +2,5 @@ credentials.yaml
 __pycache__/
 *.pyc
 testdata/
+logs/
+model/calib_*.npz

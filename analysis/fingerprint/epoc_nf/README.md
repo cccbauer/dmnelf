@@ -5,11 +5,24 @@ produce the **PDA = CEN − DMN** signal and drive PsychoPy feedback. Deploys th
 in [`../efp_meirhasson/DEPLOY_EPOC.md`](../efp_meirhasson/DEPLOY_EPOC.md) (EPOC-12 montage retains
 ~92% of clean-CEN decoding).
 
-## Status
-- **Phase 1 — connection layer** ✅ `cortex.py` · `sources.py` · `connect_test.py`
-- Phase 2 — frozen decoder export (`export_model.py` → `model/efp_epoc_model.npz`)
-- Phase 3 — real-time engine (`rt_features.py`, `decoder.py`, `calibration.py`)
-- Phase 4 — PsychoPy feedback (`feedback_psychopy.py`) + `run_nf.py`
+## Status — all phases built & validated offline
+- **Phase 1 — connection** ✅ `cortex.py` · `sources.py` · `connect_test.py` (smoke-tested)
+- **Phase 2 — frozen decoder** ✅ `export_model.py` → `model/efp_epoc_model.npz` (CEN+DMN ridge, EPOC-12)
+- **Phase 3 — real-time engine** ✅ `rt_features.py` · `decoder.py` · `calibration.py` — end-to-end
+  replay validates online CEN↔BOLD r=+0.27, DMN +0.23 (`test_replay.py`)
+- **Phase 4 — feedback + orchestrator** ✅ `feedback_psychopy.py` (MURFI-style red bars + blue target)
+  · `run_nf.py` (calibrate → 30 s rest → PDA feedback → CSV log)
+
+Remaining before a live session: run against the **physical EPOC X** (Cortex/LSL) and confirm the
+**PsychoPy** display on the presentation machine. The decoder/orchestrator are hardware- and
+display-agnostic and pass headless on recorded EEG.
+
+## Run a session
+```bash
+python run_nf.py --source cortex --subject P001 --calibrate --feedback psychopy   # live
+python run_nf.py --source replay --replay testdata/…_250Hz.fif --feedback none \
+                 --calibrate --speed 0                                            # dry-run
+```
 
 ## Setup
 ```bash
