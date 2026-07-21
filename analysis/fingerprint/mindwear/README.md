@@ -1,9 +1,35 @@
-# EPOC X neurofeedback system
+# MindWear — portable EEG neurofeedback
 
-Real-time EEG neurofeedback on the Emotiv EPOC X, running the frozen DMNELF **EFP** decoder to
-produce the **PDA = CEN − DMN** signal and drive PsychoPy feedback. Deploys the decoder validated
-in [`../efp_meirhasson/DEPLOY_EPOC.md`](../efp_meirhasson/DEPLOY_EPOC.md) (EPOC-12 montage retains
+Real-time EEG neurofeedback on the Emotiv EPOC X (or the 32-channel research cap), running the
+frozen DMNELF **EFP** decoder to produce the **PDA = CEN − DMN** signal and drive PsychoPy
+feedback. Deploys the decoder validated in
+[`../efp_meirhasson/DEPLOY_EPOC.md`](../efp_meirhasson/DEPLOY_EPOC.md) (EPOC-12 montage retains
 ~92% of clean-CEN decoding).
+
+## Install
+
+Requires [conda](https://conda-forge.org/download/) (Miniconda / Miniforge / Anaconda).
+
+```bash
+cd analysis/fingerprint/mindwear
+./install.sh                 # creates the `mindwear` conda env from environment.yml + verifies
+conda activate mindwear
+python launch_gui.py
+```
+
+`./install.sh --force` recreates an existing env; `--name NAME` uses a different env name. To set
+up manually instead of the script:
+
+```bash
+conda env create -f environment.yml   # from analysis/fingerprint/mindwear
+conda activate mindwear
+python launch_gui.py
+```
+
+First launch opens an empty **Study Manager** — click **New Study** and pick a **Source** (LSL for a
+live EmotivPRO outlet, Replay for a recorded `.fif`, or Cortex with a raw-EEG license) and a
+**Decoder montage** (EPOC-X 12-ch or research-cap 32-ch). Studies are saved under
+`~/.mindwear/studies/`.
 
 ## Status — all phases built & validated offline
 - **Phase 1 — connection** ✅ `cortex.py` · `sources.py` · `connect_test.py` (smoke-tested)
@@ -30,9 +56,10 @@ python mindwear/launch_gui.py           # from analysis/fingerprint/
 #   or:  python -m mindwear.gui.app
 ```
 Flow: **Study Manager → Study Editor** (Source / Decoder / Session / Feedback tabs) **→ Session
-Runner** (Check contact → Start run → live plot). A ready-to-run *EPOC-X Replay Demo* study ships
-seeded, so the console runs end-to-end on recorded EEG with **no headset or license**. Switch the
-study's Source to **Cortex** once the raw-EEG license is active — nothing else changes.
+Runner** (contact-quality preview → Start calibration → calibration review → participant ready
+screen → live feedback → ratings). Point a study's Source at **Replay** (a recorded `.fif`) to run
+the whole console end-to-end with **no headset or license**; switch to **LSL** or **Cortex** for a
+live headset — nothing else changes.
 
 The headless engine is also runnable directly (parity with the console):
 ```bash

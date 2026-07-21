@@ -1,0 +1,34 @@
+# MindWear — portable EEG neurofeedback operator console.
+# Create the environment with:
+#     conda env create -f environment.yml
+#     conda activate mindwear
+# or just run ./install.sh (which wraps this and verifies the result).
+#
+# The heavy scientific stack comes from conda-forge; the Flet GUI / PsychoPy stimulus /
+# acquisition layer (LSL, Cortex) are pip-native and installed in the pip: section.
+name: mindwear
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  # scientific core — decoder, feature extraction, EEG I/O
+  - numpy>=1.26
+  - scipy>=1.11
+  - scikit-learn>=1.3
+  - mne>=1.6
+  - pyyaml>=6.0
+  - pip>=23
+  - pip:
+      # operator console (the three flet packages must share one version)
+      - flet==0.80.5
+      - flet-charts==0.80.5
+      - flet-desktop==0.80.5
+      # participant stimulus (ball task / feedback bars)
+      - psychopy>=2024.1
+      # acquisition sources
+      - pylsl>=1.16          # EmotivPRO -> LSL outlet (recommended live path)
+      - websocket-client>=1.6  # Emotiv Cortex API (needs a raw-EEG license)
+      # optional: license-free dongle path (emokit/CyKit) — blocked on EPOC X, dev-only.
+      # Uncomment if you are on an original EPOC / EPOC+ and want to bypass Cortex:
+      # - hid>=1.0
+      # - pycryptodome>=3.20

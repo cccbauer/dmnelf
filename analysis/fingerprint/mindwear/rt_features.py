@@ -15,8 +15,13 @@ from pathlib import Path
 import sys
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "efp_meirhasson" / "scripts"))
-from stockwell import stockwell_power
+# Stockwell transform is vendored into the package (mindwear/stockwell.py) so the live decoder is
+# self-contained; fall back to the research-repo copy if the vendored one is somehow missing.
+try:
+    from stockwell import stockwell_power
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "efp_meirhasson" / "scripts"))
+    from stockwell import stockwell_power
 
 
 class RTFeatureExtractor:
