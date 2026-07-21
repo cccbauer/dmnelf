@@ -25,7 +25,7 @@ with per-run CSV logging. It drives the headless `session_engine.SessionEngine`;
 PsychoPy stimulus opens on the main thread via a dispatcher (the macOS-safe Flet+PsychoPy pattern).
 
 ```bash
-conda activate epoc_nf                 # env with flet, flet-charts, numpy, scipy, mne, psychopy
+conda activate mindwear                 # env with flet, flet-charts, numpy, scipy, mne, psychopy
 python mindwear/launch_gui.py           # from analysis/fingerprint/
 #   or:  python -m mindwear.gui.app
 ```
@@ -109,9 +109,9 @@ exchanged over a lower USB layer not visible via HID feature reports), so the ol
 → Remaining unlicensed option, not yet attempted: USB packet capture (Wireshark + USBPcap) of an
   EmotivPRO session to look for a key-exchange at the control-transfer level.
 
-**Running these probes (macOS, `epoc_nf` conda env):**
+**Running these probes (macOS, `mindwear` conda env):**
 ```bash
-conda activate epoc_nf
+conda activate mindwear
 pip install hid pycryptodome   # brew install hidapi if not already present
 DYLD_LIBRARY_PATH=/opt/homebrew/lib python decode_probe.py --n 400
 DYLD_LIBRARY_PATH=/opt/homebrew/lib python probe_feature_report.py
