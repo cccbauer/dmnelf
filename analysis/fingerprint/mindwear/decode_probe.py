@@ -41,7 +41,7 @@ def open_eeg_interface():
     serial = devs[0]["serial_number"]
     # the EEG interface is the one that actually streams (usage_page 65535 in testing)
     for d in sorted(devs, key=lambda x: -(x.get("usage_page") or 0)):
-        h = hid.device(); h.open_path(d["path"]); h.set_nonblocking(True)
+        h = hid.Device(path=d["path"]); h.nonblocking = True
         t0 = time.time()
         while time.time() - t0 < 2:
             if h.read(32):

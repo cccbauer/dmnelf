@@ -20,7 +20,7 @@ from stockwell import stockwell_power
 
 
 class RTFeatureExtractor:
-    def __init__(self, model, source_channels):
+    def __init__(self, model, source_channels, bad_channels=None):
         self.chans = list(model["channels"])                 # EPOC12 order the model expects
         self.n_bands = int(model["n_bands"]); self.n_delays = int(model["n_delays"])
         self.tr = float(model["tr"]); self.fmin = int(model["fmin"]); self.fmax = int(model["fmax"])
@@ -30,32 +30,60 @@ class RTFeatureExtractor:
         if len(self.pick) != len(self.chans):
             missing = [c for c in self.chans if c not in source_channels]
             raise ValueError(f"source missing EPOC channels: {missing}")
-        self.sfreq = None; self._win = []                    # accumulating raw samples for current TR
+        # bad channels (flat / noisy contacts, flagged at calibration): dropped from the common-
+        # average reference and given the good-channel-mean band power (neutral), so a dead felt
+        # sensor degrades gracefully instead of corrupting the CAR + that channel's ridge weights.
+        self.set_bad_channels(bad_channels)
+        # Per-TR band power is estimated over a CAUSAL rolling window of `window_tr` TRs. A 2-TR
+        # window looked like a big win on dmnelf005 (PDA 0.17->0.25) but a cross-cohort sweep over
+        # 63 DMNELF subject-runs showed it does NOT generalize (PDA Δr=-0.010, p=0.46; only ~half
+        # of runs improved) — 1 TR is as good or slightly better on average. So default to 1 TR
+        # (identical to the original per-TR window); overridable via model["window_tr"].
+        self.window_tr = int(model["window_tr"]) if "window_tr" in model else 1
+        self.sfreq = None; self._raw = []                    # rolling raw samples (last window_tr TRs)
+        self._count = 0                                      # samples since the last TR boundary
         self._ring = []                                      # list of [n_ch, n_bands] per past TR
+
+    def set_bad_channels(self, bad_channels):
+        """Mark model channels (by name) as bad; they are excluded from CAR + neutral-filled."""
+        bad = set(bad_channels or [])
+        self.bad_mask = np.array([c in bad for c in self.chans], bool)
+        self.bad_channels = [c for c in self.chans if c in bad]
+        if self.bad_mask.all():
+            raise ValueError("all EPOC channels flagged bad — cannot decode")
 
     def set_sfreq(self, sfreq):
         self.sfreq = float(sfreq); self._n_tr = int(round(self.sfreq * self.tr))
 
     def _bandpower(self, win):
         """win: [n_ch, n_samp] (already channel-picked). -> [n_ch, n_bands] band power for this TR."""
-        win = win - win.mean(axis=0, keepdims=True)          # common-average reference
+        good = ~self.bad_mask
+        win = win - win[good].mean(axis=0, keepdims=True)     # common-average over GOOD channels
         bp = np.empty((win.shape[0], self.n_bands))
         for ci in range(win.shape[0]):
+            if self.bad_mask[ci]:
+                continue                                     # filled below with the good-channel mean
             freqs, power = stockwell_power(win[ci], self.sfreq, self.fmin, self.fmax)
             for bi, (lo, hi) in enumerate(self.band_edges):
                 m = (freqs >= lo) & (freqs <= hi)
                 bp[ci, bi] = power[m].mean() if m.any() else 0.0
+        if self.bad_mask.any():
+            bp[self.bad_mask] = bp[good].mean(axis=0)         # neutral fill for dead channels
         return bp
 
     def push(self, sample):
         """Add one multichannel sample. Returns a design vector [1320] on TR boundaries (else None)."""
         if self.sfreq is None:
             raise RuntimeError("call set_sfreq() before push()")
-        self._win.append(np.asarray(sample, float)[self.pick])
-        if len(self._win) < self._n_tr:
+        self._raw.append(np.asarray(sample, float)[self.pick])
+        self._count += 1
+        if self._count < self._n_tr:
             return None
-        win = np.array(self._win).T                          # [n_ch, n_samp]
-        self._win = []
+        self._count = 0
+        win_len = self.window_tr * self._n_tr                # causal rolling window (window_tr TRs)
+        if len(self._raw) > win_len:
+            self._raw = self._raw[-win_len:]
+        win = np.array(self._raw).T                          # [n_ch, up to win_len]
         bp = self._bandpower(win)                            # [n_ch, n_bands]
         self._ring.append(bp)
         if len(self._ring) > self.n_delays:

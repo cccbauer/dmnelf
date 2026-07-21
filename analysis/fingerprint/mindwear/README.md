@@ -17,7 +17,31 @@ Remaining before a live session: run against the **physical EPOC X** (Cortex/LSL
 **PsychoPy** display on the presentation machine. The decoder/orchestrator are hardware- and
 display-agnostic and pass headless on recorded EEG.
 
-## Run a session
+## Operator app (Flet GUI) — recommended
+A desktop operator console (`mindwear/gui/`, built with **Flet**, mirroring the pineuro rt-fMRI GUI)
+wraps the whole pipeline: study/protocol management, a source + **contact-quality check**,
+calibration, and a **live CEN / DMN / PDA plot** (CEN red · DMN blue · PDA green) during feedback,
+with per-run CSV logging. It drives the headless `session_engine.SessionEngine`; the participant
+PsychoPy stimulus opens on the main thread via a dispatcher (the macOS-safe Flet+PsychoPy pattern).
+
+```bash
+conda activate epoc_nf                 # env with flet, flet-charts, numpy, scipy, mne, psychopy
+python mindwear/launch_gui.py           # from analysis/fingerprint/
+#   or:  python -m mindwear.gui.app
+```
+Flow: **Study Manager → Study Editor** (Source / Decoder / Session / Feedback tabs) **→ Session
+Runner** (Check contact → Start run → live plot). A ready-to-run *EPOC-X Replay Demo* study ships
+seeded, so the console runs end-to-end on recorded EEG with **no headset or license**. Switch the
+study's Source to **Cortex** once the raw-EEG license is active — nothing else changes.
+
+The headless engine is also runnable directly (parity with the console):
+```bash
+python mindwear/session_engine.py --source replay \
+       --replay mindwear/testdata/dmnelf005_feedback_run-01_250Hz.fif --speed 0 \
+       --subject P001 --calib-sec 12 --rest-sec 6 --feedback-sec 12
+```
+
+## Run a session (standalone scripts)
 Two feedback front-ends, both driven by the same decoder:
 
 **Ball task (matches the scanner paradigm)** — `eeg_balltask.py` is a faithful EEG port of the MRI
@@ -62,12 +86,40 @@ felt sensors on any channel flagged ⚠ before recording.
 
 ## License-free (emokit/CyKit) — status: BLOCKED on this EPOC X
 `EmokitSource` + `pair_headset.py` + `decode_probe.py` read the dongle directly (no Cortex license).
-Verified on this unit (serial `UD2020…`): the dongle pairs and streams **AES-encrypted** 32-byte
-reports at ~128 Hz, but **none of the 11 known emokit/CyKit serial-derived key models decode it**
-(counter-validation ~0.25 = noise for all). The EPOC X firmware hardened its encryption (key tied to
-the Cortex authorization, not a static serial derivation), so the older-EPOC bypass does **not** work
-here. These tools still work for original EPOC / EPOC+.
+Verified on this unit (serial `UD202007080050E1`): the dongle pairs and streams **AES-encrypted**
+32-byte reports at ~128 Hz. Three independent angles were tried and all failed to recover the key
+(`decode_probe.py`, `probe_feature_report.py`):
+1. **7 documented emokit/CyKit serial-derived key models** (Epoc/Insight × Premium/Consumer/14-bit),
+   standard "last 4 serial chars" slicing — counter-validation ~0.25 (noise) for all.
+2. **Full 32-byte position scan** — same 7 keys, checking every decrypted byte offset (not just 0)
+   in case the counter simply landed elsewhere — best score 0.28 (still noise).
+3. **Brute-force sweep, 4,368 keys** — the 7 templates × all 24 orderings of a 4-character window ×
+   all 26 possible 4-char windows of the 16-char serial (covers the case where "last 4 chars" is the
+   wrong slicing convention for modern 16-char serials vs. the 6-char example serials the algorithm
+   was designed around) — zero candidates scored above 0.5.
+4. **HID feature-report channel** (`probe_feature_report.py`) — the streaming interface exposes a
+   17-byte feature report; read repeatedly across time it is **static** (matches device metadata:
+   packet size 32, sample rate 128), not a per-session nonce/handshake.
+
+Conclusion: the key is not any static function of the serial number reachable from these angles.
+The EPOC X firmware hardened its encryption (key most likely tied to Cortex-side authorization, or
+exchanged over a lower USB layer not visible via HID feature reports), so the older-EPOC bypass does
+**not** work here. These tools still work for original EPOC / EPOC+.
 → For this EPOC X, use the **Cortex API** path (`--source cortex`) with an EmotivPRO / raw-EEG license.
+→ Remaining unlicensed option, not yet attempted: USB packet capture (Wireshark + USBPcap) of an
+  EmotivPRO session to look for a key-exchange at the control-transfer level.
+
+**Running these probes (macOS, `epoc_nf` conda env):**
+```bash
+conda activate epoc_nf
+pip install hid pycryptodome   # brew install hidapi if not already present
+DYLD_LIBRARY_PATH=/opt/homebrew/lib python decode_probe.py --n 400
+DYLD_LIBRARY_PATH=/opt/homebrew/lib python probe_feature_report.py
+```
+`DYLD_LIBRARY_PATH` is required — Homebrew's `libhidapi.dylib` lives in `/opt/homebrew/lib`, which
+isn't on the default dylib search path. Also note: the current PyPI `hid` package (1.0.9) uses the
+`hid.Device(path=...)` / `.nonblocking` API, not the older `hid.device()` / `.open_path()` /
+`.set_nonblocking()` API some emokit-era snippets online still show.
 
 ## Acquisition paths
 - **Cortex API** (`cortex.py`, `CortexSource`): the standard raw-EEG route. Handshake =

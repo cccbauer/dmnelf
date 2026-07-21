@@ -34,7 +34,7 @@ def main():
     handles = []
     for d in devs:
         try:
-            h = hid.device(); h.open_path(d["path"]); h.set_nonblocking(True)
+            h = hid.Device(path=d["path"]); h.nonblocking = True
             handles.append((d["path"], d.get("usage_page"), h))
         except Exception as e:
             print(f"  could not open {d['path']}: {e}")

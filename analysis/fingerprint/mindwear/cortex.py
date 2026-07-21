@@ -15,6 +15,7 @@ a raw-data license) and, on first run, the user must APPROVE this app in the Emo
 Requires: pip install websocket-client   (env with SSL).  Cortex service must be running
 (EmotivPRO / Emotiv Launcher) and the headset paired.
 """
+import contextlib
 import json
 import ssl
 import time
@@ -163,3 +164,21 @@ class CortexClient:
                 row = msg["eeg"]
                 yield {"t": msg.get("time", time.time()),
                        "eeg": {c: row[i] for c, i in chan_idx.items()}}
+
+    def flush(self, max_seconds: float = 2.0) -> None:
+        """Best-effort: discard whatever's already queued on the socket (call after a long pause
+        so a resumed stream() doesn't rapid-fire through minutes of backlog)."""
+        if self.ws is None:
+            return
+        orig_timeout = self.ws.gettimeout()
+        try:
+            self.ws.settimeout(0.05)
+            t0 = time.time()
+            while time.time() - t0 < max_seconds:
+                try:
+                    self.ws.recv()
+                except Exception:
+                    break
+        finally:
+            with contextlib.suppress(Exception):
+                self.ws.settimeout(orig_timeout)

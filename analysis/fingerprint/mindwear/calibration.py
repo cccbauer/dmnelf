@@ -23,7 +23,13 @@ class Calibrator:
         if len(self._X) < 10:
             raise RuntimeError(f"calibration too short ({len(self._X)} TRs); need ≥10.")
         X = np.array(self._X)
-        self.mean = X.mean(0); self.std = X.std(0) + 1e-9
+        self.mean = X.mean(0)
+        s = X.std(0)
+        # Robustness: with few calibration TRs some per-feature stds are ~0 (a feature that barely
+        # varied over the short window), which would explode the z-score of that feature at run
+        # time. Floor each std at a fraction of the median std so no feature dominates.
+        floor = 0.1 * float(np.median(s[s > 0])) if np.any(s > 0) else 1.0
+        self.std = np.maximum(s, floor) + 1e-9
         return self
 
     def set_pda_baseline(self, pda_values):

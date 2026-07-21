@@ -30,6 +30,14 @@ class EEGSource(ABC):
         """Generator of (t: float, sample: np.ndarray[n_channels])."""
         ...
 
+    def flush(self):
+        """Discard any samples the source has buffered while nothing was consuming it (e.g. the
+        engine paused at calib_review/ready). Live sources keep producing in real time regardless
+        of whether we're pulling — without this, resuming would rapid-fire through the backlog
+        instead of picking up at "now", making timed phases (rest/feedback) finish far too fast.
+        No-op by default; sources that can actually buffer override it."""
+        pass
+
     def close(self):
         pass
 
@@ -53,6 +61,9 @@ class CortexSource(EEGSource):
     def samples(self):
         for frame in self.client.stream():
             yield frame["t"], np.array([frame["eeg"].get(c, np.nan) for c in self.channels], float)
+
+    def flush(self):
+        self.client.flush()
 
     def close(self):
         self.client.close()
@@ -87,6 +98,10 @@ class LSLSource(EEGSource):
             sample, ts = self._inlet.pull_sample()
             if sample is not None:
                 yield ts, np.array([sample[i] for i in self._pick], float)
+
+    def flush(self):
+        if self._inlet is not None:
+            self._inlet.flush()
 
     def close(self):
         self._inlet = None
@@ -148,6 +163,8 @@ class ReplaySource(EEGSource):
     def __init__(self, path, speed=1.0):
         self.path = str(path); self.speed = speed
         self._data = None; self._t = None
+        self._k = 0            # current playback position (persists across a paused engine)
+        self._t0 = None        # wall-clock pacing reference
 
     def open(self):
         if self.path.endswith(".fif"):
@@ -162,18 +179,30 @@ class ReplaySource(EEGSource):
             raise RuntimeError(f"No EPOC channels in {self.path} (have {names[:6]}…).")
         self.channels = [names[i] for i in pick]; self.sfreq = sf
         self._data = data[pick]                       # [n_epoc_ch, n_samp]
+        self._k = 0; self._t0 = None
         return self
 
     def samples(self):
         dt = 1.0 / self.sfreq
-        n = self._data.shape[1]; t0 = time.time()
-        for k in range(n):
+        n = self._data.shape[1]
+        if self._t0 is None:
+            self._t0 = time.time()
+        while self._k < n:
+            k = self._k
             if self.speed > 0:
-                target = t0 + k * dt / self.speed
+                target = self._t0 + k * dt / self.speed
                 sleep = target - time.time()
                 if sleep > 0:
                     time.sleep(sleep)
+            self._k += 1
             yield k * dt, self._data[:, k]
+
+    def flush(self):
+        """Re-sync pacing to now, so a real-time (speed>0) replay doesn't rapid-fire through
+        "backlog" that only exists because nothing was consuming it during a pause."""
+        if self._t0 is not None and self.speed > 0:
+            dt = 1.0 / self.sfreq
+            self._t0 = time.time() - self._k * dt / self.speed
 
     def close(self):
         self._data = None
