@@ -293,10 +293,20 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
         fh = None
         if log_dir is not None:
             Path(log_dir).mkdir(parents=True, exist_ok=True)
-            fh = open(Path(log_dir) / f"ball_{participant}_run-{run:02d}.csv", "w", newline="")
+            # session-level behavioural log — the ball window spans every block, so one file per
+            # session (task-nf); the stage column tags each row. run = the operator's session Run #.
+            fh = open(Path(log_dir) / f"sub-{participant}_task-nf_run-{run:02d}_desc-ball.csv", "w", newline="")
             writer = csv.writer(fh)
-            writer.writerow(["tr", "phase", "cen", "dmn", "cen_hits", "dmn_hits", "outlier",
+            writer.writerow(["tr", "stage", "cen", "dmn", "cen_hits", "dmn_hits", "outlier",
                              "ball_y", "top_y", "bottom_y"])
+
+        # direction-question stimuli (R-mbNF end-of-run report). Left = UP, Right = DOWN.
+        q_prompt = visual.TextStim(win, text="", pos=(0, 0.4), height=0.06, wrapWidth=1.5, color="white")
+        q_up = visual.TextStim(win, text="◄  UP", pos=(-0.4, 0), height=0.09, color="white")
+        q_down = visual.TextStim(win, text="DOWN  ►", pos=(0.4, 0), height=0.09, color="white")
+        q_hint = visual.TextStim(win, text="left button = UP     right button = DOWN",
+                                 pos=(0, -0.35), height=0.045, color=[0.6, 0.6, 0.6])
+        randomized = getattr(engine.cfg, "protocol_type", "mbNF") == "R-mbNF"
 
         hits = {"cen": 0, "dmn": 0}
         direction = 0
@@ -312,19 +322,47 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
                 return True
             return False
 
+        def reset_ball():
+            ball.pos = (0, 0)
+            for i, roi in enumerate(ROI_NAMES):
+                circles[roi].pos = (0, POSITIONS[i] / 3.0)
+                circles[roi].radius = 0.15
+                circles[roi].size = 1.0
+                circles[roi].size *= aspect
+
         while engine.is_running() and not stop_event.is_set():
             phase = engine.phase
             u = engine.latest()
 
             if phase == "rest":
+                if last_phase != "rest":
+                    reset_ball()            # each block starts from a centered ball + full circles
                 plus.draw()
                 relax.draw()
+                last_phase = phase
                 win.flip()
                 if escaped():
                     break
                 continue
 
-            if phase != "feedback":
+            # ---- R-mbNF direction question ----
+            if phase == "question":
+                q_prompt.text = "Did your noting practice drive the ball UP or DOWN?"
+                q_prompt.draw(); q_up.draw(); q_down.draw(); q_hint.draw()
+                last_phase = phase
+                win.flip()
+                keys = event.getKeys(keyList=["left", "right", "escape"])
+                if "escape" in keys:
+                    was_escaped = True
+                    break
+                if "left" in keys:
+                    engine.answer_direction("up")
+                elif "right" in keys:
+                    engine.answer_direction("down")
+                continue
+
+            # ---- non-task phases (connect / calibrate / review / ready) ----
+            if phase not in ("feedback", "transfer"):
                 if phase == "calibrate":
                     if last_phase != "calibrate":
                         calib_start = time.time()
@@ -333,9 +371,7 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
                     frac = 1.0 - remaining / calib_sec if calib_sec > 0 else 1.0
                     calib_fill.end = 90 + 360 * frac
                     calib_pct.text = f"{int(round(remaining))}s"
-                    calib_track.draw()
-                    calib_fill.draw()
-                    calib_pct.draw()
+                    calib_track.draw(); calib_fill.draw(); calib_pct.draw()
                     msg.text = "Calibrating…\nPlease hold still."
                     msg.draw()
                 elif phase == "connect":
@@ -347,9 +383,16 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
                 elif phase == "ready":
                     if last_phase != "ready":
                         bring_to_front(win)
-                    msg.text = ("The white ball moves toward the CEN circle when your brain state "
-                               "favors that network, and toward DMN otherwise.\n\n"
-                               "Press SPACEBAR to begin.")
+                    if not engine.feedback_active:            # a transfer block
+                        msg.text = ("Practice mental noting.\nThe targets will appear but the ball "
+                                    "will not move.\n\nPress SPACEBAR to begin.")
+                    elif randomized:                          # R-mbNF feedback (don't reveal mapping)
+                        msg.text = ("Practice mental noting to move the ball.\n\n"
+                                    "Press SPACEBAR to begin.")
+                    else:                                     # mbNF feedback
+                        msg.text = ("The white ball moves toward the CEN circle when your brain "
+                                    "state favors that network, and toward DMN otherwise.\n\n"
+                                    "Press SPACEBAR to begin.")
                     msg.draw()
                     if event.getKeys(keyList=["space"]):
                         engine.participant_ready()
@@ -359,7 +402,19 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
                     break
                 continue
 
-            # feedback: recompute direction/activity + hit-detection on each NEW TR
+            # ---- transfer block: static targets, ball frozen at center, no hits ----
+            if phase == "transfer":
+                reset_ball()
+                for c in circles.values():
+                    c.draw()
+                ball.draw()
+                last_phase = phase
+                win.flip()
+                if escaped():
+                    break
+                continue
+
+            # ---- feedback block: moving ball (randomized sign applies in R-mbNF) ----
             if u is not None and u.tr != last_tr and np.isfinite(u.cen) and np.isfinite(u.dmn):
                 last_tr = u.tr
                 cen, dmn = float(u.cen), float(u.dmn)
@@ -368,18 +423,17 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
                 hi = int(np.nanargmax(roi_vals))
                 if np.nanmean(roi_vals) != 0:
                     activity = abs(np.nanmax(roi_vals) - np.nanmin(roi_vals)) / 10.0
-                    direction = POSITIONS[hi]
+                    direction = POSITIONS[hi] * int(getattr(engine, "pda_sign", 1))   # R-mbNF flip
                 for i, roi in enumerate(ROI_NAMES):
                     if further_than_circles(i, circles[roi].pos[1], ball.pos[1]):
                         hits[roi] += 1
                         ball.pos = (0, 0)
                         circles[roi].radius = max(circles[roi].radius * 0.9, MIN_RADIUS)
                 if writer is not None:
-                    writer.writerow([u.tr, phase, f"{cen:.4f}", f"{dmn:.4f}", hits["cen"], hits["dmn"],
+                    writer.writerow([u.tr, u.stage, f"{cen:.4f}", f"{dmn:.4f}", hits["cen"], hits["dmn"],
                                      outlier, f"{ball.pos[1]:.4f}", f"{circles['cen'].pos[1]:.4f}",
                                      f"{circles['dmn'].pos[1]:.4f}"])
 
-            # animate the ball every display frame (unless it has passed a circle center)
             paused = any(further_than_circles(i, circles[r].pos[1], ball.pos[1])
                          for i, r in enumerate(ROI_NAMES))
             if not paused and direction != 0:
@@ -388,6 +442,7 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
             for c in circles.values():
                 c.draw()
             ball.draw()
+            last_phase = phase
             win.flip()
             if escaped():
                 break
@@ -396,8 +451,9 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
             fh.flush()
             fh.close()
 
-        completed_feedback = engine.completed and not was_escaped
-        if completed_feedback:
+        # mbNF gets the end-of-session ratings; R-mbNF's measure is the per-run up/down reports.
+        completed = engine.completed and not was_escaped
+        if completed and not randomized:
             _run_ratings(win, log_dir, participant, run)
 
         msg.text = "Thank you!"

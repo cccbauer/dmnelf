@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import contextlib
 import csv
+import random
 import threading
 import time
 from dataclasses import dataclass, field
@@ -32,10 +33,43 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_MODEL = HERE / "model" / "efp_epoc_model.npz"
+# Per-subject data lives under data/<subject>/ — one folder per participant. Each block writes
+# BIDS-named artifacts, sub-<subject>_task-<stage>_run-<NN>_desc-<...>.{csv,npz} (see bids_stem).
+DATA_DIR = HERE / "data"
 
-# phases, in order. "calib_review": paused after calibration, awaiting operator confirm/retry.
-# "ready": paused after review is confirmed, awaiting the participant (spacebar in the stimulus).
-PHASES = ("connect", "calibrate", "calib_review", "ready", "rest", "feedback", "done")
+
+def subject_dir(subject: str, data_dir: Path | str = DATA_DIR) -> Path:
+    return Path(data_dir) / subject
+
+
+def bids_stem(subject: str, task: str, run: int) -> str:
+    """BIDS-style filename stem for one recording: ``sub-<label>_task-<task>_run-<NN>``.
+
+    ``subject`` is the participant label configured in the study (basename + zero-padded index,
+    e.g. ``dmnelf001``); the ``sub-`` prefix is added here. ``task`` is the block stage
+    (calibration | transferpre | feedback | transferpost). ``run`` is the feedback-run index for
+    feedback blocks (1..n_runs) and 1 for the single calibration/transfer blocks.
+    """
+    return f"sub-{subject}_task-{task}_run-{run:02d}"
+
+
+def subject_artifacts(subject: str, data_dir: Path | str = DATA_DIR) -> list[str]:
+    """Names of any already-saved recording files for this subject (empty if none).
+
+    Used by the GUI to warn before overwriting: one protocol session always writes the same BIDS
+    filenames (there is no session/run entity spanning the protocol), so re-running a subject
+    overwrites its artifacts in place."""
+    d = subject_dir(subject, data_dir)
+    if not d.exists():
+        return []
+    return sorted(p.name for p in d.iterdir() if p.is_file() and not p.name.startswith("."))
+
+
+# phases. "calib_review": paused after calibration, awaiting operator confirm/retry. "ready":
+# paused at the start of each task block, awaiting the participant (spacebar). "transfer": a task
+# block with static targets (no feedback). "question": R-mbNF end-of-run up/down report.
+PHASES = ("connect", "calibrate", "calib_review", "ready", "rest",
+          "feedback", "transfer", "question", "done")
 
 
 def _score_calibration(cal_obj) -> dict:
@@ -68,6 +102,9 @@ class TRUpdate:
     pda: float
     pda_z: float            # feedback signal vs rest baseline (NaN outside feedback)
     t: float                # wall-clock seconds since engine start
+    stage: str = ""         # block stage: calibration|transferpre|feedback|transferpost
+    run: int = 0            # feedback-run index within the protocol (0 outside feedback)
+    pda_sign: int = 1       # R-mbNF randomized ball-direction sign for this block (+1/-1)
 
 
 @dataclass
@@ -94,11 +131,20 @@ class EngineConfig:
     # bad channels to drop (flat/noisy contacts flagged at calibration)
     bad_channels: Optional[list] = None
 
-    # logging
-    log_dir: str = str(HERE / "logs")
+    # protocol: ordered block list (from models.build_blocks). None -> a legacy single
+    # calibrate/rest/feedback flow synthesized from the calib_sec/rest_sec/feedback_sec fields.
+    blocks: Optional[list] = None
+    protocol_type: str = "mbNF"
+
+    # logging — blank means data/<subject>/ (resolved in __post_init__)
+    log_dir: Optional[str] = None
+
+    def __post_init__(self):
+        if not self.log_dir:
+            self.log_dir = str(subject_dir(self.subject))
 
     def resolved_calib_save(self) -> Path:
-        return HERE / "model" / f"calib_{self.subject}.npz"
+        return Path(self.log_dir) / f"{bids_stem(self.subject, 'calibration', 1)}_desc-calib.npz"
 
 
 def make_source(cfg: "EngineConfig"):
@@ -218,6 +264,7 @@ class SessionEngine:
         self.tr: Optional[float] = None
         self.error: Optional[str] = None
         self.log_path: Optional[Path] = None
+        self.log_paths: list[Path] = []
         # True only if feedback ran its full course (not stopped early by the operator or an
         # error) — distinct from phase == "done", which is also reached on an early stop.
         self.completed: bool = False
@@ -235,9 +282,23 @@ class SessionEngine:
         self._retry_calibration = False
         self.calib_summary: Optional[dict] = None
 
-        # participant-ready gate: the worker pauses in phase "ready" (after the calibration review
-        # is confirmed) until the stimulus calls participant_ready() (spacebar pressed).
+        # participant-ready gate: the worker pauses in phase "ready" at the start of each task
+        # block until the stimulus calls participant_ready() (spacebar pressed).
         self._await_ready = threading.Event()
+
+        # R-mbNF direction-report gate: after a randomized feedback run the worker pauses in phase
+        # "question" until the stimulus calls answer_direction("up"/"down").
+        self._await_question = threading.Event()
+        self._direction_answer: Optional[str] = None
+
+        # current-block state (polled by the stimulus)
+        self.block_index: int = 0
+        self.n_blocks: int = 0
+        self.block_stage: str = ""      # calibration|transferpre|feedback|transferpost
+        self.block_run: int = 0         # feedback-run index (0 outside feedback)
+        self.pda_sign: int = 1          # randomized ball-direction sign for the current block
+        self.feedback_active: bool = False   # True only during a (moving-ball) feedback block
+        self.direction_reports: list[dict] = []   # per randomized run: {run, pda_sign, answer, ...}
 
     # ── public control ───────────────────────────────────────────────────
     def start(self) -> "SessionEngine":
@@ -252,6 +313,7 @@ class SessionEngine:
         self._stop.set()
         self._await_confirm.set()          # unblock if paused awaiting calibration review
         self._await_ready.set()            # unblock if paused awaiting the participant
+        self._await_question.set()         # unblock if paused awaiting a direction report
         if join and self._thread:
             self._thread.join(timeout)
 
@@ -268,6 +330,11 @@ class SessionEngine:
     def participant_ready(self) -> None:
         """Participant pressed spacebar at the instructions screen — proceed to rest/feedback."""
         self._await_ready.set()
+
+    def answer_direction(self, direction: str) -> None:
+        """R-mbNF: participant reported whether noting drove the ball 'up' or 'down'."""
+        self._direction_answer = direction
+        self._await_question.set()
 
     def is_running(self) -> bool:
         return bool(self._thread and self._thread.is_alive())
@@ -305,6 +372,17 @@ class SessionEngine:
     def _make_source(self):
         return make_source(self.cfg)
 
+    def _blocks(self) -> list:
+        """Protocol block list, or a synthesized legacy calibrate->feedback flow for old configs."""
+        if self.cfg.blocks:
+            return list(self.cfg.blocks)
+        blocks = []
+        if self.cfg.do_calibrate and not self.cfg.calib_path:
+            blocks.append({"kind": "calibration", "stage": "calibration", "rest_sec": self.cfg.calib_sec})
+        blocks.append({"kind": "feedback", "stage": "feedback", "run": 1, "n_runs": 1,
+                       "randomize": False, "rest_sec": self.cfg.rest_sec, "task_sec": self.cfg.feedback_sec})
+        return blocks
+
     def _run(self) -> None:
         import sys
 
@@ -313,158 +391,255 @@ class SessionEngine:
         from decoder import Decoder
         from rt_features import RTFeatureExtractor
 
-        t0 = time.time()
+        self._t0 = time.time()
         src = None
-        writer = None
-        fh = None
+        self._writer = None
         try:
-            model = np.load(self.cfg.model_path, allow_pickle=True)
-            self.tr = float(model["tr"])
+            self._model = np.load(self.cfg.model_path, allow_pickle=True)
+            self.tr = float(self._model["tr"])
 
             self._set_phase("connect")
             self._status(f"opening source: {self.cfg.source}")
             src = self._make_source().open()
+            self._src = src
             self.channels = list(src.channels)
             self.sfreq = float(src.sfreq)
             self._status(f"connected — {len(self.channels)} ch @ {self.sfreq:g} Hz, TR {self.tr:g}s")
 
-            feat = RTFeatureExtractor(model, src.channels, bad_channels=self.cfg.bad_channels)
-            feat.set_sfreq(src.sfreq)
-            if feat.bad_channels:
-                self._status(f"dropping {len(feat.bad_channels)} bad channel(s): {', '.join(feat.bad_channels)}")
+            self._feat = RTFeatureExtractor(self._model, src.channels, bad_channels=self.cfg.bad_channels)
+            self._feat.set_sfreq(src.sfreq)
+            if self._feat.bad_channels:
+                self._status(f"dropping {len(self._feat.bad_channels)} bad channel(s): "
+                             f"{', '.join(self._feat.bad_channels)}")
 
-            # CSV log
+            # one BIDS CSV per task block (calibration writes only its .npz); each row still carries
+            # stage/run/pda_sign columns for offline analysis.
             Path(self.cfg.log_dir).mkdir(parents=True, exist_ok=True)
-            stamp = int(t0)
-            self.log_path = Path(self.cfg.log_dir) / f"nf_{self.cfg.subject}_run-{self.cfg.run:02d}_{stamp}.csv"
-            fh = open(self.log_path, "w", newline="")
-            writer = csv.writer(fh)
-            writer.writerow(["tr", "phase", "cen", "dmn", "pda", "pda_z", "t"])
+            self.log_paths = []
 
-            # phase setup
-            n_features = int(np.asarray(model["cen_coef"]).shape[0])
-            calib = Calibrator.load(self.cfg.calib_path) if self.cfg.calib_path else None
-            do_cal = self.cfg.do_calibrate and calib is None
-            decoder = None if do_cal else Decoder(model, calibration=calib)
-            cal_obj = Calibrator(n_features) if do_cal else None
+            self._gen = src.samples()
+            self._n_features = int(np.asarray(self._model["cen_coef"]).shape[0])
+            self._decoder = (Decoder(self._model, calibration=Calibrator.load(self.cfg.calib_path))
+                             if self.cfg.calib_path else None)
 
-            n_cal = round(self.cfg.calib_sec / self.tr)
-            n_rest = round(self.cfg.rest_sec / self.tr)
-            n_fb = round(self.cfg.feedback_sec / self.tr)
-
-            if do_cal:
-                self._set_phase("calibrate")
-                self._status(f"calibrating — hold still ({self.cfg.calib_sec:.0f}s)")
-            else:
-                self._set_phase("rest")
-                self._status(f"rest baseline ({self.cfg.rest_sec:.0f}s)")
-
-            rest_pda: list[float] = []
-            k = 0
-            for _t, sample in src.samples():
+            blocks = self._blocks()
+            self.n_blocks = len(blocks)
+            for bi, block in enumerate(blocks):
                 if self._stop.is_set():
-                    self._status("stopped by operator")
                     break
-                design = feat.push(sample)
-                if design is None:
-                    continue
-
-                # ---- calibrate ----
-                if self.phase == "calibrate":
-                    cal_obj.add_design(design)
-                    k += 1
-                    if k >= n_cal:
-                        cal_obj.fit()
-                        cal_obj.save(self.cfg.resolved_calib_save())
-                        decoder = Decoder(model, calibration=cal_obj)
-                        self.calib_summary = _score_calibration(cal_obj)
-                        self._status(f"calibration done ({k * self.tr:.0f}s) -> "
-                                    f"{self.cfg.resolved_calib_save().name} — awaiting review")
-                        self._set_phase("calib_review")
-                        self._await_confirm.clear()
-                        self._await_confirm.wait()
-                        with contextlib.suppress(Exception):
-                            src.flush()   # discard backlog the source kept producing while paused
-                        if self._stop.is_set():
-                            self._status("stopped by operator")
-                            break
-                        if self._retry_calibration:
-                            self._retry_calibration = False
-                            self._status("repeating calibration")
-                            cal_obj = Calibrator(n_features)
-                            decoder = None
-                            k = 0
-                            self._set_phase("calibrate")
-                            continue
-                        self._status("calibration accepted — waiting for the participant")
-                        self._set_phase("ready")
-                        self._await_ready.clear()
-                        self._await_ready.wait()
-                        with contextlib.suppress(Exception):
-                            src.flush()   # discard backlog the source kept producing while paused
-                        if self._stop.is_set():
-                            self._status("stopped by operator")
-                            break
-                        self._status(f"rest baseline ({self.cfg.rest_sec:.0f}s)")
-                        self._set_phase("rest")
-                        k = 0
-                    continue
-
-                out = decoder.predict(design)
-                if out is None:                     # running-z warmup (no calibration path)
-                    continue
-                cen, dmn, pda = out
-
-                # ---- rest baseline ----
-                if self.phase == "rest":
-                    rest_pda.append(pda)
-                    k += 1
-                    self._emit(TRUpdate(k, "rest", cen, dmn, pda, float("nan"), time.time() - t0), writer)
-                    if k >= n_rest:
-                        v = np.asarray(rest_pda, float)
-                        v = v[np.isfinite(v)]
-                        self.baseline_mean = float(v.mean()) if v.size else 0.0
-                        self.baseline_sd = float(v.std() + 1e-9) if v.size else 1.0
-                        if cal_obj is not None:
-                            cal_obj.set_pda_baseline(rest_pda)
-                            cal_obj.save(self.cfg.resolved_calib_save())
-                        self._status(f"baseline PDA mean={self.baseline_mean:.3f} sd={self.baseline_sd:.3f} -> feedback")
-                        self._set_phase("feedback")
-                        k = 0
-                    continue
-
-                # ---- feedback ----
-                pda_z = (pda - self.baseline_mean) / self.baseline_sd
-                k += 1
-                self._emit(TRUpdate(k, "feedback", cen, dmn, pda, pda_z, time.time() - t0), writer)
-                if k >= n_fb:
-                    self._status(f"feedback complete ({self.cfg.feedback_sec:.0f}s)")
-                    self.completed = True
-                    break
+                self.block_index = bi
+                self.block_stage = block.get("stage", "")
+                if block["kind"] == "calibration":
+                    if not self._do_calibration_block(block):
+                        break                       # stopped during calibration
+                else:
+                    if not self._run_task_block_logged(block):
+                        break                       # stopped during a task block
+            else:
+                self.completed = True                # ran every block without an early stop
 
             self._set_phase("done")
-            self._status(f"session done — log: {self.log_path.name if self.log_path else '(none)'}")
+            self._status(f"session done — {len(self.log_paths)} recording(s) in {self.cfg.log_dir}")
         except Exception as exc:  # surface to the operator rather than dying silently
             self.error = f"{type(exc).__name__}: {exc}"
             self._status(f"ERROR: {self.error}")
             self._set_phase("done")
         finally:
-            if fh is not None:
-                fh.flush()
-                fh.close()
             if src is not None:
                 try:
                     src.close()
                 except Exception:
                     pass
 
-    def _emit(self, u: TRUpdate, writer) -> None:
+    def _next_design(self):
+        """Pull streaming samples until the feature extractor emits a design, or the stream/stop
+        ends. Shared across blocks so the delay ring + running-z carry over continuously."""
+        for _t, sample in self._gen:
+            if self._stop.is_set():
+                return None
+            d = self._feat.push(sample)
+            if d is not None:
+                return d
+        return None
+
+    def _flush_after_gate(self):
+        """Drop source backlog accumulated while paused at a gate (keeps timed phases honest)."""
+        with contextlib.suppress(Exception):
+            self._src.flush()
+
+    def _do_calibration_block(self, block) -> bool:
+        """Collect calibration designs, fit, then pause for operator review (retry/accept).
+        Returns False if the operator stopped the session."""
+        from calibration import Calibrator
+        from decoder import Decoder
+
+        n_cal = round(float(block.get("rest_sec", self.cfg.calib_sec)) / self.tr)
+        while True:
+            cal_obj = Calibrator(self._n_features)
+            self._set_phase("calibrate")
+            self._status(f"calibrating — hold still ({n_cal * self.tr:.0f}s)")
+            got = 0
+            while got < n_cal:
+                design = self._next_design()
+                if design is None:
+                    return False
+                cal_obj.add_design(design)
+                got += 1
+            cal_obj.fit()
+            cal_obj.save(self.cfg.resolved_calib_save())
+            self._decoder = Decoder(self._model, calibration=cal_obj)
+            self._cal_obj = cal_obj
+            self.calib_summary = _score_calibration(cal_obj)
+            self._status(f"calibration done ({got * self.tr:.0f}s) -> "
+                         f"{self.cfg.resolved_calib_save().name} — awaiting review")
+            self._set_phase("calib_review")
+            self._await_confirm.clear()
+            self._await_confirm.wait()
+            self._flush_after_gate()
+            if self._stop.is_set():
+                return False
+            if self._retry_calibration:
+                self._retry_calibration = False
+                self._status("repeating calibration")
+                continue
+            return True
+
+    def _run_task_block_logged(self, block) -> bool:
+        """Open this block's own BIDS decoder CSV, run the block, then close the file.
+
+        One file per task block: ``sub-<subject>_task-<stage>_run-<NN>_desc-decoder.csv`` where
+        ``stage`` is the block's task and ``run`` is the feedback-run index (1 for transfer blocks).
+        """
+        stage = block.get("stage", "feedback")
+        run_idx = int(block.get("run", 1)) or 1
+        path = Path(self.cfg.log_dir) / f"{bids_stem(self.cfg.subject, stage, run_idx)}_desc-decoder.csv"
+        self.log_path = path
+        self.log_paths.append(path)
+        # start each run fresh: the finished block is already persisted to its own CSV, so drop the
+        # in-memory history (otherwise it grows all session and the live plot slows to a stall).
+        with self._lock:
+            self._history.clear()
+        fh = open(path, "w", newline="")
+        self._writer = csv.writer(fh)
+        self._writer.writerow(["tr", "phase", "stage", "run", "pda_sign", "cen", "dmn", "pda", "pda_z", "t"])
+        try:
+            return self._do_task_block(block)
+        finally:
+            self._writer = None
+            fh.flush()
+            fh.close()
+
+    def _do_task_block(self, block) -> bool:
+        """One task block: participant-ready gate -> rest baseline -> task (feedback or transfer)
+        -> optional R-mbNF direction question. Returns False if stopped."""
+        stage = block.get("stage", "feedback")
+        kind = block["kind"]
+        randomize = bool(block.get("randomize", False))
+        self.feedback_active = kind == "feedback"
+        self.block_run = int(block.get("run", 0))
+        self.pda_sign = random.choice([-1, 1]) if randomize else 1
+
+        if self._decoder is None:            # no calibration ran (e.g. legacy running-z path)
+            from decoder import Decoder
+            self._decoder = Decoder(self._model, calibration=None)
+
+        # ---- participant-ready gate (spacebar) ----
+        label = {"transferpre": "transfer (pre)", "transferpost": "transfer (post)"}.get(
+            stage, f"feedback run {self.block_run}")
+        self._status(f"{label}: waiting for the participant")
+        self._set_phase("ready")
+        self._await_ready.clear()
+        self._await_ready.wait()
+        self._flush_after_gate()
+        if self._stop.is_set():
+            return False
+
+        # ---- rest baseline ----
+        n_rest = round(float(block.get("rest_sec", 30.0)) / self.tr)
+        n_task = round(float(block.get("task_sec", 150.0)) / self.tr)
+        self._status(f"{label}: rest baseline ({n_rest * self.tr:.0f}s)")
+        self._set_phase("rest")
+        rest_pda: list[float] = []
+        k = 0
+        while k < n_rest:
+            design = self._next_design()
+            if design is None:
+                return False
+            out = self._decoder.predict(design)
+            if out is None:
+                continue                     # running-z warmup
+            cen, dmn, pda = out
+            rest_pda.append(pda)
+            k += 1
+            self._emit(TRUpdate(k, "rest", cen, dmn, pda, float("nan"), time.time() - self._t0,
+                                stage=stage, run=self.block_run, pda_sign=self.pda_sign))
+        v = np.asarray(rest_pda, float); v = v[np.isfinite(v)]
+        self.baseline_mean = float(v.mean()) if v.size else 0.0
+        self.baseline_sd = float(v.std() + 1e-9) if v.size else 1.0
+
+        # ---- task (feedback: moving ball / transfer: static targets) ----
+        self._status(f"{label}: {n_task * self.tr:.0f}s")
+        self._set_phase("feedback" if self.feedback_active else "transfer")
+        task_pda: list[float] = []
+        k = 0
+        while k < n_task:
+            design = self._next_design()
+            if design is None:
+                return False
+            out = self._decoder.predict(design)
+            if out is None:
+                continue
+            cen, dmn, pda = out
+            pda_z = (pda - self.baseline_mean) / self.baseline_sd
+            task_pda.append(pda)
+            k += 1
+            self._emit(TRUpdate(k, self.phase, cen, dmn, pda, pda_z, time.time() - self._t0,
+                                stage=stage, run=self.block_run, pda_sign=self.pda_sign))
+
+        # ---- R-mbNF: end-of-run up/down report ----
+        if randomize:
+            self._set_phase("question")
+            self._status(f"{label}: awaiting direction report")
+            self._direction_answer = None
+            self._await_question.clear()
+            self._await_question.wait()
+            self._flush_after_gate()
+            if self._stop.is_set():
+                return False
+            # ball moved up when sign(mean task PDA) * pda_sign > 0
+            tp = np.asarray(task_pda, float); tp = tp[np.isfinite(tp)]
+            mean_pda = float(tp.mean()) if tp.size else 0.0
+            true_dir = "up" if (np.sign(mean_pda) * self.pda_sign) >= 0 else "down"
+            correct = (self._direction_answer == true_dir)
+            report = {"run": self.block_run, "pda_sign": self.pda_sign, "mean_task_pda": mean_pda,
+                      "true_direction": true_dir, "answer": self._direction_answer, "correct": correct}
+            self.direction_reports.append(report)
+            self._save_direction_report(report, stage)
+            self._status(f"run {self.block_run}: reported {self._direction_answer}, "
+                         f"ball went {true_dir} ({'correct' if correct else 'incorrect'})")
+        return True
+
+    def _save_direction_report(self, report: dict, stage: str = "feedback") -> None:
+        """Append one R-mbNF direction report to this block's BIDS directions CSV (accuracy audit)."""
+        stem = bids_stem(self.cfg.subject, stage, int(report["run"]) or 1)
+        path = Path(self.cfg.log_dir) / f"{stem}_desc-directions.csv"
+        new = not path.exists()
+        with contextlib.suppress(Exception):
+            with open(path, "a", newline="") as f:
+                w = csv.writer(f)
+                if new:
+                    w.writerow(["run", "pda_sign", "mean_task_pda", "true_direction", "answer", "correct"])
+                w.writerow([report["run"], report["pda_sign"], f"{report['mean_task_pda']:.4f}",
+                            report["true_direction"], report["answer"], report["correct"]])
+
+    def _emit(self, u: TRUpdate) -> None:
         with self._lock:
             self._latest = u
             self._history.append(u)
-        if writer is not None:
+        if getattr(self, "_writer", None) is not None:
             z = "" if not np.isfinite(u.pda_z) else f"{u.pda_z:.4f}"
-            writer.writerow([u.tr, u.phase, f"{u.cen:.4f}", f"{u.dmn:.4f}", f"{u.pda:.4f}", z, f"{u.t:.2f}"])
+            self._writer.writerow([u.tr, u.phase, u.stage, u.run, u.pda_sign,
+                                   f"{u.cen:.4f}", f"{u.dmn:.4f}", f"{u.pda:.4f}", z, f"{u.t:.2f}"])
         if self._on_update:
             self._on_update(u)
 

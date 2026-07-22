@@ -30,7 +30,15 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 import numpy as np  # noqa: E402
 
-from session_engine import DEFAULT_MODEL, EngineConfig, SessionEngine, score_contact, stream_contact  # noqa: E402
+from session_engine import (  # noqa: E402
+    DEFAULT_MODEL,
+    EngineConfig,
+    SessionEngine,
+    score_contact,
+    stream_contact,
+    subject_artifacts,
+    subject_dir,
+)
 
 
 class SessionRunner:
@@ -42,15 +50,23 @@ class SessionRunner:
         self.run = run
         self.engine: SessionEngine | None = None
         self._stim_stop = threading.Event()
+        self._stim_active = False              # True while the PsychoPy stimulus is driving the gates
         self._preview_stop: threading.Event | None = None   # set while a live contact preview runs
         self.bad_channels: list[str] = []      # flagged at calibration, dropped during the run
         self.calibrated = False                # gate Start on a completed contact/QC check
 
-        # fixed-width plot spanning the whole run in seconds (rest + feedback), filling left→right
+        # plot spans ONE run/block at a time (rest+task seconds) and resets at each block boundary,
+        # so its render cost stays flat across a 10-run protocol instead of growing to a stall.
         tr = self._model_tr()
-        sess = study.session
-        run_seconds = float(sess.get("rest_sec", 30.0)) + float(sess.get("feedback_sec", 300.0))
-        self.plot = ActivationPlot(x_max=run_seconds, dx=tr, height=320, x_label="time (s)")
+        self._block_secs: dict[tuple[str, int], float] = {}
+        for b in study.blocks():
+            if b["kind"] == "calibration":
+                continue
+            key = (b.get("stage", ""), int(b.get("run", 0)) or 0)
+            self._block_secs[key] = float(b.get("rest_sec", 0)) + float(b.get("task_sec", 0))
+        first_block = max(self._block_secs.values(), default=330.0)
+        self._cur_block_key: tuple[str, int] | None = None
+        self.plot = ActivationPlot(x_max=first_block, dx=tr, height=320, x_label="time (s)")
         self.trace = EEGTracePlot()      # live raw-EEG preview shown during the contact check
         self.cq = ContactQuality()
         self.headmap = HeadMap()         # electrode-position contact-quality view (EmotivPRO-style)
@@ -223,8 +239,40 @@ class SessionRunner:
     def _start(self) -> None:
         if self.engine and self.engine.is_running():
             return
+        existing = subject_artifacts(self.participant)
+        if existing:
+            self._prompt_overwrite(existing)
+            return
+        self._start_engine()
+
+    def _prompt_overwrite(self, existing: list[str]) -> None:
+        """This subject already has saved recordings — one protocol session writes the same BIDS
+        filenames (no session/run entity spans the protocol), so running again overwrites them."""
+        def do_overwrite(_):
+            self.page.pop_dialog()
+            d = subject_dir(self.participant)
+            for name in existing:
+                with contextlib.suppress(Exception):
+                    (d / name).unlink()
+            self._start_engine()
+
+        dlg = ft.AlertDialog(
+            title=ft.Text(f"{self.participant} already has saved data"),
+            content=ft.Container(content=ft.Column([
+                ft.Text(f"{len(existing)} file(s) are already saved for this subject. Running "
+                        "again overwrites them (use a new subject id to keep both):"),
+                st.caption(", ".join(existing[:6]) + (" …" if len(existing) > 6 else "")),
+            ], tight=True, spacing=st.GAP_SM), width=460),
+            actions=[
+                ft.TextButton("Cancel", on_click=lambda _: self.page.pop_dialog()),
+                ft.OutlinedButton("Overwrite", icon=ft.Icons.DELETE_OUTLINE, on_click=do_overwrite),
+            ])
+        self.page.show_dialog(dlg)
+
+    def _start_engine(self) -> None:
         if self._preview_stop is not None:
             self._preview_stop.set()
+        self._cur_block_key = None      # first update re-pins the plot to the opening block
         self.plot.clear()
         cfg = self._engine_config()
         self.engine = SessionEngine(cfg, on_update=self._on_update, on_phase=self._on_phase,
@@ -280,6 +328,10 @@ class SessionRunner:
             self._safe(self.phase_chip.update)
             if phase == "calib_review":
                 self._show_calib_review()
+            elif phase == "ready" and not self._stim_active:
+                self._operator_ready()
+            elif phase == "question" and not self._stim_active:
+                self._operator_direction()
             if phase == "done":
                 self._reset_buttons()
                 if self.engine and self.engine.log_path:
@@ -341,6 +393,14 @@ class SessionRunner:
 
     def _on_update(self, u) -> None:
         def apply():
+            key = (u.stage, u.run)
+            if key != self._cur_block_key:      # new run/block → fresh plot (keeps render flat)
+                self._cur_block_key = key
+                self.plot.reset(self._block_secs.get(key))
+                label = {"transferpre": "transfer (pre)", "transferpost": "transfer (post)"}.get(
+                    u.stage, f"feedback run {u.run}")
+                self.run_caption.value = f"  participant {self.participant} · {label}"
+                self._safe(self.run_caption.update)
             self.plot.add(u.cen, u.dmn, u.pda)
             self.m_cen.value = f"{u.cen:+.3f}"
             self.m_dmn.value = f"{u.dmn:+.3f}"
@@ -365,6 +425,7 @@ class SessionRunner:
             self.app.toast("PsychoPy not available — running operator plot only.")
             return
         self._stim_stop.clear()
+        self._stim_active = True
         self._log(f"launching {mode} stimulus")
         get_dispatcher().submit(self._stimulus_loop, mode)   # runs on main thread until the run ends
 
@@ -377,8 +438,28 @@ class SessionRunner:
         except Exception as exc:
             self._log(f"stimulus error: {exc}")
         finally:
+            self._stim_active = False
             # stimulus (incl. any ratings screen) has actually finished — safe to refocus now
             self._ui(self._bring_app_to_front)
+
+    # ── operator-side gate fallbacks (only when no participant stimulus is driving) ──
+    def _operator_ready(self) -> None:
+        """No stimulus running: advance the participant-ready gate from the operator console."""
+        if self.engine and self.engine.phase == "ready":
+            self.engine.participant_ready()
+
+    def _operator_direction(self) -> None:
+        """No stimulus running: collect the R-mbNF up/down report via an operator dialog."""
+        def answer(direction: str) -> None:
+            self.page.pop_dialog()
+            if self.engine:
+                self.engine.answer_direction(direction)
+        dlg = ft.AlertDialog(
+            title=ft.Text("Participant report"),
+            content=ft.Text("Did the participant's noting drive the ball up or down?"),
+            actions=[ft.FilledButton("Up", icon=ft.Icons.ARROW_UPWARD, on_click=lambda _: answer("up")),
+                     ft.OutlinedButton("Down", icon=ft.Icons.ARROW_DOWNWARD, on_click=lambda _: answer("down"))])
+        self.page.show_dialog(dlg)
 
     # ── ui helpers ───────────────────────────────────────────────────────
     def _ui(self, fn) -> None:

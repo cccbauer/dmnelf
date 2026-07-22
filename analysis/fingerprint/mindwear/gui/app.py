@@ -17,6 +17,7 @@ from .models import StudyConfig
 from .screens.comparison_runner import ComparisonRunner
 from .screens.session_runner import SessionRunner
 from .screens.study_editor import StudyEditor
+from .screens.study_wizard import StudyWizard
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 logger = logging.getLogger("mindwear.gui")
@@ -51,6 +52,9 @@ class MindWearApp:
     def show_study_editor(self, study: StudyConfig | None) -> None:
         self._render(StudyEditor(self, study).build())
 
+    def show_study_wizard(self) -> None:
+        self._render(StudyWizard(self).build())
+
     def show_session_runner(self, study: StudyConfig, participant: str, run: int) -> None:
         self._render(SessionRunner(self, study, participant, run).build())
 
@@ -63,7 +67,7 @@ class MindWearApp:
             content=ft.Row([
                 ft.Row([ft.Icon(ft.Icons.PSYCHOLOGY, color=st.ACCENT, size=st.ICON_LG),
                         st.title(f"{st.APP_NAME} Study Manager")], spacing=st.GAP_SM),
-                ft.FilledButton("New Study", icon=ft.Icons.ADD, on_click=lambda _: self.show_study_editor(None)),
+                ft.FilledButton("New Study", icon=ft.Icons.ADD, on_click=lambda _: self.show_study_wizard()),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=st.PAD, bgcolor=st.HEADER_BG)
         body = ft.Container(content=self._study_list(), padding=st.PAD, expand=True)
@@ -77,7 +81,7 @@ class MindWearApp:
                     ft.Icon(ft.Icons.SCIENCE, size=st.ICON_HERO, color=ft.Colors.OUTLINE),
                     ft.Text("No studies yet", size=st.SECTION, color=st.MUTED),
                     st.caption("Create a study to configure the source, decoder, and feedback."),
-                    ft.FilledButton("New Study", icon=ft.Icons.ADD, on_click=lambda _: self.show_study_editor(None)),
+                    ft.FilledButton("New Study", icon=ft.Icons.ADD, on_click=lambda _: self.show_study_wizard()),
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=st.GAP_MD),
                 alignment=ft.Alignment(0, 0), expand=True)
         return ft.GridView([self._study_card(m) for m in studies],
@@ -112,7 +116,9 @@ class MindWearApp:
         study = self.config_manager.load(name)
         is_cmp = mode == "compare"
         hint = "e.g. dmnelf005" if is_cmp else "e.g. rtbpd001"
-        pid = ft.TextField(label="Participant ID", hint_text=hint, autofocus=True)
+        # prefill with the study's next subject id (basename + zero-padded index)
+        prefill = "" if is_cmp else study.subject_id(1)
+        pid = ft.TextField(label="Participant ID", hint_text=hint, value=prefill, autofocus=True)
         run = ft.TextField(label="Run #", value="1", width=100)
 
         def go(_):

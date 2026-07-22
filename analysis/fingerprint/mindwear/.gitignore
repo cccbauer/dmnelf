@@ -3,4 +3,5 @@ __pycache__/
 *.pyc
 testdata/
 logs/
+data/
 model/calib_*.npz

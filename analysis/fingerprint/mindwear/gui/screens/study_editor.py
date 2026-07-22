@@ -52,7 +52,7 @@ class StudyEditor:
             label="Montage", value=montage,
             options=[ft.dropdown.Option(k, v["label"]) for k, v in MONTAGE_PRESETS.items()]
                     + [ft.dropdown.Option("custom", "Custom model path…")],
-            on_change=lambda _: self._on_montage_change())
+            on_select=lambda _: self._on_montage_change())
         shown_path = dec.get("model_path") or MONTAGE_PRESETS.get(montage, {}).get("model_path", "")
         self.f_model = self._tf("Model .npz", shown_path)
         self.f_model.disabled = montage != "custom"
@@ -73,31 +73,30 @@ class StudyEditor:
         self.f_scale = self._tf("Ball scale factor", fb.get("scale_factor", 10.0), width=200)
         self.f_targetz = self._tf("Target z (bars)", fb.get("target_z", 1.0), width=200)
 
-        def _panel(*children):
-            return ft.Container(content=ft.Column(list(children), spacing=st.GAP_MD),
-                                padding=st.PAD)
+        def _card(title, *children):
+            return ft.Container(
+                content=ft.Column([st.section(title), *children], spacing=st.GAP_SM),
+                padding=st.PAD, bgcolor=st.SUBTLE_BG, border_radius=8,
+                border=ft.Border.all(1, st.PANEL_BORDER))
 
-        tabs = ft.Tabs(selected_index=0, animation_duration=200, tabs=[
-            ft.Tab(label="General", content=_panel(st.section("General"), self.f_name, self.f_desc)),
-            ft.Tab(label="Source", content=_panel(
-                st.section("EEG source"), self.f_source,
-                st.caption("Replay streams a recorded run at real time — the whole pipeline runs with no "
-                           "headset or license. Switch to Cortex once the raw-EEG license is active."),
-                self.f_replay, self.f_speed, self.f_creds)),
-            ft.Tab(label="Decoder", content=_panel(
-                st.section("Frozen EFP decoder"), self.f_montage, self.f_model,
-                st.caption("The DMNELF-trained CEN/DMN ridge, frozen for the selected electrode montage. "
-                           "Pick Custom to point at a different model .npz."))),
-            ft.Tab(label="Session", content=_panel(
-                st.section("Phase timing"), self.f_calibrate,
-                ft.Row([self.f_calib, self.f_rest], spacing=st.GAP),
-                ft.Row([self.f_fb, self.f_runs], spacing=st.GAP))),
-            ft.Tab(label="Feedback", content=_panel(
-                st.section("Feedback display"), self.f_mode,
-                ft.Row([self.f_scale, self.f_targetz], spacing=st.GAP),
-                st.caption("Ball task mirrors the MRI paradigm (CEN yellow top / DMN blue bottom). "
-                           "PDA = CEN − DMN drives the ball."))),
-        ], expand=True)
+        body = ft.Column([
+            _card("General", self.f_name, self.f_desc),
+            _card("EEG source", self.f_source,
+                  st.caption("Replay streams a recorded run at real time — the whole pipeline runs with no "
+                             "headset or license. Switch to LSL/Cortex for a live headset."),
+                  self.f_replay, self.f_speed, self.f_creds),
+            _card("Decoder", self.f_montage, self.f_model,
+                  st.caption("The DMNELF-trained CEN/DMN ridge, frozen for the selected electrode montage. "
+                             "Pick Custom to point at a different model .npz.")),
+            _card("Session timing (legacy — protocol studies use the wizard's blocks)",
+                  self.f_calibrate,
+                  ft.Row([self.f_calib, self.f_rest], spacing=st.GAP, wrap=True),
+                  ft.Row([self.f_fb, self.f_runs], spacing=st.GAP, wrap=True)),
+            _card("Feedback display", self.f_mode,
+                  ft.Row([self.f_scale, self.f_targetz], spacing=st.GAP, wrap=True),
+                  st.caption("Ball task mirrors the MRI paradigm (CEN yellow top / DMN blue bottom). "
+                             "PDA = CEN − DMN drives the ball.")),
+        ], spacing=st.GAP, scroll=ft.ScrollMode.AUTO, expand=True)
 
         header = ft.Container(
             content=ft.Row([
@@ -107,7 +106,8 @@ class StudyEditor:
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=st.PAD, bgcolor=st.HEADER_BG)
 
-        return ft.Column([header, ft.Container(content=tabs, expand=True)], spacing=0, expand=True)
+        return ft.Column([header, ft.Container(content=body, padding=st.PAD, expand=True)],
+                         spacing=0, expand=True)
 
     # ── decoder tab ──────────────────────────────────────────────────────
     def _on_montage_change(self) -> None:

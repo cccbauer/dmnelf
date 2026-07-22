@@ -26,8 +26,63 @@ MONTAGE_PRESETS: dict[str, dict[str, str]] = {
     "cap31": {"label": "Research cap — 32 channel", "model_path": str(MODEL_DIR / "efp_cap31_model.npz")},
 }
 
+# Supported EEG headsets. Each maps to a default acquisition source + decoder montage.
+HEADSET_PRESETS: dict[str, dict[str, str]] = {
+    "epocx":    {"label": "Emotiv EPOC X (14-ch)",   "source": "lsl", "montage": "epoc12"},
+    "epocflex": {"label": "Emotiv EPOC Flex (32-ch)", "source": "lsl", "montage": "cap31"},
+    "bp32":     {"label": "Brain Products (32-ch)",   "source": "lsl", "montage": "cap31"},
+}
+
+# Protocol templates. mbNF = mindfulness-based NF (veridical feedback); R-mbNF adds per-run
+# randomization of the PDA->ball direction + an end-of-run "up/down" report (accuracy self-test).
+PROTOCOL_TYPES = ("mbNF", "R-mbNF")
+
+# default protocol timing (seconds). Transfer blocks show static targets (no feedback); the
+# feedback block repeats n_runs times.
+DEFAULT_PROTOCOL: dict[str, Any] = {
+    "type": "mbNF",
+    "calibration": {"rest_sec": 60.0},                       # 1 min eyes-open rest
+    "transfer_pre":  {"enabled": True, "rest_sec": 30.0, "task_sec": 150.0},
+    "feedback":      {"rest_sec": 30.0, "task_sec": 150.0, "n_runs": 1},
+    "transfer_post": {"enabled": True, "rest_sec": 30.0, "task_sec": 150.0},
+}
+
+
+def build_blocks(protocol: dict) -> list[dict]:
+    """Expand a protocol dict into the ordered block list the engine runs. Contact/QC is a GUI
+    pre-flight step, not an engine block, so it is not included here.
+
+    Block kinds: 'calibration' (fit z-score stats), 'transfer' (static targets, silent record),
+    'feedback' (veridical ball). ``randomize`` on feedback blocks flips the PDA->direction sign
+    per run and triggers the end-of-run up/down question (R-mbNF)."""
+    p = {**DEFAULT_PROTOCOL, **(protocol or {})}
+    randomize = p.get("type") == "R-mbNF"
+    blocks: list[dict] = [{"kind": "calibration", "stage": "calibration",
+                           "rest_sec": float(p["calibration"]["rest_sec"])}]
+    if p["transfer_pre"].get("enabled", True):
+        tp = p["transfer_pre"]
+        blocks.append({"kind": "transfer", "stage": "transferpre",
+                       "rest_sec": float(tp["rest_sec"]), "task_sec": float(tp["task_sec"])})
+    fb = p["feedback"]
+    n_runs = int(fb.get("n_runs", 1))
+    for i in range(max(1, n_runs)):
+        blocks.append({"kind": "feedback", "stage": "feedback", "run": i + 1, "n_runs": n_runs,
+                       "randomize": randomize, "rest_sec": float(fb["rest_sec"]),
+                       "task_sec": float(fb["task_sec"])})
+    if p["transfer_post"].get("enabled", True):
+        tp = p["transfer_post"]
+        blocks.append({"kind": "transfer", "stage": "transferpost",
+                       "rest_sec": float(tp["rest_sec"]), "task_sec": float(tp["task_sec"])})
+    return blocks
+
+
 # default session_config blocks (mirror EngineConfig defaults)
 DEFAULT_SESSION_CONFIG: dict[str, Any] = {
+    "headset": "epocx",               # epocx | epocflex | bp32 — see HEADSET_PRESETS
+    "subjects": {
+        "basename": "sub",            # subject-ID prefix -> sub001, sub002, ... (BIDS sub-<label>)
+        "n_subjects": 1,              # planned enrollment
+    },
     "source": {
         "type": "replay",             # replay | cortex | lsl | emokit
         "replay_path": "",
@@ -38,6 +93,9 @@ DEFAULT_SESSION_CONFIG: dict[str, Any] = {
         "montage": "epoc12",          # epoc12 | cap31 | custom — see MONTAGE_PRESETS
         "model_path": "",             # blank -> preset's model_path (epoc12 -> efp_epoc_model.npz)
     },
+    "protocol": dict(DEFAULT_PROTOCOL),
+    # legacy single-run fields — kept for the older direct-run path + backward compat with
+    # pre-protocol study YAMLs. The protocol above is the source of truth for new studies.
     "session": {
         "calibrate": True,
         "calib_sec": 60.0,
@@ -121,6 +179,28 @@ class StudyConfig:
     def feedback(self) -> dict:
         return self.session_config["feedback"]
 
+    @property
+    def headset(self) -> str:
+        return self.session_config.get("headset", "epocx")
+
+    @property
+    def subjects(self) -> dict:
+        return self.session_config.setdefault("subjects", {"basename": "sub", "n_subjects": 1})
+
+    def subject_id(self, n: int) -> str:
+        """Zero-padded subject id for the nth participant, e.g. basename 'dmnelf' -> 'dmnelf001'.
+        Padded to 3 digits (001-based) so ids sort correctly and match BIDS sub-<label> naming."""
+        base = (self.subjects.get("basename") or "sub").strip()
+        return f"{base}{n:03d}"
+
+    @property
+    def protocol(self) -> dict:
+        return self.session_config.setdefault("protocol", dict(DEFAULT_PROTOCOL))
+
+    def blocks(self) -> list[dict]:
+        """The ordered engine block list for this study's protocol."""
+        return build_blocks(self.protocol)
+
     def to_engine_config(self, subject: str, run: int):
         """Lower into a runnable EngineConfig (imported lazily to keep models flet-free)."""
         import sys
@@ -145,4 +225,6 @@ class StudyConfig:
             calib_sec=float(sess.get("calib_sec", 60.0)),
             rest_sec=float(sess.get("rest_sec", 30.0)),
             feedback_sec=float(sess.get("feedback_sec", 300.0)),
+            blocks=self.blocks(),
+            protocol_type=self.protocol.get("type", "mbNF"),
         )

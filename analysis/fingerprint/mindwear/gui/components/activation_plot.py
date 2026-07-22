@@ -45,6 +45,13 @@ class ActivationPlot:
             self._y[k].clear()
         self._refresh()
 
+    def reset(self, x_max: float | None = None) -> None:
+        """Start a fresh run: drop all points (bounding render cost per run) and, optionally,
+        re-pin the x-axis to the new run's length. Called at each block boundary."""
+        if x_max is not None and x_max > 0:
+            self.x_max = float(x_max)
+        self.clear()
+
     # ── build ────────────────────────────────────────────────────────────
     def _series(self) -> list[fch.LineChartData]:
         out = []
