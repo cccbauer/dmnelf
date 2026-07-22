@@ -15,6 +15,7 @@ from . import styles as st
 from .config_manager import ConfigManager
 from .models import StudyConfig
 from .screens.comparison_runner import ComparisonRunner
+from .screens.data_browser import DataBrowser
 from .screens.session_runner import SessionRunner
 from .screens.study_editor import StudyEditor
 from .screens.study_wizard import StudyWizard
@@ -55,6 +56,9 @@ class MindWearApp:
     def show_study_wizard(self) -> None:
         self._render(StudyWizard(self).build())
 
+    def show_data_browser(self, study: StudyConfig | None = None) -> None:
+        self._render(DataBrowser(self, study).build())
+
     def show_session_runner(self, study: StudyConfig, participant: str, run: int) -> None:
         self._render(SessionRunner(self, study, participant, run).build())
 
@@ -67,7 +71,11 @@ class MindWearApp:
             content=ft.Row([
                 ft.Row([ft.Icon(ft.Icons.PSYCHOLOGY, color=st.ACCENT, size=st.ICON_LG),
                         st.title(f"{st.APP_NAME} Study Manager")], spacing=st.GAP_SM),
-                ft.FilledButton("New Study", icon=ft.Icons.ADD, on_click=lambda _: self.show_study_wizard()),
+                ft.Row([
+                    ft.OutlinedButton("Data & Results", icon=ft.Icons.INSIGHTS,
+                                      on_click=lambda _: self.show_data_browser()),
+                    ft.FilledButton("New Study", icon=ft.Icons.ADD, on_click=lambda _: self.show_study_wizard()),
+                ], spacing=st.GAP_SM),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             padding=st.PAD, bgcolor=st.HEADER_BG)
         body = ft.Container(content=self._study_list(), padding=st.PAD, expand=True)
@@ -103,6 +111,8 @@ class MindWearApp:
                                       on_click=lambda _, n=meta.name: self._prompt_start(n, mode="compare")),
                     ft.OutlinedButton("Edit", icon=ft.Icons.EDIT,
                                       on_click=lambda _, n=meta.name: self.show_study_editor(self.config_manager.load(n))),
+                    ft.IconButton(ft.Icons.INSIGHTS, tooltip="Data & Results",
+                                  on_click=lambda _, n=meta.name: self.show_data_browser(self.config_manager.load(n))),
                     ft.IconButton(ft.Icons.CONTENT_COPY, tooltip="Duplicate",
                                   on_click=lambda _, n=meta.name: self._duplicate(n)),
                     ft.IconButton(ft.Icons.DELETE_OUTLINE, tooltip="Delete", icon_color=st.ERROR,
