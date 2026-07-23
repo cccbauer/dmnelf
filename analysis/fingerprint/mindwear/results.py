@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import math
+import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -141,7 +142,10 @@ def _parse_directions(path: Path) -> list[RunResult]:
     try:
         with open(path, newline="") as f:
             for row in csv.DictReader(f):
-                correct = str(row.get("correct", "")).strip().lower() in ("true", "1", "yes")
+                raw_correct = str(row.get("correct", "")).strip().lower()
+                # blank -> "not_sure" abstention (see session_engine._do_task_block); excluded
+                # from accuracy by RunResult.correct is None, not scored as incorrect.
+                correct = None if raw_correct == "" else raw_correct in ("true", "1", "yes")
                 out.append(RunResult(
                     stage="feedback", run=int(_f(row.get("run")) or 0),
                     mean_pda=_f(row.get("mean_task_pda")),
@@ -185,3 +189,37 @@ def subject_result(subject: str, data_dir: Path | str = DATA_DIR) -> SubjectResu
 
 def study_results(basename: str, data_dir: Path | str = DATA_DIR) -> list[SubjectResult]:
     return [subject_result(s, data_dir) for s in subjects_for(basename, data_dir)]
+
+
+# ── management (destructive — the GUI confirms first) ─────────────────────────
+def subject_files(subject: str, data_dir: Path | str = DATA_DIR) -> list[str]:
+    """Names of the saved files under this subject's folder (empty if none)."""
+    d = subject_dir(subject, data_dir)
+    if not d.exists():
+        return []
+    return sorted(p.name for p in d.iterdir() if p.is_file() and not p.name.startswith("."))
+
+
+def delete_subject(subject: str, data_dir: Path | str = DATA_DIR) -> bool:
+    """Permanently remove a subject's data folder. Returns True if something was deleted."""
+    d = subject_dir(subject, data_dir)
+    if not d.exists():
+        return False
+    shutil.rmtree(d)
+    return True
+
+
+def rename_subject(old: str, new: str, data_dir: Path | str = DATA_DIR) -> bool:
+    """Rename a subject: move its folder and rewrite the old id embedded in each BIDS filename
+    (``sub-<old>_...`` -> ``sub-<new>_...``). Refuses if *new* is blank, unchanged, or already
+    exists. Returns True on success."""
+    new = (new or "").strip()
+    old_d = subject_dir(old, data_dir)
+    new_d = subject_dir(new, data_dir)
+    if not new or new == old or not old_d.exists() or new_d.exists():
+        return False
+    for p in list(old_d.iterdir()):
+        if p.is_file() and old in p.name:
+            p.rename(old_d / p.name.replace(old, new))
+    old_d.rename(new_d)
+    return True

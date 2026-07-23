@@ -458,7 +458,9 @@ class SessionRunner:
             title=ft.Text("Participant report"),
             content=ft.Text("Did the participant's noting drive the ball up or down?"),
             actions=[ft.FilledButton("Up", icon=ft.Icons.ARROW_UPWARD, on_click=lambda _: answer("up")),
-                     ft.OutlinedButton("Down", icon=ft.Icons.ARROW_DOWNWARD, on_click=lambda _: answer("down"))])
+                     ft.OutlinedButton("Down", icon=ft.Icons.ARROW_DOWNWARD, on_click=lambda _: answer("down")),
+                     ft.TextButton("Not sure", icon=ft.Icons.HELP_OUTLINE,
+                                  on_click=lambda _: answer("not_sure"))])
         self.page.show_dialog(dlg)
 
     # ── ui helpers ───────────────────────────────────────────────────────

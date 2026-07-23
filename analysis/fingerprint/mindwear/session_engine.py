@@ -147,7 +147,7 @@ class EngineConfig:
         return Path(self.log_dir) / f"{bids_stem(self.subject, 'calibration', 1)}_desc-calib.npz"
 
 
-def make_source(cfg: "EngineConfig"):
+def make_source(cfg: "EngineConfig", on_status: Optional[Callable[[str], None]] = None):
     """Construct (but do not open) the EEGSource for *cfg*. Shared by the engine and the GUI probe."""
     import sys
 
@@ -167,7 +167,7 @@ def make_source(cfg: "EngineConfig"):
         return CortexSource(c.get("client_id"), c.get("client_secret"),
                             c.get("license_id"), c.get("headset_id"))
     if s == "lsl":
-        return LSLSource()
+        return LSLSource(on_status=on_status)
     if s == "emokit":
         return EmokitSource(c.get("emokit_serial"))
     if not cfg.replay_path:
@@ -262,6 +262,12 @@ class SessionEngine:
         self.channels: list[str] = []
         self.sfreq: Optional[float] = None
         self.tr: Optional[float] = None
+        # per-block raw EEG + aux-stream capture (opened in _run_task_block_logged, drained in
+        # _next_design); None/empty outside an active task block (e.g. during calibration).
+        self._raw_writer = None
+        self._raw_buffer: list = []
+        self._aux_fhs: dict = {}
+        self._aux_writers: dict = {}
         self.error: Optional[str] = None
         self.log_path: Optional[Path] = None
         self.log_paths: list[Path] = []
@@ -287,7 +293,7 @@ class SessionEngine:
         self._await_ready = threading.Event()
 
         # R-mbNF direction-report gate: after a randomized feedback run the worker pauses in phase
-        # "question" until the stimulus calls answer_direction("up"/"down").
+        # "question" until the stimulus calls answer_direction("up"/"down"/"not_sure").
         self._await_question = threading.Event()
         self._direction_answer: Optional[str] = None
 
@@ -332,7 +338,8 @@ class SessionEngine:
         self._await_ready.set()
 
     def answer_direction(self, direction: str) -> None:
-        """R-mbNF: participant reported whether noting drove the ball 'up' or 'down'."""
+        """R-mbNF: participant reported 'up', 'down', or 'not_sure' (an abstention — scored as
+        neither correct nor incorrect, see _do_task_block)."""
         self._direction_answer = direction
         self._await_question.set()
 
@@ -370,7 +377,7 @@ class SessionEngine:
             self._on_phase(phase)
 
     def _make_source(self):
-        return make_source(self.cfg)
+        return make_source(self.cfg, on_status=self._status)
 
     def _blocks(self) -> list:
         """Protocol block list, or a synthesized legacy calibrate->feedback flow for old configs."""
@@ -453,19 +460,34 @@ class SessionEngine:
 
     def _next_design(self):
         """Pull streaming samples until the feature extractor emits a design, or the stream/stop
-        ends. Shared across blocks so the delay ring + running-z carry over continuously."""
-        for _t, sample in self._gen:
+        ends. Shared across blocks so the delay ring + running-z carry over continuously.
+
+        Every raw sample also gets logged verbatim (CSV row + buffered for the block's .fif) and
+        used to drain whatever aux LSL streams (motion/metrics/bandpower/quality) are available —
+        both no-ops outside an active task block, since those writers are only open then."""
+        for t, sample in self._gen:
             if self._stop.is_set():
                 return None
+            if self._raw_writer is not None:
+                self._raw_writer.writerow([f"{t:.4f}"] + [f"{v:.4f}" for v in sample])
+                self._raw_buffer.append(np.asarray(sample, float))
+            self._drain_aux()
             d = self._feat.push(sample)
             if d is not None:
                 return d
         return None
 
+    def _drain_aux(self) -> None:
+        for category, writer in self._aux_writers.items():
+            for t, values in self._src.drain_aux(category):
+                writer.writerow([f"{t:.4f}"] + [f"{v:.4f}" for v in values])
+
     def _flush_after_gate(self):
         """Drop source backlog accumulated while paused at a gate (keeps timed phases honest)."""
         with contextlib.suppress(Exception):
             self._src.flush()
+        with contextlib.suppress(Exception):
+            self._src.flush_aux()
 
     def _do_calibration_block(self, block) -> bool:
         """Collect calibration designs, fit, then pause for operator review (retry/accept).
@@ -505,14 +527,22 @@ class SessionEngine:
             return True
 
     def _run_task_block_logged(self, block) -> bool:
-        """Open this block's own BIDS decoder CSV, run the block, then close the file.
+        """Open this block's own BIDS decoder CSV (+ raw EEG + whatever aux LSL streams the
+        source found), run the block, then close everything.
 
-        One file per task block: ``sub-<subject>_task-<stage>_run-<NN>_desc-decoder.csv`` where
-        ``stage`` is the block's task and ``run`` is the feedback-run index (1 for transfer blocks).
+        One set of files per task block, all sharing the stem
+        ``sub-<subject>_task-<stage>_run-<NN>_desc-<...>``: ``decoder.csv`` (existing per-TR
+        cen/dmn/pda), ``eeg.csv`` + ``eeg.fif`` (raw EEG, per-sample), and one CSV per aux category
+        present (``motion``/``metrics``/``bandpower``/``quality``) — empty on sources that don't
+        expose aux streams (Cortex, replay, emokit). ``stage`` is the block's task and ``run`` is
+        the feedback-run index (1 for transfer blocks).
         """
         stage = block.get("stage", "feedback")
         run_idx = int(block.get("run", 1)) or 1
-        path = Path(self.cfg.log_dir) / f"{bids_stem(self.cfg.subject, stage, run_idx)}_desc-decoder.csv"
+        stem = bids_stem(self.cfg.subject, stage, run_idx)
+        logdir = Path(self.cfg.log_dir)
+
+        path = logdir / f"{stem}_desc-decoder.csv"
         self.log_path = path
         self.log_paths.append(path)
         # start each run fresh: the finished block is already persisted to its own CSV, so drop the
@@ -522,12 +552,56 @@ class SessionEngine:
         fh = open(path, "w", newline="")
         self._writer = csv.writer(fh)
         self._writer.writerow(["tr", "phase", "stage", "run", "pda_sign", "cen", "dmn", "pda", "pda_z", "t"])
+
+        raw_path = logdir / f"{stem}_desc-eeg.csv"
+        raw_fh = open(raw_path, "w", newline="")
+        self._raw_writer = csv.writer(raw_fh)
+        self._raw_writer.writerow(["t"] + list(self.channels))
+        self._raw_buffer = []
+        self.log_paths.append(raw_path)
+
+        self._aux_fhs = {}
+        self._aux_writers = {}
+        for category, chans in getattr(self._src, "aux_channels", {}).items():
+            apath = logdir / f"{stem}_desc-{category}.csv"
+            afh = open(apath, "w", newline="")
+            self._aux_writers[category] = csv.writer(afh)
+            self._aux_writers[category].writerow(["t"] + list(chans))
+            self._aux_fhs[category] = afh
+            self.log_paths.append(apath)
+
         try:
             return self._do_task_block(block)
         finally:
             self._writer = None
             fh.flush()
             fh.close()
+            self._raw_writer = None
+            raw_fh.flush()
+            raw_fh.close()
+            self._save_raw_fif(logdir / f"{stem}_desc-eeg.fif")
+            self._raw_buffer = []
+            for afh in self._aux_fhs.values():
+                afh.flush()
+                afh.close()
+            self._aux_fhs = {}
+            self._aux_writers = {}
+
+    def _save_raw_fif(self, path: Path) -> None:
+        """Best-effort MNE .fif export of this block's buffered raw EEG, alongside the per-sample
+        CSV (µV -> V for MNE's convention). Reports rather than raises on failure — the CSV is
+        already the reliable copy, this is a convenience for MNE-based reprocessing."""
+        if not self._raw_buffer:
+            return
+        try:
+            import mne
+            data = np.array(self._raw_buffer, dtype=float).T * 1e-6      # [ch, samp], V
+            info = mne.create_info(list(self.channels), self.sfreq, ch_types="eeg")
+            raw = mne.io.RawArray(data, info, verbose="ERROR")
+            raw.save(str(path), overwrite=True, verbose="ERROR")
+            self.log_paths.append(path)
+        except Exception as exc:
+            self._status(f"raw EEG .fif export failed for {path.name}: {exc}")
 
     def _do_task_block(self, block) -> bool:
         """One task block: participant-ready gate -> rest baseline -> task (feedback or transfer)
@@ -610,13 +684,16 @@ class SessionEngine:
             tp = np.asarray(task_pda, float); tp = tp[np.isfinite(tp)]
             mean_pda = float(tp.mean()) if tp.size else 0.0
             true_dir = "up" if (np.sign(mean_pda) * self.pda_sign) >= 0 else "down"
-            correct = (self._direction_answer == true_dir)
+            # "not_sure" is an abstention, not a wrong guess — correct=None excludes it from
+            # accuracy (see RunResult.correct / SubjectResult.reports in results.py).
+            correct = None if self._direction_answer == "not_sure" else (self._direction_answer == true_dir)
             report = {"run": self.block_run, "pda_sign": self.pda_sign, "mean_task_pda": mean_pda,
                       "true_direction": true_dir, "answer": self._direction_answer, "correct": correct}
             self.direction_reports.append(report)
             self._save_direction_report(report, stage)
+            outcome = "not sure" if correct is None else ("correct" if correct else "incorrect")
             self._status(f"run {self.block_run}: reported {self._direction_answer}, "
-                         f"ball went {true_dir} ({'correct' if correct else 'incorrect'})")
+                         f"ball went {true_dir} ({outcome})")
         return True
 
     def _save_direction_report(self, report: dict, stage: str = "feedback") -> None:

@@ -10,16 +10,92 @@ from. Three backends:
 
 Each yields (t, sample) where sample is a float ndarray over `self.channels` in microvolts.
 """
+import contextlib
+import queue
+import re
+import threading
 import time
 from abc import ABC, abstractmethod
 import numpy as np
 
 from cortex import EPOC_CHANNELS, CortexClient
 
+# EmotivPRO's LSL Outlet publishes one stream per data type when enabled (Motion, Performance
+# Metrics, Band Power, Contact/EEG Quality, ...) alongside the main EEG stream. Exact name()/type()
+# strings vary a bit across EmotivPRO versions, so streams are classified by keyword match against
+# alnum tokens of "<name> <type>" (not raw substring — avoids false hits like "eq" inside
+# "frequency") rather than hardcoded exact names. LSLSource logs what it actually classified each
+# stream as, so a first live run is self-documenting.
+AUX_STREAM_KEYWORDS = {
+    "motion": ("motion", "mot"),
+    "metrics": ("performance", "metric", "met"),
+    "bandpower": ("band", "pow"),
+    "quality": ("quality", "contact", "eq", "cq", "device", "dev"),
+}
+
+
+def _tokens(*parts):
+    return re.findall(r"[a-z0-9]+", " ".join(p or "" for p in parts).lower())
+
+
+def _lsl_channel_labels(info):
+    """Channel labels from an LSL StreamInfo's <channels><channel><label> XML, one per channel."""
+    labels, ch = [], info.desc().child("channels").child("channel")
+    for _ in range(info.channel_count()):
+        labels.append(ch.child_value("label"))
+        ch = ch.next_sibling()
+    return labels
+
+
+class _AuxInlet:
+    """Background-thread reader for one auxiliary LSL stream (motion/metrics/bandpower/quality).
+
+    These run at their own, lower, often irregular rates alongside EEG, so each gets its own
+    inlet + thread + queue rather than being interleaved into the main (EEG-cadence) sample loop.
+    pull_sample() returns plain Python floats regardless of the stream's underlying channel format
+    (cf_float32 vs cf_double64), so no per-format branching is needed here.
+    """
+
+    def __init__(self, stream_info):
+        from pylsl import StreamInlet
+        self.name = stream_info.name()
+        self.channels = _lsl_channel_labels(stream_info)
+        self._inlet = StreamInlet(stream_info, max_chunklen=1)
+        self._q: "queue.Queue" = queue.Queue()
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self):
+        while not self._stop.is_set():
+            try:
+                sample, ts = self._inlet.pull_sample(timeout=1.0)
+            except Exception:
+                break
+            if sample is not None:
+                self._q.put((ts, np.asarray(sample, float)))
+
+    def drain(self):
+        """Pop everything queued so far, non-blocking: [(t, values), ...]."""
+        out = []
+        while True:
+            try:
+                out.append(self._q.get_nowait())
+            except queue.Empty:
+                break
+        return out
+
+    def close(self):
+        self._stop.set()
+        self._thread.join(timeout=2.0)
+        with contextlib.suppress(Exception):
+            self._inlet.close_stream()
+
 
 class EEGSource(ABC):
     channels = None      # list[str]
     sfreq = None         # float, Hz
+    aux_channels: dict = {}   # {category: [channel names]} for sources with aux LSL streams
 
     @abstractmethod
     def open(self):
@@ -36,6 +112,15 @@ class EEGSource(ABC):
         of whether we're pulling — without this, resuming would rapid-fire through the backlog
         instead of picking up at "now", making timed phases (rest/feedback) finish far too fast.
         No-op by default; sources that can actually buffer override it."""
+        pass
+
+    def drain_aux(self, category):
+        """Everything queued so far for an aux stream category, non-blocking. No-op by default —
+        only sources that actually found aux LSL streams (currently LSLSource) override this."""
+        return []
+
+    def flush_aux(self):
+        """Discard queued aux samples — same reasoning as flush(), for the aux streams."""
         pass
 
     def close(self):
@@ -70,27 +155,57 @@ class CortexSource(EEGSource):
 
 
 class LSLSource(EEGSource):
-    """EmotivPRO -> LSL outlet. Enable the LSL outlet in EmotivPRO first."""
+    """EmotivPRO -> LSL outlet. Enable the LSL outlet in EmotivPRO first.
 
-    def __init__(self, name_hint="EmotivDataStream-EEG"):
+    Also picks up whichever auxiliary EmotivPRO streams are present alongside EEG — Motion,
+    Performance Metrics, Band Power, Contact/EEG Quality — each on its own background thread (see
+    _AuxInlet), since they run at their own, lower rates. `samples()` still yields only EEG,
+    unchanged, so the feature-extractor/decoder pipeline is unaffected; the aux streams are read
+    via `drain_aux(category)` / `aux_channels`.
+    """
+
+    def __init__(self, name_hint="EmotivDataStream-EEG", on_status=None):
         self.name_hint = name_hint
+        self._on_status = on_status      # optional callable(str) to report what was found
         self._inlet = None
         self._pick = None
+        self.aux_channels = {}
+        self._aux: dict = {}
+
+    def _status(self, msg):
+        if self._on_status:
+            self._on_status(msg)
 
     def open(self):
         from pylsl import resolve_streams, StreamInlet
-        streams = [s for s in resolve_streams() if s.type() == "EEG"]
-        if not streams:
+        streams = resolve_streams()
+        eeg_idx = [i for i, s in enumerate(streams) if s.type().lower() == "eeg"]
+        if not eeg_idx:
             raise RuntimeError("No LSL EEG stream. Enable the LSL outlet in EmotivPRO.")
-        st = next((s for s in streams if self.name_hint in s.name()), streams[0])
+        eeg_i = next((i for i in eeg_idx if self.name_hint in streams[i].name()), eeg_idx[0])
+        st = streams[eeg_i]
         self._inlet = StreamInlet(st, max_chunklen=1)
         info = self._inlet.info(); self.sfreq = float(info.nominal_srate())
-        # read channel labels from the stream description
-        labels, ch = [], info.desc().child("channels").child("channel")
-        for _ in range(info.channel_count()):
-            labels.append(ch.child_value("label")); ch = ch.next_sibling()
+        labels = _lsl_channel_labels(info)
         self._pick = [i for i, l in enumerate(labels) if l in EPOC_CHANNELS]
         self.channels = [labels[i] for i in self._pick]
+        self._status(f"LSL EEG stream: '{st.name()}' ({len(self.channels)} ch @ {self.sfreq:g} Hz)")
+
+        # opportunistically pick up whichever aux streams EmotivPRO is also publishing
+        claimed = {eeg_i}
+        for category, keywords in AUX_STREAM_KEYWORDS.items():
+            toks_by_i = {i: _tokens(s.name(), s.type()) for i, s in enumerate(streams) if i not in claimed}
+            match_i = next((i for i, toks in toks_by_i.items()
+                           if any(kw in tok for tok in toks for kw in keywords)), None)
+            if match_i is None:
+                self._status(f"LSL aux stream not found: {category} (skipping)")
+                continue
+            claimed.add(match_i)
+            aux = _AuxInlet(streams[match_i])
+            self._aux[category] = aux
+            self.aux_channels[category] = aux.channels
+            self._status(f"LSL aux stream: {category} <- '{streams[match_i].name()}' "
+                         f"({len(aux.channels)} ch)")
         return self
 
     def samples(self):
@@ -99,12 +214,23 @@ class LSLSource(EEGSource):
             if sample is not None:
                 yield ts, np.array([sample[i] for i in self._pick], float)
 
+    def drain_aux(self, category):
+        aux = self._aux.get(category)
+        return aux.drain() if aux else []
+
+    def flush_aux(self):
+        for aux in self._aux.values():
+            aux.drain()
+
     def flush(self):
         if self._inlet is not None:
             self._inlet.flush()
 
     def close(self):
         self._inlet = None
+        for aux in self._aux.values():
+            aux.close()
+        self._aux = {}
 
 
 class EmokitSource(EEGSource):

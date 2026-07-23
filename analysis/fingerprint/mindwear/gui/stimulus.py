@@ -300,11 +300,13 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
             writer.writerow(["tr", "stage", "cen", "dmn", "cen_hits", "dmn_hits", "outlier",
                              "ball_y", "top_y", "bottom_y"])
 
-        # direction-question stimuli (R-mbNF end-of-run report). Left = UP, Right = DOWN.
+        # direction-question stimuli (R-mbNF end-of-run report). Left = UP, Right = DOWN, Space = NOT SURE.
         q_prompt = visual.TextStim(win, text="", pos=(0, 0.4), height=0.06, wrapWidth=1.5, color="white")
         q_up = visual.TextStim(win, text="◄  UP", pos=(-0.4, 0), height=0.09, color="white")
         q_down = visual.TextStim(win, text="DOWN  ►", pos=(0.4, 0), height=0.09, color="white")
-        q_hint = visual.TextStim(win, text="left button = UP     right button = DOWN",
+        q_notsure = visual.TextStim(win, text="NOT SURE", pos=(0, -0.15), height=0.07,
+                                    color=[0.75, 0.75, 0.75])
+        q_hint = visual.TextStim(win, text="left = UP     right = DOWN     space = NOT SURE",
                                  pos=(0, -0.35), height=0.045, color=[0.6, 0.6, 0.6])
         randomized = getattr(engine.cfg, "protocol_type", "mbNF") == "R-mbNF"
 
@@ -348,10 +350,10 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
             # ---- R-mbNF direction question ----
             if phase == "question":
                 q_prompt.text = "Did your noting practice drive the ball UP or DOWN?"
-                q_prompt.draw(); q_up.draw(); q_down.draw(); q_hint.draw()
+                q_prompt.draw(); q_up.draw(); q_down.draw(); q_notsure.draw(); q_hint.draw()
                 last_phase = phase
                 win.flip()
-                keys = event.getKeys(keyList=["left", "right", "escape"])
+                keys = event.getKeys(keyList=["left", "right", "space", "escape"])
                 if "escape" in keys:
                     was_escaped = True
                     break
@@ -359,6 +361,8 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
                     engine.answer_direction("up")
                 elif "right" in keys:
                     engine.answer_direction("down")
+                elif "space" in keys:
+                    engine.answer_direction("not_sure")
                 continue
 
             # ---- non-task phases (connect / calibrate / review / ready) ----
