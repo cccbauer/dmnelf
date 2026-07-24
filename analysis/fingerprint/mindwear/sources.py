@@ -47,6 +47,29 @@ def _lsl_channel_labels(info):
     return labels
 
 
+def dump_lsl_streams(on_status=None):
+    """Report every stream pylsl currently sees on the network — name, type, channel count/format,
+    rate, and channel labels — regardless of whether LSLSource's aux-stream classifier recognizes
+    it. ``on_status``, if given, gets one call per line (so a GUI can log it); otherwise prints.
+    Use this whenever "what's actually coming over LSL" is in question — e.g. a raw/unreferenced
+    stream (values sitting at a large constant offset instead of near 0 µV) looks identical to our
+    classifier as a properly-processed one; this shows exactly what's on the wire, unfiltered."""
+    from pylsl import resolve_streams
+    emit = on_status or print
+    streams = resolve_streams()
+    if not streams:
+        emit("no LSL streams found — is EmotivPRO's LSL outlet enabled?")
+        return
+    emit(f"{len(streams)} LSL stream(s) found:")
+    for s in streams:
+        labels = []
+        with contextlib.suppress(Exception):
+            labels = _lsl_channel_labels(s)
+        emit(f"  - name={s.name()!r} type={s.type()!r} channels={s.channel_count()} "
+            f"srate={s.nominal_srate():g} format={s.channel_format()}"
+            + (f"  labels={labels}" if labels else ""))
+
+
 class _AuxInlet:
     """Background-thread reader for one auxiliary LSL stream (motion/metrics/bandpower/quality).
 

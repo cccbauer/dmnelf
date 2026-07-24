@@ -65,6 +65,38 @@ def subject_artifacts(subject: str, data_dir: Path | str = DATA_DIR) -> list[str
     return sorted(p.name for p in d.iterdir() if p.is_file() and not p.name.startswith("."))
 
 
+# Ball-jump adaptive difficulty, ported verbatim from the original scanner ball-task
+# (rt-psychopy/ball_task/run_ball_task.py:131-222): too many hits in a run means the task was too
+# easy (less sensitive next time); too few combined hits means it was too hard (more sensitive).
+DEFAULT_SCALE_FACTOR = 10.0
+MIN_HITS, MAX_HITS = 3, 5
+
+
+def adaptive_scale_factor(participant: str, run: int, data_dir: Path | str = DATA_DIR) -> float:
+    """Ball-jump scale factor for operator run ``run``, adapted from run ``run - 1``'s saved hit
+    counts (``desc-ball.csv``, session_runner's session-level run number — one PsychoPy stimulus
+    window/file per run, matching the original's one-script-execution-per-run design). Falls back
+    to ``DEFAULT_SCALE_FACTOR`` for the first run or if the previous run's file is missing/unusable
+    — mirroring the original's ``except: ... default_scale_factor`` fallback."""
+    if run <= 1:
+        return DEFAULT_SCALE_FACTOR
+    prev = subject_dir(participant, data_dir) / f"sub-{participant}_task-nf_run-{run - 1:02d}_desc-ball.csv"
+    try:
+        rows = list(csv.DictReader(open(prev)))
+        if not rows:
+            return DEFAULT_SCALE_FACTOR
+        cen_hits = max(int(r["cen_hits"]) for r in rows)
+        dmn_hits = max(int(r["dmn_hits"]) for r in rows)
+        last_scale = float(rows[0]["scale_factor"])
+    except Exception:
+        return DEFAULT_SCALE_FACTOR
+    if cen_hits > MAX_HITS or dmn_hits > MAX_HITS:
+        return last_scale * 0.75
+    if cen_hits + dmn_hits < MIN_HITS:
+        return last_scale * 1.25
+    return last_scale
+
+
 # phases. "calib_review": paused after calibration, awaiting operator confirm/retry. "ready":
 # paused at the start of each task block, awaiting the participant (spacebar). "transfer": a task
 # block with static targets (no feedback). "question": R-mbNF end-of-run up/down report.
@@ -72,23 +104,54 @@ PHASES = ("connect", "calibrate", "calib_review", "ready", "rest",
           "feedback", "transfer", "question", "done")
 
 
-def _score_calibration(cal_obj) -> dict:
+def _score_calibration(cal_obj, labels: list | None = None, model=None) -> dict:
     """Lightweight QA summary of a just-fitted Calibrator, for the operator's review step.
 
     Not a pass/fail gate — the operator decides whether to retry from what's shown. Flags
     features that barely varied during calibration (raw std before the robustness floor), which
     can mean the subject held very still (fine) or a channel wasn't really contributing (worth
     a re-check).
+
+    If ``labels`` (the cue active per collected TR — "rest" plus whichever task cues the
+    calibration used: "self"/"flanker" for the induction design, "noting" for the rest-vs-noting
+    design) and ``model`` are given, also replays the just-fit calibration through the frozen
+    decoder to report per-condition PDA means and every pairwise separation (Cohen's d) between
+    conditions that actually occurred — did the calibration's task(s) actually move the decoded
+    signal apart? Pure readout: doesn't touch Calibrator/Decoder's own math. The per-TR cen/dmn/pda
+    + cue used for that readout is also returned (``out["per_tr"]``) so the caller can persist it
+    (see `SessionEngine._save_calibration_decoder_csv`) — otherwise this number only ever exists
+    for the life of the live calib-review dialog and can't be checked after the fact.
     """
     X = np.array(cal_obj._X)                    # [n_tr, n_features], pre-floor
     raw_std = X.std(0)
     n_flat = int(np.sum(raw_std < 1e-6))
-    return {
+    out = {
         "n_tr": int(X.shape[0]),
         "n_features": int(raw_std.size),
         "n_flat_features": n_flat,
         "pct_flat": 100.0 * n_flat / max(raw_std.size, 1),
     }
+    if labels and model is not None and len(labels) == X.shape[0]:
+        from decoder import Decoder
+        dec = Decoder(model, calibration=cal_obj)
+        decoded = np.array([dec.predict(x) for x in X])    # [n_tr, 3]: cen, dmn, pda
+        cen, dmn, pda = decoded[:, 0], decoded[:, 1], decoded[:, 2]
+        lab = np.asarray(labels)
+        conditions = [c for c in dict.fromkeys(labels) if np.any(lab == c)]   # first-seen order
+
+        def _sep(a: str, b: str):
+            va, vb = pda[lab == a], pda[lab == b]
+            if va.size < 2 or vb.size < 2:
+                return None
+            pooled_sd = float(np.sqrt(0.5 * (va.var() + vb.var())) + 1e-9)
+            return float((va.mean() - vb.mean()) / pooled_sd)
+
+        out["pda_means"] = {c: float(pda[lab == c].mean()) for c in conditions}
+        for i, a in enumerate(conditions):
+            for b in conditions[i + 1:]:
+                out[f"separation_{a}_vs_{b}"] = _sep(a, b)
+        out["per_tr"] = {"cue": labels, "cen": cen.tolist(), "dmn": dmn.tolist(), "pda": pda.tolist()}
+    return out
 
 
 @dataclass
@@ -196,18 +259,25 @@ def score_contact(rms_by_channel: dict) -> list:
 
 
 def stream_contact(cfg: "EngineConfig", on_window, stop_event: threading.Event,
-                    window_sec: float = 0.25) -> dict:
+                    window_sec: float = 0.25, on_status: Optional[Callable[[str], None]] = None) -> dict:
     """Open the source and continuously score contact quality, live — the EmotivPRO-style preview.
 
     Every ``window_sec`` seconds, calls ``on_window(channels, sfreq, X)`` with the raw window
     ``X`` [n_samp, n_ch] in µV (so the caller can both score RMS and render a live scrolling
     trace), until ``stop_event`` is set or the source errors. Returns ``{"error"}`` on failure —
-    the source is always closed on the way out. Does not touch the decoder.
+    the source is always closed on the way out. Does not touch the decoder. ``on_status``, if
+    given, surfaces the same LSL stream-discovery messages a live session logs (see
+    ``LSLSource.open()``) — this is the natural place to see "what's actually coming over LSL"
+    before ever starting a real run.
     """
     out: dict = {"error": None}
     src = None
     try:
-        src = make_source(cfg).open()
+        if cfg.source == "lsl":
+            with contextlib.suppress(Exception):
+                from sources import dump_lsl_streams
+                dump_lsl_streams(on_status=on_status)
+        src = make_source(cfg, on_status=on_status).open()
         n = max(1, int(round(src.sfreq * window_sec)))
         buf = []
         for _t, sample in src.samples():
@@ -262,9 +332,10 @@ class SessionEngine:
         self.channels: list[str] = []
         self.sfreq: Optional[float] = None
         self.tr: Optional[float] = None
-        # per-block raw EEG + aux-stream capture (opened in _run_task_block_logged, drained in
-        # _next_design); None/empty outside an active task block (e.g. during calibration).
+        # per-block raw EEG + aux-stream capture (opened by _open_raw_and_aux_writers, used by
+        # both task blocks and calibration; drained in _next_design). None/empty between blocks.
         self._raw_writer = None
+        self._raw_fh = None
         self._raw_buffer: list = []
         self._aux_fhs: dict = {}
         self._aux_writers: dict = {}
@@ -306,6 +377,19 @@ class SessionEngine:
         self.feedback_active: bool = False   # True only during a (moving-ball) feedback block
         self.direction_reports: list[dict] = []   # per randomized run: {run, pda_sign, answer, ...}
 
+        # calibration induction state (polled by the stimulus during phase == "calibrate"):
+        # calib_cue is "rest" | "self" | "flanker"; calib_word/calib_arrows/calib_question hold
+        # whichever of the current cue's stimulus fields apply (blank otherwise). calib_cue_sec is
+        # the current cue's planned duration, for the stimulus's countdown ring — reset whenever
+        # calib_cue changes, since it now recurs across cycles rather than being a single constant.
+        self.calib_cue: str = "rest"
+        self.calib_cue_sec: float = 0.0
+        self.calib_word: str = ""
+        self.calib_arrows: str = ""
+        self.calib_question: str = ""
+        self._trial_answer: Optional[str] = None
+        self._trial_log: list[dict] = []
+
     # ── public control ───────────────────────────────────────────────────
     def start(self) -> "SessionEngine":
         if self._thread and self._thread.is_alive():
@@ -342,6 +426,12 @@ class SessionEngine:
         neither correct nor incorrect, see _do_task_block)."""
         self._direction_answer = direction
         self._await_question.set()
+
+    def answer_trial(self, response: str) -> None:
+        """Calibration self/flanker block: participant answered the current trial ('left'/'right',
+        or 'yes'/'no' for the self block). Non-blocking — logged for a compliance check only; the
+        calibration's wall-clock trial schedule advances regardless of whether this was called."""
+        self._trial_answer = response
 
     def is_running(self) -> bool:
         return bool(self._thread and self._thread.is_alive())
@@ -407,6 +497,13 @@ class SessionEngine:
 
             self._set_phase("connect")
             self._status(f"opening source: {self.cfg.source}")
+            if self.cfg.source == "lsl":
+                # what's actually on the wire, unfiltered by our aux-stream classifier — surfaces a
+                # raw/unreferenced stream (values sitting at a large offset instead of near 0 µV)
+                # before it ever reaches calibration or a real run, not just via the CLI.
+                with contextlib.suppress(Exception):
+                    from sources import dump_lsl_streams
+                    dump_lsl_streams(on_status=self._status)
             src = self._make_source().open()
             self._src = src
             self.channels = list(src.channels)
@@ -491,28 +588,79 @@ class SessionEngine:
 
     def _do_calibration_block(self, block) -> bool:
         """Collect calibration designs, fit, then pause for operator review (retry/accept).
-        Returns False if the operator stopped the session."""
+        Returns False if the operator stopped the session.
+
+        With ``cycles > 0``, cycles through one of two designs (``block["type"]``), so the
+        collected data — and the decoded PDA the QA readout is computed from — actually spans
+        both poles the frozen decoder needs to track, not just quiet rest:
+          - "induction" (default): rest -> flanker -> rest -> self, an active executive-control /
+            self-referential contrast (see `_run_cue_block`).
+          - "noting": rest -> noting, replicating the rest-baseline-then-mental-noting design the
+            frozen ridge was actually trained on in the scanner — no discrete trials, just a
+            sustained instruction, so it reuses `_run_cue_block` with ``deck=None`` like "rest".
+        ``cycles <= 0`` (the legacy/default calibration-block dict, which has no ``cycles`` key)
+        falls back to a single flat rest window, identical to the pre-induction behavior."""
         from calibration import Calibrator
         from decoder import Decoder
+        from flanker import trial_deck
+        from sret_words import word_deck
 
-        n_cal = round(float(block.get("rest_sec", self.cfg.calib_sec)) / self.tr)
+        cal_type = block.get("type", "induction")
+        rest_sec = float(block.get("rest_sec", self.cfg.calib_sec))
+        n_cycles = int(block.get("cycles", 0))
+        self_sec = float(block.get("self_sec", 30.0))
+        flanker_sec = float(block.get("flanker_sec", 45.0))
+        noting_sec = float(block.get("noting_sec", 60.0))
+        stage = block.get("stage", "calibration")
+        stem = bids_stem(self.cfg.subject, stage, 1)
+
         while True:
             cal_obj = Calibrator(self._n_features)
+            labels: list[str] = []
+            self._trial_log = []
             self._set_phase("calibrate")
-            self._status(f"calibrating — hold still ({n_cal * self.tr:.0f}s)")
-            got = 0
-            while got < n_cal:
-                design = self._next_design()
-                if design is None:
-                    return False
-                cal_obj.add_design(design)
-                got += 1
+            # one deck per calibration attempt, shared across every cycle — not recreated per
+            # cue-block — so words/trials don't start repeating until the *whole* bank (240 words;
+            # 4 flanker trial types) has been exhausted across the whole session, not per block.
+            # (unused for "noting", which has no discrete trials — harmless to build regardless.)
+            self_deck, flanker_deck = word_deck(), trial_deck()
+
+            # raw EEG + aux LSL streams, same as task blocks (_run_task_block_logged) — retried
+            # attempts get their own fresh files, matching cal_obj being recreated each retry too.
+            self._open_raw_and_aux_writers(stem)
+            try:
+                if n_cycles <= 0:
+                    ok = self._run_cue_block("rest", rest_sec, cal_obj, labels, None)
+                elif cal_type == "noting":
+                    ok = True
+                    for _ in range(n_cycles):
+                        ok = (self._run_cue_block("rest", rest_sec, cal_obj, labels, None)
+                              and self._run_cue_block("noting", noting_sec, cal_obj, labels, None))
+                        if not ok:
+                            break
+                else:                                       # "induction"
+                    ok = True
+                    for _ in range(n_cycles):
+                        ok = (self._run_cue_block("rest", rest_sec, cal_obj, labels, None)
+                              and self._run_cue_block("flanker", flanker_sec, cal_obj, labels, flanker_deck)
+                              and self._run_cue_block("rest", rest_sec, cal_obj, labels, None)
+                              and self._run_cue_block("self", self_sec, cal_obj, labels, self_deck))
+                        if not ok:
+                            break
+            finally:
+                self._close_raw_and_aux_writers(stem)
+            if not ok:
+                return False
+
             cal_obj.fit()
             cal_obj.save(self.cfg.resolved_calib_save())
             self._decoder = Decoder(self._model, calibration=cal_obj)
             self._cal_obj = cal_obj
-            self.calib_summary = _score_calibration(cal_obj)
-            self._status(f"calibration done ({got * self.tr:.0f}s) -> "
+            self.calib_summary = _score_calibration(cal_obj, labels, self._model)
+            self._save_induction_log(stem)
+            self._save_calibration_decoder_csv(stem)
+            got_sec = len(cal_obj._X) * self.tr
+            self._status(f"calibration done ({got_sec:.0f}s) -> "
                          f"{self.cfg.resolved_calib_save().name} — awaiting review")
             self._set_phase("calib_review")
             self._await_confirm.clear()
@@ -525,6 +673,89 @@ class SessionEngine:
                 self._status("repeating calibration")
                 continue
             return True
+
+    def _run_cue_block(self, cue: str, sec: float, cal_obj, labels: list, deck) -> bool:
+        """Collect ``round(sec / self.tr)`` TRs of calibration data under one cue ("rest"/"self"/
+        "flanker"), advancing a self-paced trial schedule from ``deck`` (None for "rest") and
+        labeling every collected TR with the active cue (for the post-fit separation QA).
+        ``deck`` is shared across cycles by the caller (`_do_calibration_block`) — not recreated
+        here — so the word/trial sequence doesn't repeat until the whole deck is exhausted across
+        the *whole* calibration, not reset every time this cue comes back around. TR-counted (like
+        every other block in the engine — rest/task in `_do_task_block`) rather than
+        wall-clock-timed, so it behaves identically at any replay speed and on live hardware.
+        Returns False if the stream ended or the session was stopped mid-block."""
+        self.calib_cue = cue
+        self.calib_word = self.calib_arrows = self.calib_question = ""
+        n_tr = max(1, round(sec / self.tr))
+        self.calib_cue_sec = n_tr * self.tr
+        self._status(f"calibrating — {cue} ({n_tr * self.tr:.0f}s)")
+
+        question = {"self": "Does this word describe you?",
+                   "flanker": "Which way does the CENTER arrow point?"}.get(cue, "")
+        trial_tr = max(1, round({"self": 2.5, "flanker": 2.0}.get(cue, sec) / self.tr))
+        pending: Optional[dict] = None
+        self._trial_answer = None
+
+        got = 0
+        trial_k = 0          # TRs remaining before the next trial should start
+        while got < n_tr:
+            design = self._next_design()
+            if design is None:
+                return False
+            cal_obj.add_design(design)
+            labels.append(cue)
+            got += 1
+            if deck is not None and trial_k <= 0:
+                if pending is not None:
+                    self._trial_log.append({**pending, "response": self._trial_answer})
+                self._trial_answer = None
+                stim, target = next(deck)
+                if cue == "self":
+                    self.calib_word = stim
+                else:
+                    self.calib_arrows = stim
+                self.calib_question = question
+                pending = {"cue": cue, "stimulus": stim,
+                          ("valence" if cue == "self" else "correct"): target}
+                trial_k = trial_tr
+            trial_k -= 1
+        if pending is not None:
+            self._trial_log.append({**pending, "response": self._trial_answer})
+        return True
+
+    def _save_induction_log(self, stem: str) -> None:
+        """Compliance log for the self/flanker calibration trials — word/valence or arrows/correct
+        direction, plus whatever response answer_trial() collected. Not consumed by the
+        calibration math (which only uses labels/designs), purely for reviewing engagement."""
+        if not self._trial_log:
+            return
+        path = Path(self.cfg.log_dir) / f"{stem}_desc-induction.csv"
+        with contextlib.suppress(Exception):
+            with open(path, "w", newline="") as f:
+                w = csv.writer(f)
+                w.writerow(["cue", "stimulus", "target", "response"])
+                for row in self._trial_log:
+                    target = row.get("valence", row.get("correct", ""))
+                    w.writerow([row["cue"], row["stimulus"], target, row.get("response") or ""])
+            self.log_paths.append(path)
+
+    def _save_calibration_decoder_csv(self, stem: str) -> None:
+        """Per-TR cen/dmn/pda + cue label for the just-fit calibration block (from
+        `_score_calibration`'s decoder replay), so the self-vs-flanker separation can be
+        recomputed/audited offline instead of only existing for the life of the calib-review
+        dialog. Mirrors task blocks' desc-decoder.csv, one row per calibration TR."""
+        per_tr = (self.calib_summary or {}).get("per_tr")
+        if not per_tr:
+            return
+        path = Path(self.cfg.log_dir) / f"{stem}_desc-decoder.csv"
+        with contextlib.suppress(Exception):
+            with open(path, "w", newline="") as f:
+                w = csv.writer(f)
+                w.writerow(["tr", "cue", "cen", "dmn", "pda"])
+                for i, cue in enumerate(per_tr["cue"]):
+                    w.writerow([i + 1, cue, f"{per_tr['cen'][i]:.4f}", f"{per_tr['dmn'][i]:.4f}",
+                               f"{per_tr['pda'][i]:.4f}"])
+            self.log_paths.append(path)
 
     def _run_task_block_logged(self, block) -> bool:
         """Open this block's own BIDS decoder CSV (+ raw EEG + whatever aux LSL streams the
@@ -553,9 +784,22 @@ class SessionEngine:
         self._writer = csv.writer(fh)
         self._writer.writerow(["tr", "phase", "stage", "run", "pda_sign", "cen", "dmn", "pda", "pda_z", "t"])
 
+        self._open_raw_and_aux_writers(stem)
+        try:
+            return self._do_task_block(block)
+        finally:
+            self._writer = None
+            fh.flush()
+            fh.close()
+            self._close_raw_and_aux_writers(stem)
+
+    def _open_raw_and_aux_writers(self, stem: str) -> None:
+        """Open this block's raw-EEG CSV + whatever aux LSL streams the source found — shared by
+        task blocks (`_run_task_block_logged`) and calibration (`_do_calibration_block`)."""
+        logdir = Path(self.cfg.log_dir)
         raw_path = logdir / f"{stem}_desc-eeg.csv"
-        raw_fh = open(raw_path, "w", newline="")
-        self._raw_writer = csv.writer(raw_fh)
+        self._raw_fh = open(raw_path, "w", newline="")
+        self._raw_writer = csv.writer(self._raw_fh)
         self._raw_writer.writerow(["t"] + list(self.channels))
         self._raw_buffer = []
         self.log_paths.append(raw_path)
@@ -570,22 +814,17 @@ class SessionEngine:
             self._aux_fhs[category] = afh
             self.log_paths.append(apath)
 
-        try:
-            return self._do_task_block(block)
-        finally:
-            self._writer = None
-            fh.flush()
-            fh.close()
-            self._raw_writer = None
-            raw_fh.flush()
-            raw_fh.close()
-            self._save_raw_fif(logdir / f"{stem}_desc-eeg.fif")
-            self._raw_buffer = []
-            for afh in self._aux_fhs.values():
-                afh.flush()
-                afh.close()
-            self._aux_fhs = {}
-            self._aux_writers = {}
+    def _close_raw_and_aux_writers(self, stem: str) -> None:
+        self._raw_writer = None
+        self._raw_fh.flush()
+        self._raw_fh.close()
+        self._save_raw_fif(Path(self.cfg.log_dir) / f"{stem}_desc-eeg.fif")
+        self._raw_buffer = []
+        for afh in self._aux_fhs.values():
+            afh.flush()
+            afh.close()
+        self._aux_fhs = {}
+        self._aux_writers = {}
 
     def _save_raw_fif(self, path: Path) -> None:
         """Best-effort MNE .fif export of this block's buffered raw EEG, alongside the per-sample

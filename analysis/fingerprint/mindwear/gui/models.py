@@ -41,7 +41,13 @@ PROTOCOL_TYPES = ("mbNF", "R-mbNF")
 # feedback block repeats n_runs times.
 DEFAULT_PROTOCOL: dict[str, Any] = {
     "type": "mbNF",
-    "calibration": {"rest_sec": 60.0},                       # 1 min eyes-open rest
+    # calibration cycles rest -> flanker -> rest -> self ("induction", default) or rest -> noting
+    # ("noting" — replicates the rest-baseline/mental-noting design the frozen ridge was actually
+    # trained on), `cycles` times, so more than quiet rest recurs throughout — deliberately drives
+    # the decoded PDA to both poles for a better-conditioned calibration fit. cycles=0 falls back
+    # to a single flat rest_sec window (legacy behavior), regardless of type.
+    "calibration": {"type": "induction", "rest_sec": 15.0, "cycles": 3,
+                    "self_sec": 30.0, "flanker_sec": 45.0, "noting_sec": 60.0},
     "transfer_pre":  {"enabled": True, "rest_sec": 30.0, "task_sec": 150.0},
     "feedback":      {"rest_sec": 30.0, "task_sec": 150.0, "n_runs": 1},
     "transfer_post": {"enabled": True, "rest_sec": 30.0, "task_sec": 150.0},
@@ -52,13 +58,19 @@ def build_blocks(protocol: dict) -> list[dict]:
     """Expand a protocol dict into the ordered block list the engine runs. Contact/QC is a GUI
     pre-flight step, not an engine block, so it is not included here.
 
-    Block kinds: 'calibration' (fit z-score stats), 'transfer' (static targets, silent record),
-    'feedback' (veridical ball). ``randomize`` on feedback blocks flips the PDA->direction sign
-    per run and triggers the end-of-run up/down question (R-mbNF)."""
+    Block kinds: 'calibration' (rest/self/flanker or rest/noting cycles — see
+    ``calibration["type"]`` — fit z-score stats + a PDA-separation QA readout), 'transfer' (static
+    targets, silent record), 'feedback' (veridical ball). ``randomize`` on feedback blocks flips
+    the PDA->direction sign per run and triggers the end-of-run up/down question (R-mbNF)."""
     p = {**DEFAULT_PROTOCOL, **(protocol or {})}
     randomize = p.get("type") == "R-mbNF"
+    cal = p["calibration"]
     blocks: list[dict] = [{"kind": "calibration", "stage": "calibration",
-                           "rest_sec": float(p["calibration"]["rest_sec"])}]
+                           "type": cal.get("type", "induction"),
+                           "rest_sec": float(cal["rest_sec"]), "cycles": int(cal.get("cycles", 0)),
+                           "self_sec": float(cal.get("self_sec", 30.0)),
+                           "flanker_sec": float(cal.get("flanker_sec", 45.0)),
+                           "noting_sec": float(cal.get("noting_sec", 60.0))}]
     if p["transfer_pre"].get("enabled", True):
         tp = p["transfer_pre"]
         blocks.append({"kind": "transfer", "stage": "transferpre",

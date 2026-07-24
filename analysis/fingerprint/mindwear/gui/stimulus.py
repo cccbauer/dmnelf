@@ -288,6 +288,13 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
         last_phase = None
         calib_start = None
 
+        # self/flanker induction-block stimuli (calibration cycles rest -> flanker -> rest -> self,
+        # see SessionEngine._run_cue_block) — reuses `msg` above for the question text.
+        calib_stim = visual.TextStim(win, text="", pos=(0, 0), height=0.14, color="white")
+        calib_hint = visual.TextStim(win, text="", pos=(0, -0.35), height=0.045, color=[0.6, 0.6, 0.6])
+        last_calib_cue = None
+        calib_cue_start = None
+
         # optional ball-state CSV (hits / positions), alongside the engine's decoder CSV
         writer = None
         fh = None
@@ -298,7 +305,7 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
             fh = open(Path(log_dir) / f"sub-{participant}_task-nf_run-{run:02d}_desc-ball.csv", "w", newline="")
             writer = csv.writer(fh)
             writer.writerow(["tr", "stage", "cen", "dmn", "cen_hits", "dmn_hits", "outlier",
-                             "ball_y", "top_y", "bottom_y"])
+                             "ball_y", "top_y", "bottom_y", "scale_factor"])
 
         # direction-question stimuli (R-mbNF end-of-run report). Left = UP, Right = DOWN, Space = NOT SURE.
         q_prompt = visual.TextStim(win, text="", pos=(0, 0.4), height=0.06, wrapWidth=1.5, color="white")
@@ -368,16 +375,44 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
             # ---- non-task phases (connect / calibrate / review / ready) ----
             if phase not in ("feedback", "transfer"):
                 if phase == "calibrate":
-                    if last_phase != "calibrate":
-                        calib_start = time.time()
-                    elapsed = time.time() - (calib_start or time.time())
-                    remaining = max(0.0, calib_sec - elapsed)
-                    frac = 1.0 - remaining / calib_sec if calib_sec > 0 else 1.0
+                    cue = engine.calib_cue
+                    if cue != last_calib_cue:
+                        last_calib_cue = cue
+                        calib_cue_start = time.time()
+                    cue_sec = float(getattr(engine, "calib_cue_sec", 0.0)) or calib_sec
+                    elapsed = time.time() - (calib_cue_start or time.time())
+                    remaining = max(0.0, cue_sec - elapsed)
+                    frac = 1.0 - remaining / cue_sec if cue_sec > 0 else 1.0
                     calib_fill.end = 90 + 360 * frac
                     calib_pct.text = f"{int(round(remaining))}s"
-                    calib_track.draw(); calib_fill.draw(); calib_pct.draw()
-                    msg.text = "Calibrating…\nPlease hold still."
-                    msg.draw()
+
+                    keys = event.getKeys(keyList=["left", "right"]) if cue in ("self", "flanker") else []
+                    if cue == "self":
+                        msg.text = engine.calib_question or "Does this word describe you?"
+                        calib_stim.text = engine.calib_word
+                        calib_hint.text = "left = YES     right = NO"
+                        msg.draw(); calib_stim.draw(); calib_hint.draw()
+                        if "left" in keys:
+                            engine.answer_trial("yes")
+                        elif "right" in keys:
+                            engine.answer_trial("no")
+                    elif cue == "flanker":
+                        msg.text = engine.calib_question or "Which way does the CENTER arrow point?"
+                        calib_stim.text = engine.calib_arrows
+                        calib_hint.text = "left / right = direction of the CENTER arrow"
+                        msg.draw(); calib_stim.draw(); calib_hint.draw()
+                        if "left" in keys:
+                            engine.answer_trial("left")
+                        elif "right" in keys:
+                            engine.answer_trial("right")
+                    elif cue == "noting":
+                        calib_track.draw(); calib_fill.draw(); calib_pct.draw()
+                        msg.text = "Practice mental noting\n(the same technique as feedback)."
+                        msg.draw()
+                    else:                                       # "rest"
+                        calib_track.draw(); calib_fill.draw(); calib_pct.draw()
+                        msg.text = "Calibrating…\nPlease hold still."
+                        msg.draw()
                 elif phase == "connect":
                     msg.text = "Getting ready…\nHold still."
                     msg.draw()
@@ -436,7 +471,7 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
                 if writer is not None:
                     writer.writerow([u.tr, u.stage, f"{cen:.4f}", f"{dmn:.4f}", hits["cen"], hits["dmn"],
                                      outlier, f"{ball.pos[1]:.4f}", f"{circles['cen'].pos[1]:.4f}",
-                                     f"{circles['dmn'].pos[1]:.4f}"])
+                                     f"{circles['dmn'].pos[1]:.4f}", scale_factor])
 
             paused = any(further_than_circles(i, circles[r].pos[1], ball.pos[1])
                          for i, r in enumerate(ROI_NAMES))

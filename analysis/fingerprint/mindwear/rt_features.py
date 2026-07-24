@@ -63,6 +63,12 @@ class RTFeatureExtractor:
     def _bandpower(self, win):
         """win: [n_ch, n_samp] (already channel-picked). -> [n_ch, n_bands] band power for this TR."""
         good = ~self.bad_mask
+        # per-channel demean FIRST: EmotivPRO's LSL "EEG" stream is raw/unreferenced, not filtered —
+        # each channel sits at its own large, persistent offset (confirmed live: ~4200-4500 "µV",
+        # vs. real scalp EEG hovering near 0), differing enough between channels (up to ~250 units)
+        # that the cross-channel CAR below can't remove it. Only zeroes each window's own DC (0 Hz)
+        # component, so genuine 1 Hz+ oscillatory content (the model's fmin) is unaffected.
+        win = win - win.mean(axis=1, keepdims=True)
         win = win - win[good].mean(axis=0, keepdims=True)     # common-average over GOOD channels
         bp = np.empty((win.shape[0], self.n_bands))
         for ci in range(win.shape[0]):

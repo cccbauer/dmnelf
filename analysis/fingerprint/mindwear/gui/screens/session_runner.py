@@ -34,6 +34,7 @@ from session_engine import (  # noqa: E402
     DEFAULT_MODEL,
     EngineConfig,
     SessionEngine,
+    adaptive_scale_factor,
     score_contact,
     stream_contact,
     subject_artifacts,
@@ -99,6 +100,7 @@ class SessionRunner:
         self.btn_check = ft.OutlinedButton("Start preview (contact + QC)", icon=ft.Icons.SENSORS,
                                            on_click=lambda _: self._toggle_preview())
         self.bad_text = st.caption("")
+        self.offset_text = st.caption("")   # raw/unreferenced-stream warning, see _on_contact_window
         start_label = "Start calibration" if self.study.session.get("calibrate", True) else "Start run"
         self.btn_start = ft.FilledButton(start_label, icon=ft.Icons.PLAY_ARROW, on_click=lambda _: self._start())
         self.btn_stop = ft.OutlinedButton("Stop", icon=ft.Icons.STOP, disabled=True, on_click=lambda _: self._stop())
@@ -138,6 +140,7 @@ class SessionRunner:
                 ft.Row([self.btn_check, self.btn_start, self.btn_stop, self.btn_next, self.btn_exit],
                        spacing=st.GAP_SM, wrap=True),
                 self.bad_text,
+                self.offset_text,
                 self.chk_stim,
                 ft.Divider(),
                 self.headmap_area,
@@ -174,7 +177,7 @@ class SessionRunner:
         def worker():
             stop_event = self._preview_stop
             res = stream_contact(self._engine_config(), on_window=self._on_contact_window,
-                                 stop_event=stop_event, window_sec=0.25)
+                                 stop_event=stop_event, window_sec=0.25, on_status=self._log)
             self._preview_stop = None
             if res["error"]:
                 self._set_status(f"Preview stopped: {res['error']}", st.ERROR)
@@ -192,6 +195,15 @@ class SessionRunner:
         rms_by_ch = {ch: float(r) for ch, r in zip(channels, rms)}
         bad = score_contact(rms_by_ch)
         n_ch = len(channels); n_good = n_ch - len(bad)
+
+        # raw (pre-CAR) per-channel mean vs. its own variation — calibrated µV EEG hovers near 0;
+        # a mean many times larger than the channel's own SD usually means a raw/unreferenced LSL
+        # stream (ADC counts) rather than the processed EEG output. CAR only removes the
+        # cross-channel component at each instant, so this survives it and would otherwise go
+        # unnoticed until it shows up as a null result in a full calibration/session.
+        raw_mean = X.mean(axis=0); raw_sd = X.std(axis=0)
+        offset = np.abs(raw_mean) > 20 * np.maximum(raw_sd, 1e-9)
+        offset_channels = [ch for ch, o in zip(channels, offset) if o]
 
         def apply():
             if self.cq.channels != channels:
@@ -216,6 +228,12 @@ class SessionRunner:
                 self.bad_text.value = f"✓ all {n_ch} channels good"
                 self.bad_text.color = st.SUCCESS
             self._safe(self.bad_text.update)
+            if offset_channels:
+                self.offset_text.value = f"⚠ {len(offset_channels)} channel(s) look raw/unreferenced: {', '.join(offset_channels)}"
+                self.offset_text.color = st.WARNING
+            else:
+                self.offset_text.value = ""
+            self._safe(self.offset_text.update)
             if self.calibrated:
                 self._set_status_now(f"Live preview — {n_good}/{n_ch} good @ {sfreq:g} Hz.", st.SUCCESS)
             else:
@@ -365,6 +383,27 @@ class SessionRunner:
                     "varied during calibration — fine if you held still, worth a re-check "
                     "otherwise." if pct_flat > 0 else "All features showed variation.")
 
+        # rest/self/flanker (or rest/noting) QA (only present when the calibration ran cycles > 0
+        # — see SessionEngine._run_cue_block / _score_calibration): did the calibration's task(s)
+        # actually move the decoded PDA apart, and how does each compare to rest? Generalized over
+        # whichever conditions/separations this calibration actually produced (calibration["type"]),
+        # rather than hardcoding "self"/"flanker".
+        means = s.get("pda_means") or {}
+        sep_lines = []
+        if len(means) > 1:
+            parts = [f"{cond}={v:+.3f}" for cond, v in means.items()]
+            sep_lines.append(f"PDA by condition: {'  '.join(parts)}")
+            for key, val in s.items():
+                if key.startswith("separation_") and val is not None:
+                    a, b = key[len("separation_"):].split("_vs_")
+                    # _score_calibration's d = mean(a) - mean(b), so it's negative whenever b
+                    # happens to be the higher-PDA condition — always show it non-negative, with
+                    # whichever condition is actually higher named first, so the sign never reads
+                    # as "something's wrong" for what's really just a > b vs. b > a.
+                    if val < 0:
+                        a, b, val = b, a, -val
+                    sep_lines.append(f"{a} vs. {b} separation: d={val:.2f}")
+
         def decide(retry: bool) -> None:
             self.page.pop_dialog()
             if self.engine:
@@ -378,6 +417,7 @@ class SessionRunner:
             content=ft.Container(content=ft.Column([
                 ft.Text(f"{seconds:.0f}s of EEG collected, {n_feat} features fit."),
                 st.caption(flat_note),
+                *[st.caption(line) for line in sep_lines],
             ], tight=True, spacing=st.GAP_SM), width=420),
             actions=[
                 ft.OutlinedButton("Repeat calibration", icon=ft.Icons.REPLAY,
@@ -431,8 +471,12 @@ class SessionRunner:
 
     def _stimulus_loop(self, mode: str) -> None:
         from ..stimulus import run_stimulus
+        fb_cfg = dict(self.study.feedback)
+        fb_cfg["scale_factor"] = scale = adaptive_scale_factor(self.participant, self.run)
+        self._log(f"ball scale factor: {scale:.2f} (adaptive, from run {self.run - 1})"
+                 if self.run > 1 else f"ball scale factor: {scale:.2f} (default, run 1)")
         try:
-            run_stimulus(self.engine, mode, self.study.feedback, self._stim_stop,
+            run_stimulus(self.engine, mode, fb_cfg, self._stim_stop,
                          log_dir=Path(self._engine_config().log_dir),
                          participant=self.participant, run=self.run)
         except Exception as exc:
