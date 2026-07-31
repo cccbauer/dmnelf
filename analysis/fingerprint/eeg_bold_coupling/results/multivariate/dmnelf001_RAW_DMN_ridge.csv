@@ -1,0 +1,2 @@
+subject,target,model,mean_cv_r,p_circ_shift,n_features,n_trs,cv_folds,n_shuffles,alpha,fold0_r,fold1_r,fold2_r,fold3_r,fold4_r
+dmnelf001,RAW_DMN,ridge,-0.02243268248859186,,155,500,5,0,1.0,0.04109853250373984,-0.006747521500875311,0.12223886469122873,-0.021248327342582873,-0.2475049607944697

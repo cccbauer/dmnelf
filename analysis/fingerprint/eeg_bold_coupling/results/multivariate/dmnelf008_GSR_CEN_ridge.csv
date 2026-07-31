@@ -1,0 +1,2 @@
+subject,target,model,mean_cv_r,p_circ_shift,n_features,n_trs,cv_folds,n_shuffles,alpha,fold0_r,fold1_r,fold2_r,fold3_r,fold4_r
+dmnelf008,GSR_CEN,ridge,0.3044784379779146,,155,500,5,0,1.0,0.47995665038694824,-0.1742559215702594,0.41723653718494946,0.5245341339113658,0.2749207899765689
