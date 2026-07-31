@@ -47,6 +47,9 @@ dependencies:
     # Template/atlas fetching
     - "templateflow"
 
+    # Aperiodic/periodic EEG spectral fitting (fsnr_eeg, alpha_lag_coupling)
+    - "fooof"
+
     # pineuro dependencies (GUI/feedback — needed at import time)
     - "pydicom"
     - "watchdog"

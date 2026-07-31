@@ -23,6 +23,8 @@ MODEL_DIR = Path(__file__).resolve().parent.parent / "model"
 # "custom" means the operator has typed an explicit model_path of their own.
 MONTAGE_PRESETS: dict[str, dict[str, str]] = {
     "epoc12": {"label": "EPOC-X — 12 channel", "model_path": str(MODEL_DIR / "efp_epoc_model.npz")},
+    "epoc_dual": {"label": "EPOC-X — dual electrode (P8 CEN / O1 DMN, experimental)",
+                  "model_path": str(MODEL_DIR / "efp_epoc_dual_model.npz")},
     "cap31": {"label": "Research cap — 32 channel", "model_path": str(MODEL_DIR / "efp_cap31_model.npz")},
 }
 
@@ -54,34 +56,41 @@ DEFAULT_PROTOCOL: dict[str, Any] = {
 }
 
 
-def build_blocks(protocol: dict) -> list[dict]:
+def build_blocks(protocol: dict, start_run: int = 1, first_run: bool = True) -> list[dict]:
     """Expand a protocol dict into the ordered block list the engine runs. Contact/QC is a GUI
     pre-flight step, not an engine block, so it is not included here.
 
     Block kinds: 'calibration' (rest/self/flanker or rest/noting cycles — see
     ``calibration["type"]`` — fit z-score stats + a PDA-separation QA readout), 'transfer' (static
     targets, silent record), 'feedback' (veridical ball). ``randomize`` on feedback blocks flips
-    the PDA->direction sign per run and triggers the end-of-run up/down question (R-mbNF)."""
+    the PDA->direction sign per run and triggers the end-of-run up/down question (R-mbNF).
+
+    ``first_run=False`` (an operator manually starting another session for a participant who
+    already has a saved calibration) omits calibration AND the transfer blocks — those are
+    once-per-participant onboarding, not per-attempt — leaving only feedback blocks, numbered
+    from ``start_run`` so their BIDS filenames don't collide with the earlier attempt's."""
     p = {**DEFAULT_PROTOCOL, **(protocol or {})}
     randomize = p.get("type") == "R-mbNF"
-    cal = p["calibration"]
-    blocks: list[dict] = [{"kind": "calibration", "stage": "calibration",
-                           "type": cal.get("type", "induction"),
-                           "rest_sec": float(cal["rest_sec"]), "cycles": int(cal.get("cycles", 0)),
-                           "self_sec": float(cal.get("self_sec", 30.0)),
-                           "flanker_sec": float(cal.get("flanker_sec", 45.0)),
-                           "noting_sec": float(cal.get("noting_sec", 60.0))}]
-    if p["transfer_pre"].get("enabled", True):
-        tp = p["transfer_pre"]
-        blocks.append({"kind": "transfer", "stage": "transferpre",
-                       "rest_sec": float(tp["rest_sec"]), "task_sec": float(tp["task_sec"])})
+    blocks: list[dict] = []
+    if first_run:
+        cal = p["calibration"]
+        blocks.append({"kind": "calibration", "stage": "calibration",
+                       "type": cal.get("type", "induction"),
+                       "rest_sec": float(cal["rest_sec"]), "cycles": int(cal.get("cycles", 0)),
+                       "self_sec": float(cal.get("self_sec", 30.0)),
+                       "flanker_sec": float(cal.get("flanker_sec", 45.0)),
+                       "noting_sec": float(cal.get("noting_sec", 60.0))})
+        if p["transfer_pre"].get("enabled", True):
+            tp = p["transfer_pre"]
+            blocks.append({"kind": "transfer", "stage": "transferpre",
+                           "rest_sec": float(tp["rest_sec"]), "task_sec": float(tp["task_sec"])})
     fb = p["feedback"]
     n_runs = int(fb.get("n_runs", 1))
     for i in range(max(1, n_runs)):
-        blocks.append({"kind": "feedback", "stage": "feedback", "run": i + 1, "n_runs": n_runs,
+        blocks.append({"kind": "feedback", "stage": "feedback", "run": start_run + i, "n_runs": n_runs,
                        "randomize": randomize, "rest_sec": float(fb["rest_sec"]),
-                       "task_sec": float(fb["task_sec"])})
-    if p["transfer_post"].get("enabled", True):
+                       "task_sec": float(fb["task_sec"]), "is_last_run": i == max(1, n_runs) - 1})
+    if first_run and p["transfer_post"].get("enabled", True):
         tp = p["transfer_post"]
         blocks.append({"kind": "transfer", "stage": "transferpost",
                        "rest_sec": float(tp["rest_sec"]), "task_sec": float(tp["task_sec"])})
@@ -209,12 +218,23 @@ class StudyConfig:
     def protocol(self) -> dict:
         return self.session_config.setdefault("protocol", dict(DEFAULT_PROTOCOL))
 
-    def blocks(self) -> list[dict]:
+    def blocks(self, start_run: int = 1, first_run: bool = True) -> list[dict]:
         """The ordered engine block list for this study's protocol."""
-        return build_blocks(self.protocol)
+        return build_blocks(self.protocol, start_run=start_run, first_run=first_run)
 
-    def to_engine_config(self, subject: str, run: int):
-        """Lower into a runnable EngineConfig (imported lazily to keep models flet-free)."""
+    def to_engine_config(self, subject: str, run: int, calib_path: str | None = None,
+                         bids_session: str = ""):
+        """Lower into a runnable EngineConfig (imported lazily to keep models flet-free).
+
+        ``calib_path``: an already-saved calibration for this subject (see
+        session_engine.existing_calibration_path). When given, the block list skips
+        calibration/transfer entirely (see build_blocks) and the engine loads this calibration
+        instead of fitting a new one — a manual second/third/... run for a participant who's
+        already calibrated shouldn't redo it.
+
+        ``bids_session``: the operator-entered BIDS ses- label (a visit/day), threaded into
+        EngineConfig.session — named to avoid colliding with ``self.session``, this study's own
+        (unrelated) legacy session-timing dict, below."""
         import sys
 
         HERE = Path(__file__).resolve().parent.parent
@@ -225,18 +245,21 @@ class StudyConfig:
         src, dec, sess = self.source, self.decoder, self.session
         montage = dec.get("montage", "epoc12")
         preset_path = MONTAGE_PRESETS.get(montage, {}).get("model_path")
+        first_run = calib_path is None
         return EngineConfig(
             subject=subject,
             run=run,
+            session=bids_session,
             model_path=dec.get("model_path") or preset_path or str(DEFAULT_MODEL),
             source=src.get("type", "replay"),
             replay_path=src.get("replay_path") or None,
             replay_speed=float(src.get("replay_speed", 1.0)),
             credentials_path=src.get("credentials_path") or None,
-            do_calibrate=bool(sess.get("calibrate", True)),
+            do_calibrate=first_run,
+            calib_path=calib_path,
             calib_sec=float(sess.get("calib_sec", 60.0)),
             rest_sec=float(sess.get("rest_sec", 30.0)),
             feedback_sec=float(sess.get("feedback_sec", 300.0)),
-            blocks=self.blocks(),
+            blocks=self.blocks(start_run=run, first_run=first_run),
             protocol_type=self.protocol.get("type", "mbNF"),
         )

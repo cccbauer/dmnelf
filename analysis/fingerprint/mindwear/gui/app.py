@@ -59,8 +59,9 @@ class MindWearApp:
     def show_data_browser(self, study: StudyConfig | None = None) -> None:
         self._render(DataBrowser(self, study).build())
 
-    def show_session_runner(self, study: StudyConfig, participant: str, run: int) -> None:
-        self._render(SessionRunner(self, study, participant, run).build())
+    def show_session_runner(self, study: StudyConfig, participant: str, run: int,
+                            session: str = "") -> None:
+        self._render(SessionRunner(self, study, participant, run, session).build())
 
     def show_comparison(self, study: StudyConfig, participant: str, run: int) -> None:
         self._render(ComparisonRunner(self, study, participant, run).build())
@@ -130,6 +131,9 @@ class MindWearApp:
         prefill = "" if is_cmp else study.subject_id(1)
         pid = ft.TextField(label="Participant ID", hint_text=hint, value=prefill, autofocus=True)
         run = ft.TextField(label="Run #", value="1", width=100)
+        # BIDS ses- label (a visit/day) — live sessions only; the offline fMRI-vs-EEG comparison
+        # doesn't write any BIDS-named files, so it has no use for one.
+        session = ft.TextField(label="Session (optional)", hint_text="e.g. 01, pre", width=160)
 
         def go(_):
             participant = (pid.value or "").strip()
@@ -143,17 +147,18 @@ class MindWearApp:
             if is_cmp:
                 self.show_comparison(study, participant, r)
             else:
-                self.show_session_runner(study, participant, r)
+                self.show_session_runner(study, participant, r, (session.value or "").strip())
 
         title = f"Compare fMRI vs EPOC — {name}" if is_cmp else f"Start session — {name}"
         note = (st.caption("Participant must have an observed-BOLD file "
                            "(fsnr_eeg/results/cen_ceiling/cenmean_*_<id>.npz), e.g. dmnelf005.")
                 if is_cmp else st.caption("Runs the live NF session on this study's source."))
+        fields = [pid, run, note] if is_cmp else [pid, run, session, note]
         btn = ft.FilledButton("Compare" if is_cmp else "Start",
                               icon=ft.Icons.COMPARE_ARROWS if is_cmp else ft.Icons.PLAY_ARROW, on_click=go)
         dlg = ft.AlertDialog(
             title=ft.Text(title),
-            content=ft.Container(content=ft.Column([pid, run, note], tight=True, spacing=st.GAP_MD), width=420),
+            content=ft.Container(content=ft.Column(fields, tight=True, spacing=st.GAP_MD), width=420),
             actions=[ft.TextButton("Cancel", on_click=lambda _: self.page.pop_dialog()), btn])
         self.page.show_dialog(dlg)
 

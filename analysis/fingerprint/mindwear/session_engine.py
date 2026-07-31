@@ -34,7 +34,8 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 DEFAULT_MODEL = HERE / "model" / "efp_epoc_model.npz"
 # Per-subject data lives under data/<subject>/ — one folder per participant. Each block writes
-# BIDS-named artifacts, sub-<subject>_task-<stage>_run-<NN>_desc-<...>.{csv,npz} (see bids_stem).
+# BIDS-named artifacts, sub-<subject>[_ses-<session>]_task-<stage>_run-<NN>_desc-<...>.{csv,npz}
+# (see bids_stem) — ses- is the operator-entered visit/day label, omitted when blank.
 DATA_DIR = HERE / "data"
 
 
@@ -42,27 +43,45 @@ def subject_dir(subject: str, data_dir: Path | str = DATA_DIR) -> Path:
     return Path(data_dir) / subject
 
 
-def bids_stem(subject: str, task: str, run: int) -> str:
-    """BIDS-style filename stem for one recording: ``sub-<label>_task-<task>_run-<NN>``.
+def bids_stem(subject: str, task: str, run: int, session: str = "") -> str:
+    """BIDS-style filename stem for one recording:
+    ``sub-<label>[_ses-<label>]_task-<task>_run-<NN>``.
 
     ``subject`` is the participant label configured in the study (basename + zero-padded index,
-    e.g. ``dmnelf001``); the ``sub-`` prefix is added here. ``task`` is the block stage
-    (calibration | transferpre | feedback | transferpost). ``run`` is the feedback-run index for
-    feedback blocks (1..n_runs) and 1 for the single calibration/transfer blocks.
+    e.g. ``dmnelf001``); the ``sub-`` prefix is added here. ``session`` is the operator-entered
+    BIDS session label (e.g. a visit/day — "01", "pre") distinguishing repeat visits for the same
+    participant; omitted from the stem entirely when blank (legacy studies with no session
+    concept). ``task`` is the block stage (calibration | transferpre | feedback | transferpost).
+    ``run`` is the feedback-run index for feedback blocks (1..n_runs) and 1 for the single
+    calibration/transfer blocks.
     """
-    return f"sub-{subject}_task-{task}_run-{run:02d}"
+    ses = f"_ses-{session}" if session else ""
+    return f"sub-{subject}{ses}_task-{task}_run-{run:02d}"
 
 
 def subject_artifacts(subject: str, data_dir: Path | str = DATA_DIR) -> list[str]:
-    """Names of any already-saved recording files for this subject (empty if none).
-
-    Used by the GUI to warn before overwriting: one protocol session always writes the same BIDS
-    filenames (there is no session/run entity spanning the protocol), so re-running a subject
-    overwrites its artifacts in place."""
+    """Names of any already-saved recording files for this subject, across every ses-/run- it has
+    (empty if none). Used by the GUI to warn before overwriting a filename it's about to reuse
+    (see session_runner._start) — files under a DIFFERENT ses-/run- than the one about to be
+    written are simply left alone, not actually in conflict."""
     d = subject_dir(subject, data_dir)
     if not d.exists():
         return []
     return sorted(p.name for p in d.iterdir() if p.is_file() and not p.name.startswith("."))
+
+
+def existing_calibration_path(subject: str, session: str = "",
+                              data_dir: Path | str = DATA_DIR) -> Optional[Path]:
+    """This subject's saved calibration (.npz) for this session, if one exists — calibration is a
+    per-subject-per-session singleton (always saved to run=1, see
+    EngineConfig.resolved_calib_save), so its mere existence means a prior run already calibrated
+    this subject IN THIS SESSION. Used by the GUI to skip the calibration block and reuse it on a
+    later manual run, instead of recalibrating every time the operator starts a fresh run for the
+    same participant — scoped to ``session`` so a genuinely new visit/day (a different BIDS
+    session label) still calibrates fresh, e.g. because electrode placement changed."""
+    p = (subject_dir(subject, data_dir)
+        / f"{bids_stem(subject, 'calibration', 1, session)}_desc-calib.npz")
+    return p if p.exists() else None
 
 
 # Ball-jump adaptive difficulty, ported verbatim from the original scanner ball-task
@@ -72,7 +91,8 @@ DEFAULT_SCALE_FACTOR = 10.0
 MIN_HITS, MAX_HITS = 3, 5
 
 
-def adaptive_scale_factor(participant: str, run: int, data_dir: Path | str = DATA_DIR) -> float:
+def adaptive_scale_factor(participant: str, run: int, session: str = "",
+                          data_dir: Path | str = DATA_DIR) -> float:
     """Ball-jump scale factor for operator run ``run``, adapted from run ``run - 1``'s saved hit
     counts (``desc-ball.csv``, session_runner's session-level run number — one PsychoPy stimulus
     window/file per run, matching the original's one-script-execution-per-run design). Falls back
@@ -80,7 +100,9 @@ def adaptive_scale_factor(participant: str, run: int, data_dir: Path | str = DAT
     — mirroring the original's ``except: ... default_scale_factor`` fallback."""
     if run <= 1:
         return DEFAULT_SCALE_FACTOR
-    prev = subject_dir(participant, data_dir) / f"sub-{participant}_task-nf_run-{run - 1:02d}_desc-ball.csv"
+    ses = f"_ses-{session}" if session else ""
+    prev = (subject_dir(participant, data_dir)
+           / f"sub-{participant}{ses}_task-nf_run-{run - 1:02d}_desc-ball.csv")
     try:
         rows = list(csv.DictReader(open(prev)))
         if not rows:
@@ -176,6 +198,7 @@ class EngineConfig:
 
     subject: str = "P000"
     run: int = 1
+    session: str = ""                            # BIDS ses- label (visit/day); "" = omitted
     model_path: str = str(DEFAULT_MODEL)
 
     # source
@@ -207,7 +230,8 @@ class EngineConfig:
             self.log_dir = str(subject_dir(self.subject))
 
     def resolved_calib_save(self) -> Path:
-        return Path(self.log_dir) / f"{bids_stem(self.subject, 'calibration', 1)}_desc-calib.npz"
+        return (Path(self.log_dir)
+               / f"{bids_stem(self.subject, 'calibration', 1, self.session)}_desc-calib.npz")
 
 
 def make_source(cfg: "EngineConfig", on_status: Optional[Callable[[str], None]] = None):
@@ -368,6 +392,23 @@ class SessionEngine:
         self._await_question = threading.Event()
         self._direction_answer: Optional[str] = None
 
+        # mbNF (non-randomized) per-run gates, mirroring the R-mbNF question gate above but for
+        # the "normal" feedback protocol: after each feedback run (except the last) the worker
+        # pauses in phase "ratings" for the participant's ratings (stimulus calls
+        # ratings_submitted()), then in phase "run_choice" for the OPERATOR to decide whether to
+        # redo calibration before the next run (recalibrate_next_run()) or go straight to it
+        # (continue_next_run()).
+        self._await_ratings = threading.Event()
+        self._await_run_choice = threading.Event()
+        self._run_choice: str = "continue"
+        # the protocol's own calibration block dict, captured once in _run() as blocks are first
+        # iterated — reused verbatim if the operator chooses to recalibrate mid-protocol.
+        self._calibration_block: Optional[dict] = None
+        # set by _do_task_block when the operator chooses "recalibrate" at the run_choice gate;
+        # handled by _run's top-level loop AFTER the current feedback block's own writers are
+        # closed (see _do_task_block's comment on why it can't call _do_calibration_block itself).
+        self._recalibrate_pending: bool = False
+
         # current-block state (polled by the stimulus)
         self.block_index: int = 0
         self.n_blocks: int = 0
@@ -404,6 +445,8 @@ class SessionEngine:
         self._await_confirm.set()          # unblock if paused awaiting calibration review
         self._await_ready.set()            # unblock if paused awaiting the participant
         self._await_question.set()         # unblock if paused awaiting a direction report
+        self._await_ratings.set()          # unblock if paused awaiting per-run ratings
+        self._await_run_choice.set()       # unblock if paused awaiting the operator's choice
         if join and self._thread:
             self._thread.join(timeout)
 
@@ -432,6 +475,20 @@ class SessionEngine:
         or 'yes'/'no' for the self block). Non-blocking — logged for a compliance check only; the
         calibration's wall-clock trial schedule advances regardless of whether this was called."""
         self._trial_answer = response
+
+    def ratings_submitted(self) -> None:
+        """mbNF: participant finished the post-run ratings questions."""
+        self._await_ratings.set()
+
+    def continue_next_run(self) -> None:
+        """Operator: go straight to the next feedback run, reusing the current calibration."""
+        self._run_choice = "continue"
+        self._await_run_choice.set()
+
+    def recalibrate_next_run(self) -> None:
+        """Operator: redo calibration before the next feedback run."""
+        self._run_choice = "recalibrate"
+        self._await_run_choice.set()
 
     def is_running(self) -> bool:
         return bool(self._thread and self._thread.is_alive())
@@ -522,7 +579,12 @@ class SessionEngine:
             self.log_paths = []
 
             self._gen = src.samples()
-            self._n_features = int(np.asarray(self._model["cen_coef"]).shape[0])
+            # design length the online decoder actually emits per TR — NOT cen_coef's own size,
+            # which for a dual single-electrode model (efp_epoc_dual_model.npz) is only that
+            # target's own 110-feature block, half of the real 220-feature combined design
+            # RTFeatureExtractor.push() produces (see decoder.py's design_size).
+            self._n_features = (int(self._model["total_features"]) if "total_features" in self._model
+                               else int(np.asarray(self._model["cen_coef"]).shape[0]))
             self._decoder = (Decoder(self._model, calibration=Calibrator.load(self.cfg.calib_path))
                              if self.cfg.calib_path else None)
 
@@ -534,11 +596,16 @@ class SessionEngine:
                 self.block_index = bi
                 self.block_stage = block.get("stage", "")
                 if block["kind"] == "calibration":
+                    self._calibration_block = block   # reused verbatim on a mid-protocol recalibrate
                     if not self._do_calibration_block(block):
                         break                       # stopped during calibration
                 else:
                     if not self._run_task_block_logged(block):
                         break                       # stopped during a task block
+                if self._recalibrate_pending:
+                    self._recalibrate_pending = False
+                    if not self._do_calibration_block(self._calibration_block):
+                        break                       # stopped during the mid-protocol recalibration
             else:
                 self.completed = True                # ran every block without an early stop
 
@@ -612,7 +679,7 @@ class SessionEngine:
         flanker_sec = float(block.get("flanker_sec", 45.0))
         noting_sec = float(block.get("noting_sec", 60.0))
         stage = block.get("stage", "calibration")
-        stem = bids_stem(self.cfg.subject, stage, 1)
+        stem = bids_stem(self.cfg.subject, stage, 1, self.cfg.session)
 
         while True:
             cal_obj = Calibrator(self._n_features)
@@ -770,7 +837,7 @@ class SessionEngine:
         """
         stage = block.get("stage", "feedback")
         run_idx = int(block.get("run", 1)) or 1
-        stem = bids_stem(self.cfg.subject, stage, run_idx)
+        stem = bids_stem(self.cfg.subject, stage, run_idx, self.cfg.session)
         logdir = Path(self.cfg.log_dir)
 
         path = logdir / f"{stem}_desc-decoder.csv"
@@ -844,7 +911,8 @@ class SessionEngine:
 
     def _do_task_block(self, block) -> bool:
         """One task block: participant-ready gate -> rest baseline -> task (feedback or transfer)
-        -> optional R-mbNF direction question. Returns False if stopped."""
+        -> optional R-mbNF direction question, or (mbNF feedback) ratings + an operator choice of
+        whether to recalibrate before the next run. Returns False if stopped."""
         stage = block.get("stage", "feedback")
         kind = block["kind"]
         randomize = bool(block.get("randomize", False))
@@ -933,11 +1001,46 @@ class SessionEngine:
             outcome = "not sure" if correct is None else ("correct" if correct else "incorrect")
             self._status(f"run {self.block_run}: reported {self._direction_answer}, "
                          f"ball went {true_dir} ({outcome})")
+
+        # ---- mbNF (non-randomized) feedback: post-run ratings, then (if another run follows)
+        # the operator's choice of whether to recalibrate first ----
+        elif kind == "feedback":
+            self._set_phase("ratings")
+            self._status(f"{label}: ratings")
+            self._await_ratings.clear()
+            self._await_ratings.wait()
+            self._flush_after_gate()
+            if self._stop.is_set():
+                return False
+            if not block.get("is_last_run", True):
+                self._set_phase("run_choice")
+                self._status(f"{label}: awaiting operator — continue or recalibrate?")
+                self._run_choice = "continue"
+                self._await_run_choice.clear()
+                self._await_run_choice.wait()
+                self._flush_after_gate()
+                if self._stop.is_set():
+                    return False
+                if self._run_choice == "recalibrate":
+                    if self._calibration_block is None:
+                        # a restarted session that reused a saved calibration (calib_path) never
+                        # had its own calibration block to reuse the parameters from — can't
+                        # recalibrate without them.
+                        self._status("can't recalibrate: this session started from a saved "
+                                     "calibration with no calibration block to repeat")
+                    else:
+                        # Deferred to the top-level block loop (_run), not called here: this
+                        # method runs INSIDE _run_task_block_logged's open/close bracket for this
+                        # feedback block's own raw/aux writers — calling _do_calibration_block
+                        # directly here would nest a second open/close on the same shared
+                        # self._raw_writer/_raw_fh slot and close the wrong (already-stale) handle
+                        # once back in the outer block's own finally.
+                        self._recalibrate_pending = True
         return True
 
     def _save_direction_report(self, report: dict, stage: str = "feedback") -> None:
         """Append one R-mbNF direction report to this block's BIDS directions CSV (accuracy audit)."""
-        stem = bids_stem(self.cfg.subject, stage, int(report["run"]) or 1)
+        stem = bids_stem(self.cfg.subject, stage, int(report["run"]) or 1, self.cfg.session)
         path = Path(self.cfg.log_dir) / f"{stem}_desc-directions.csv"
         new = not path.exists()
         with contextlib.suppress(Exception):

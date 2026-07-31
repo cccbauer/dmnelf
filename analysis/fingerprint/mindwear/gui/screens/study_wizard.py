@@ -41,12 +41,21 @@ class StudyWizard:
                                        hint_text="e.g. sub -> sub01, sub02")
         self.f_nsubj = ft.TextField(label="Number of subjects", value="1", width=200)
 
-        # 1 — headset (sets source + decoder montage)
+        # 1 — headset (sets source + default decoder montage)
         self.f_headset = ft.RadioGroup(
             value="epocx",
             content=ft.Column([
                 ft.Radio(value=k, label=f"{v['label']}   →   {MONTAGE_PRESETS[v['montage']]['label']}")
                 for k, v in HEADSET_PRESETS.items()
+            ], spacing=st.GAP_XS))
+
+        # 1b — EPOC-X decoder variant: overrides the headset's default montage, only for EPOC-X
+        # (the only headset with more than one trained model to choose between).
+        self.f_decoder_variant = ft.RadioGroup(
+            value="epoc12",
+            content=ft.Column([
+                ft.Radio(value="epoc12", label=f"{MONTAGE_PRESETS['epoc12']['label']} (default)"),
+                ft.Radio(value="epoc_dual", label=MONTAGE_PRESETS["epoc_dual"]["label"]),
             ], spacing=st.GAP_XS))
 
         # 2 — protocol
@@ -97,6 +106,14 @@ class StudyWizard:
             card("Study", self.f_name, self.f_desc,
                  ft.Row([self.f_basename, self.f_nsubj], spacing=st.GAP, wrap=True)),
             card("1 · Headset", st.caption("Sets the acquisition source and decoder montage."), self.f_headset),
+            card("1b · EPOC-X decoder variant",
+                 st.caption("Only applies when the headset above is Emotiv EPOC X; ignored for "
+                            "EPOC Flex / Brain Products, which use the research-cap montage. "
+                            "Dual electrode: single-electrode CEN(P8)/DMN(O1) ridges — zero-shot "
+                            "LOSO r=0.118/0.082, both better than the default 12-channel montage's "
+                            "own zero-shot LOSO (r=0.080/0.058) in the same validated procedure; "
+                            "PDA is derived as CEN−DMN rather than independently decoded."),
+                 self.f_decoder_variant),
             card("2 · Protocol",
                  always,
                  self.f_protocol,
@@ -153,7 +170,8 @@ class StudyWizard:
         cfg["subjects"] = {"basename": (self.f_basename.value or "sub").strip(),
                            "n_subjects": int(self._num(self.f_nsubj, 1))}
         cfg["source"]["type"] = preset["source"]
-        cfg["decoder"]["montage"] = preset["montage"]
+        montage = self.f_decoder_variant.value if headset == "epocx" else preset["montage"]
+        cfg["decoder"]["montage"] = montage
         cfg["decoder"]["model_path"] = ""
         cfg["protocol"] = {
             "type": self.f_protocol.value,

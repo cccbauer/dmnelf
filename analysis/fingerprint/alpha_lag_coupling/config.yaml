@@ -1,0 +1,67 @@
+project:
+  name: alpha_lag_coupling
+  description: >
+    Residual-alpha (above the aperiodic 1/f background) lagged coupling with DMN/CEN BOLD,
+    from resting-state EEG-fMRI — adapting the Accumulated Correlation Asymmetry (ACA) method
+    of Jacob et al. 2025 (Biol Psychiatry CNNI, "Noncanonical Neural-Hemodynamic Coupling by
+    Default and in Schizophrenia") to this project's DMN/CEN (DiFuMo-64 composite) targets,
+    rather than their whole-brain/AAL3 parcellation. Unlike efp_meirhasson's frozen sliding-
+    delay ridge (trained on the "feedback"/mbNF task, fixed lag structure baked into the
+    coefficients), this uses only resting-state data and lets the coupling lag vary per
+    subject/region — testing whether a per-subject "optimal lag" alpha feature decodes DMN/CEN
+    at all, and whether coupling is canonical (BOLD lags alpha, ACA>0) or not (ACA<0).
+
+data:
+  eeg_preproc_dir_cluster: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+
+  eeg_preproc_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/cyclic_features
+
+  session: ses-dmnelf
+  task: rest                 # resting-state only (not feedback) — see project.description
+  desc: preproc500Hz         # 32-ch Brain Products research cap, average-referenced, 1-40 Hz
+  n_runs: 2                  # task-rest run-01, run-02 (~7 min each); task-shortrest not used
+
+  # subjects with BOTH local rest EEG (task-rest run-01) and cached rest fMRI features
+  # (sub-<id>_task-rest_run-1_features.npz) — 16/17 DMNELF; dmnelf016 lacks local rest EEG.
+  subjects:
+    all: [dmnelf001, dmnelf004, dmnelf005, dmnelf006, dmnelf007, dmnelf008,
+          dmnelf009, dmnelf010, dmnelf011, dmnelf012, dmnelf013, dmnelf014,
+          dmnelf015, dmnelf1001, dmnelf1002, dmnelf1003]
+    pilot: [dmnelf010]
+
+  fmri:
+    tr: 1.2                  # DMNELF's actual TR (the paper's cohort used a 2 s TR)
+    dmn_idx: 64               # same DiFuMo-64 + 2 composite convention as every other decoder
+    cen_idx: 65               # in this repo (efp_meirhasson, sret_calibration, ...)
+    n_difumo: 64
+
+  eeg:
+    sfreq: 500.0
+    channel: Pz               # posterior midline — the paper's electrode of choice for alpha/DMN
+
+alpha:
+  band_hz: [8, 12]            # residual-alpha band (paper: 8-12 Hz)
+  # aperiodic (FOOOF/specparam) fit range — paper used 1-50 Hz; capped at 40 Hz here because
+  # this repo's EEG preprocessing low-pass-filters at 40 Hz (see EEG_PIPELINE_EXPLAINED.md).
+  aperiodic_fit_range_hz: [1, 40]
+  window_sec: 2.0              # Hanning-window PSD length per TR epoch (paper: 2 s)
+  fooof_max_n_peaks: 6
+  fooof_peak_width_limits: [1, 12]
+
+stockwell:
+  # same S-transform + data-driven equal-energy banding as efp_meirhasson (this project's
+  # best-performing decoder) — reused directly from efp_meirhasson/scripts/efp_features.py
+  # (channel_bandpower/bin_average) rather than reimplemented, matching its config.yaml exactly.
+  freq_min: 1
+  freq_max: 40
+  n_bands: 10
+
+lag:
+  lag_range_sec: [-10, 10]     # BOLD lag relative to alpha; negative = BOLD precedes alpha
+  lag_step_sec: 2.0            # -> 11 lag models, same as the paper
+  # accumulated correlation asymmetry: sum(|r| at lag>=0) - sum(|r| at lag<0). ACA>0 = canonical
+  # (BOLD lags alpha); ACA<0 = noncanonical (BOLD precedes alpha).
+  aca_positive_range_sec: [0, 10]
+  aca_negative_range_sec: [-10, 0]

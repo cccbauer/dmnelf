@@ -207,10 +207,11 @@ def run_dual_ball(engine, stop_event: threading.Event, scale_factor: float = 10.
 
 
 def run_stimulus(engine, mode: str, feedback_cfg: dict, stop_event: threading.Event,
-                 log_dir: Path | None = None, participant: str = "P000", run: int = 1) -> None:
+                 log_dir: Path | None = None, participant: str = "P000", run: int = 1,
+                 session: str = "") -> None:
     """Entry point (main thread). Dispatch to the requested stimulus renderer."""
     if mode == "ball":
-        _run_ball(engine, feedback_cfg, stop_event, log_dir, participant, run)
+        _run_ball(engine, feedback_cfg, stop_event, log_dir, participant, run, session)
     elif mode == "bars":
         _run_bars(engine, feedback_cfg, stop_event)
 
@@ -252,7 +253,7 @@ def _run_bars(engine, feedback_cfg: dict, stop_event: threading.Event) -> None:
 
 # ── ball ─────────────────────────────────────────────────────────────────────
 def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
-              log_dir: Path | None, participant: str, run: int) -> None:
+              log_dir: Path | None, participant: str, run: int, session: str = "") -> None:
     from psychopy import core, event, visual
 
     scale_factor = float(feedback_cfg.get("scale_factor", 10.0))
@@ -302,7 +303,9 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
             Path(log_dir).mkdir(parents=True, exist_ok=True)
             # session-level behavioural log — the ball window spans every block, so one file per
             # session (task-nf); the stage column tags each row. run = the operator's session Run #.
-            fh = open(Path(log_dir) / f"sub-{participant}_task-nf_run-{run:02d}_desc-ball.csv", "w", newline="")
+            ses = f"_ses-{session}" if session else ""
+            fh = open(Path(log_dir) / f"sub-{participant}{ses}_task-nf_run-{run:02d}_desc-ball.csv",
+                     "w", newline="")
             writer = csv.writer(fh)
             writer.writerow(["tr", "stage", "cen", "dmn", "cen_hits", "dmn_hits", "outlier",
                              "ball_y", "top_y", "bottom_y", "scale_factor"])
@@ -419,6 +422,17 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
                 elif phase == "calib_review":
                     msg.text = "Calibration complete — reviewing…"
                     msg.draw()
+                elif phase == "ratings":
+                    # mbNF post-run ratings — blocking (own event loop), so this runs exactly
+                    # once per visit; ratings_submitted() then lets the engine move on to the
+                    # operator's continue/recalibrate choice (or straight to "done" on the last
+                    # run, see SessionEngine._do_task_block).
+                    if last_phase != "ratings":
+                        _run_ratings(win, log_dir, participant, engine.block_run, session)
+                        engine.ratings_submitted()
+                elif phase == "run_choice":
+                    msg.text = "Please wait — the operator is setting up the next run…"
+                    msg.draw()
                 elif phase == "ready":
                     if last_phase != "ready":
                         bring_to_front(win)
@@ -490,11 +504,8 @@ def _run_ball(engine, feedback_cfg: dict, stop_event: threading.Event,
             fh.flush()
             fh.close()
 
-        # mbNF gets the end-of-session ratings; R-mbNF's measure is the per-run up/down reports.
-        completed = engine.completed and not was_escaped
-        if completed and not randomized:
-            _run_ratings(win, log_dir, participant, run)
-
+        # mbNF ratings now happen per-run (phase == "ratings", above), not once at session end;
+        # R-mbNF's measure is the per-run up/down reports instead of ratings at all.
         msg.text = "Thank you!"
         msg.draw()
         win.flip()
@@ -511,7 +522,7 @@ RATING_QUESTIONS = [
 ]
 
 
-def _run_ratings(win, log_dir: Path | None, participant: str, run: int) -> None:
+def _run_ratings(win, log_dir: Path | None, participant: str, run: int, session: str = "") -> None:
     """Post-run 1-5 keypress ratings (direct number keys — no button box needed)."""
     from psychopy import event, visual
 
@@ -547,7 +558,8 @@ def _run_ratings(win, log_dir: Path | None, participant: str, run: int) -> None:
 
     if log_dir is not None:
         Path(log_dir).mkdir(parents=True, exist_ok=True)
-        with open(Path(log_dir) / f"ratings_{participant}_run-{run:02d}.csv", "w", newline="") as f:
+        ses = f"_ses-{session}" if session else ""
+        with open(Path(log_dir) / f"ratings_{participant}{ses}_run-{run:02d}.csv", "w", newline="") as f:
             w = csv.writer(f)
             w.writerow(["question", "response"])
             w.writerows(rows)

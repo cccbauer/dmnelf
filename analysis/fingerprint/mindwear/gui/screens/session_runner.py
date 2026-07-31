@@ -35,6 +35,7 @@ from session_engine import (  # noqa: E402
     EngineConfig,
     SessionEngine,
     adaptive_scale_factor,
+    existing_calibration_path,
     score_contact,
     stream_contact,
     subject_artifacts,
@@ -43,12 +44,13 @@ from session_engine import (  # noqa: E402
 
 
 class SessionRunner:
-    def __init__(self, app, study: StudyConfig, participant: str, run: int):
+    def __init__(self, app, study: StudyConfig, participant: str, run: int, session: str = ""):
         self.app = app
         self.page = app.page
         self.study = study
         self.participant = participant
         self.run = run
+        self.session = session         # BIDS ses- label (visit/day); "" = omitted from filenames
         self.engine: SessionEngine | None = None
         self._stim_stop = threading.Event()
         self._stim_active = False              # True while the PsychoPy stimulus is driving the gates
@@ -117,7 +119,7 @@ class SessionRunner:
         # PDA-z uses a neutral accent (not a network color)
         self.m_pdaz.color = st.ACCENT
 
-        self.run_caption = st.caption(f"  participant {self.participant} · run {self.run}")
+        self.run_caption = st.caption(self._participant_label())
         header = ft.Container(
             content=ft.Row([
                 ft.Row([ft.IconButton(ft.Icons.ARROW_BACK, on_click=lambda _: self._back()),
@@ -156,9 +158,21 @@ class SessionRunner:
                                          vertical_alignment=ft.CrossAxisAlignment.STRETCH)],
                          spacing=0, expand=True)
 
+    def _participant_label(self, suffix: str | None = None) -> str:
+        """Header caption: '  participant <id> [· ses-<session>] · <suffix or run <run>>'."""
+        ses = f" · ses-{self.session}" if self.session else ""
+        return f"  participant {self.participant}{ses} · {suffix if suffix is not None else f'run {self.run}'}"
+
     # ── engine config ────────────────────────────────────────────────────
     def _engine_config(self) -> EngineConfig:
-        cfg = self.study.to_engine_config(self.participant, self.run)
+        # a participant who already has a saved calibration for THIS session (from an earlier
+        # manual run on the same visit/day) skips calibration/transfer entirely and reuses it —
+        # see existing_calibration_path, StudyConfig.to_engine_config, build_blocks(first_run=...).
+        # A different session label (a new visit/day) always calibrates fresh.
+        calib_path = existing_calibration_path(self.participant, session=self.session)
+        cfg = self.study.to_engine_config(self.participant, self.run,
+                                          calib_path=str(calib_path) if calib_path else None,
+                                          bids_session=self.session)
         cfg.bad_channels = list(self.bad_channels)
         return cfg
 
@@ -257,7 +271,19 @@ class SessionRunner:
     def _start(self) -> None:
         if self.engine and self.engine.is_running():
             return
+        calib_path = existing_calibration_path(self.participant)
         existing = subject_artifacts(self.participant)
+        if calib_path is not None:
+            # reusing a saved calibration: its own files (and the once-per-participant transfer
+            # blocks, also skipped — see build_blocks(first_run=False)) are being kept, not
+            # touched, so they don't count as a conflict. Only warn about files THIS run's own
+            # feedback blocks would actually collide with (e.g. re-typing a run # already used).
+            existing = [n for n in existing if "task-calibration" not in n
+                       and "task-transferpre" not in n and "task-transferpost" not in n]
+            if not existing:
+                self._log(f"reusing saved calibration: {calib_path.name}")
+                self._start_engine()
+                return
         if existing:
             self._prompt_overwrite(existing)
             return
@@ -312,7 +338,7 @@ class SessionRunner:
 
     def _next_run(self) -> None:
         self.run += 1
-        self.run_caption.value = f"  participant {self.participant} · run {self.run}"
+        self.run_caption.value = self._participant_label()
         self._safe(self.run_caption.update)
         self._start()
 
@@ -350,13 +376,26 @@ class SessionRunner:
                 self._operator_ready()
             elif phase == "question" and not self._stim_active:
                 self._operator_direction()
+            elif phase == "ratings" and not self._stim_active:
+                # ratings are participant-facing only (gui/stimulus.py); with no stimulus window
+                # there's no one to ask, so don't deadlock the session waiting for them.
+                if self.engine:
+                    self.engine.ratings_submitted()
+            elif phase == "run_choice":
+                # mbNF, between feedback runs: always an operator decision (never shown to the
+                # participant — the stimulus window just displays a "please wait" message during
+                # this phase, see gui/stimulus.py), regardless of whether a stimulus is running.
+                self._show_run_choice()
             if phase == "done":
                 self._reset_buttons()
                 if self.engine and self.engine.log_path:
                     self.csv_text.value = f"log: {self.engine.log_path.name}"
                     self._safe(self.csv_text.update)
-                n_runs = int(self.study.session.get("n_runs", 1))
-                self.btn_next.visible = bool(self.engine and self.engine.completed and self.run < n_runs)
+                # A completed protocol session (calibration + all configured feedback runs, with
+                # any mid-protocol recalibration already handled via the run_choice gate above) is
+                # just finished. btn_next / _next_run() stay in place for the operator to
+                # deliberately start another full session (new participant/day).
+                self.btn_next.visible = False
                 self._safe(self.btn_next.update)
                 if not self.chk_stim.value:
                     # no stimulus window competing for focus — safe to refocus MindWear right away.
@@ -427,6 +466,34 @@ class SessionRunner:
             ])
         self.page.show_dialog(dlg)
 
+    def _show_run_choice(self) -> None:
+        """mbNF, between feedback runs: the participant just finished ratings for the run that
+        ended (engine.block_run) — ask the operator whether to recalibrate before the next run
+        or go straight to it, reusing the current calibration."""
+        finished_run = self.engine.block_run if self.engine else 0
+
+        def decide(recalibrate: bool) -> None:
+            self.page.pop_dialog()
+            if self.engine:
+                if recalibrate:
+                    self.engine.recalibrate_next_run()
+                else:
+                    self.engine.continue_next_run()
+
+        dlg = ft.AlertDialog(
+            title=ft.Text(f"Run {finished_run} complete"),
+            content=ft.Container(
+                content=ft.Text("Recalibrate before the next feedback run, or continue with the "
+                                "current calibration?"),
+                width=380),
+            actions=[
+                ft.OutlinedButton("Recalibrate", icon=ft.Icons.REPLAY,
+                                  on_click=lambda _: decide(True)),
+                ft.FilledButton("Continue to next run", icon=ft.Icons.PLAY_ARROW,
+                               on_click=lambda _: decide(False)),
+            ])
+        self.page.show_dialog(dlg)
+
     def _on_status(self, msg: str) -> None:
         color = st.ERROR if msg.startswith("ERROR") else st.MUTED
         self._ui(lambda: (self._set_status_now(msg, color), self._log_now(msg)))
@@ -439,7 +506,7 @@ class SessionRunner:
                 self.plot.reset(self._block_secs.get(key))
                 label = {"transferpre": "transfer (pre)", "transferpost": "transfer (post)"}.get(
                     u.stage, f"feedback run {u.run}")
-                self.run_caption.value = f"  participant {self.participant} · {label}"
+                self.run_caption.value = self._participant_label(label)
                 self._safe(self.run_caption.update)
             self.plot.add(u.cen, u.dmn, u.pda)
             self.m_cen.value = f"{u.cen:+.3f}"
@@ -472,13 +539,14 @@ class SessionRunner:
     def _stimulus_loop(self, mode: str) -> None:
         from ..stimulus import run_stimulus
         fb_cfg = dict(self.study.feedback)
-        fb_cfg["scale_factor"] = scale = adaptive_scale_factor(self.participant, self.run)
+        fb_cfg["scale_factor"] = scale = adaptive_scale_factor(self.participant, self.run,
+                                                                session=self.session)
         self._log(f"ball scale factor: {scale:.2f} (adaptive, from run {self.run - 1})"
                  if self.run > 1 else f"ball scale factor: {scale:.2f} (default, run 1)")
         try:
             run_stimulus(self.engine, mode, fb_cfg, self._stim_stop,
                          log_dir=Path(self._engine_config().log_dir),
-                         participant=self.participant, run=self.run)
+                         participant=self.participant, run=self.run, session=self.session)
         except Exception as exc:
             self._log(f"stimulus error: {exc}")
         finally:
