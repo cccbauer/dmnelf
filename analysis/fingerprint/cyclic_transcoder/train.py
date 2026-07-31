@@ -137,6 +137,10 @@ def train(left_out_subject, cfg, resume=False):
     n_epochs = t_cfg["n_epochs"]
     val_interval = t_cfg.get("val_interval", 5)
     patience = t_cfg["early_stopping_patience"]
+    # Which val loss drives checkpointing / early stop / LR plateau.
+    # "pda" = the prediction target; "total" = legacy reconstruction objective.
+    monitor = t_cfg.get("monitor_metric", "total")
+    print(f"  monitoring val '{monitor}' for checkpoint selection")
 
     start_epoch = 0
     best_val_loss = float("inf")
@@ -159,11 +163,11 @@ def train(left_out_subject, cfg, resume=False):
             # Validate every val_interval epochs
             if (epoch + 1) % val_interval == 0 or epoch == n_epochs - 1:
                 val_losses = run_epoch(model, val_loader, optimizer, weights, device, train=False)
-                scheduler.step(val_losses["total"])
+                scheduler.step(val_losses[monitor])
 
-                improved = val_losses["total"] < best_val_loss
+                improved = val_losses[monitor] < best_val_loss
                 if improved:
-                    best_val_loss = val_losses["total"]
+                    best_val_loss = val_losses[monitor]
                     patience_counter = 0
                     save_checkpoint(
                         {"epoch": epoch + 1, "model": model.state_dict(),

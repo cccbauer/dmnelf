@@ -176,11 +176,15 @@ class CyclicTranscoder(nn.Module):
         loss_pda = self._mse(pda_pred, pda_true)
 
         # --- Weighted total ---
+        # NOTE: PDA (CEN-DMN on the EEG->fMRI transcode) is the actual prediction
+        # target. Earlier configs omitted it, so the model was never supervised on
+        # it; weights.get keeps backward compat (missing key => 0 contribution).
         total = (
             weights["eeg_cycle"]       * loss_eeg_cycle
             + weights["fmri_cycle"]    * loss_fmri_cycle
             + weights["eeg_transcoder"]  * loss_eeg_xcode
             + weights["fmri_transcoder"] * loss_fmri_xcode
+            + weights.get("pda", 0.0)    * loss_pda
         )
 
         return {

@@ -1,0 +1,53 @@
+project:
+  name: infraslow_pda_dmnelf
+  base_dir: /projects/swglab/data/DMNELF/analysis/fingerprint/infraslow_pda
+
+# Within-subject PDA decoder from INFRASLOW EEG (sibling to microstate_pda /
+# spectral_power_pda). Feature = per-TR block-mean of DC-coupled 0.01-40 Hz EEG
+# (desc-preproc500HzISp01), which preserves the <0.1 Hz infraslow band that the
+# legacy 1-40 Hz preprocessing (desc-preproc500Hz) destroyed.
+#
+# The PDA target (CEN-DMN, fMRI) and the 1-40 Hz baseline block-means are reused
+# from the cyclic_features npz (shared fMRI-derived target), so features_dir
+# points there. Infraslow EEG is read from the eeg_preprocessed tree by desc.
+
+data:
+  eeg_preproc_dir: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  # machine-aware: load_config() picks _cluster when /projects/swglab exists
+  features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  features_dir_local: /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_local
+
+  session: ses-dmnelf
+
+  subjects:
+    all:
+      - dmnelf001
+      - dmnelf004
+      - dmnelf005
+      - dmnelf006
+      - dmnelf007
+      - dmnelf008
+      - dmnelf009
+      - dmnelf010
+      - dmnelf011
+      - dmnelf012
+      - dmnelf013
+      - dmnelf014
+      - dmnelf015
+      - dmnelf1001
+      - dmnelf1002
+      - dmnelf1003
+    exclude: []
+
+  tasks:
+    train: [rest]        # train decoder on subject's OWN rest
+    test:  [feedback]    # predict subject's OWN feedback PDA
+
+  fmri:
+    tr: 1.2
+
+  eeg:
+    sfreq: 500.0
+    samples_per_tr: 600          # 500 Hz * 1.2 s
+    desc: preproc500Hz           # 1-40 Hz baseline (control)
+    desc_infraslow: preproc500HzISp01   # 0.01-40 Hz infraslow (the feature)

@@ -9,8 +9,8 @@ data:
   # Machine-aware: load_config() picks _cluster when /projects/swglab exists
   # (Explorer + compute nodes), otherwise _local (Mac). Keeps one committed
   # config working on both, and rsync no longer clobbers the cluster path.
-  features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
-  features_dir_local: /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_local
+  features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features_infraslow
+  features_dir_local: /Users/cccbauer/Documents/GitHub/dmnelf/analysis/fingerprint/cyclic_transcoder/cyclic_features_infraslow_local
   personal_masks_dir: /projects/swglab/data/DMNELF/derivatives/network_masks
   difumo_cache_dir: /projects/swglab/data/DMNELF/derivatives/difumo_atlas
 
@@ -88,8 +88,7 @@ data:
     eeg_channels_exclude:   # dropped before block-averaging
       - ECG
     samples_per_tr: 600     # 500 Hz * 1.2 s
-    desc: preproc500Hz
-    desc: preproc500Hz      # selects *_desc-preproc500Hz_eeg.fif
+    desc: preproc500HzISp01      # INFRASLOW 0.01-40Hz (recovered DC-coupled band)
 
   masks:
     # Actual filenames: sub-{subject}_space-MNI152NLin6Asym_res-2_dmn_mask.nii.gz
@@ -125,7 +124,7 @@ training:
     fmri_transcoder: 1.0
     pda: 10.0              # supervises the actual target (CEN-DMN); 0 = legacy behavior
   monitor_metric: pda      # checkpoint/early-stop on this val loss (pda | total)
-  checkpoint_dir: checkpoints
+  checkpoint_dir: checkpoints_infraslow
   early_stopping_patience: 100  # increased — val loss noisy with few windows
   val_interval: 5
 

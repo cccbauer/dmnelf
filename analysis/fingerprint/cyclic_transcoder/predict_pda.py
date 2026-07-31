@@ -76,6 +76,7 @@ def predict_subject(subject, cfg, task="feedback"):
     window_trs = cfg["data"]["windowing"]["window_trs"]
 
     all_pda = []
+    all_pda_true = []
     all_fmri_hat = []
     all_fmri_true = []
 
@@ -83,6 +84,7 @@ def predict_subject(subject, cfg, task="feedback"):
         for batch in loader:
             eeg  = batch["eeg"].to(device)   # (B, 31, T)
             fmri = batch["fmri"].to(device)  # (B, 66, T)
+            pda  = batch["pda"]              # (B, T)  ground-truth CEN-DMN
 
             fmri_hat = model.eeg_to_fmri(eeg)  # (B, 66, T)
             pda_pred = (
@@ -90,33 +92,40 @@ def predict_subject(subject, cfg, task="feedback"):
                 - fmri_hat[:, CyclicTranscoder.DMN_IDX, :]
             )  # (B, T)
 
-            # Collect first element of each window (non-overlapping stride=window_trs)
             all_pda.append(pda_pred.cpu().numpy())
+            all_pda_true.append(pda.numpy())
             all_fmri_hat.append(fmri_hat.cpu().numpy())
             all_fmri_true.append(fmri.cpu().numpy())
 
-    # Concatenate windows along time axis: reshape (n_windows, B, T) → (total_T,)
-    pda_arr     = np.concatenate([w.reshape(-1) for w in all_pda])
-    fmri_hat_arr = np.concatenate([w.reshape(w.shape[0] * w.shape[1], w.shape[2]).T
-                                    for w in all_fmri_hat], axis=1)  # (66, total_T)
-    fmri_true_arr = np.concatenate([w.reshape(w.shape[0] * w.shape[1], w.shape[2]).T
-                                     for w in all_fmri_true], axis=1)
+    # Flatten windows to a single timeseries in temporal order. Windows are
+    # non-overlapping (stride=window_trs) and the loader is shuffle=False, so
+    # sample-major row-major flatten == temporal order:
+    #   (B, T) -> [s0t0..s0tN, s1t0..s1tN, ...]
+    def flatten_time(chunks):                       # list of (B, T) -> (total_T,)
+        return np.concatenate([w.reshape(-1) for w in chunks])
 
-    # Pearson correlation between predicted and true PDA
-    if len(pda_arr) > 1 and "pda" in loader.dataset._load_npz_cache[
-        str(loader.dataset.index[0][0])
-    ]:
-        pda_true = np.concatenate(
-            [batch["pda"].numpy().reshape(-1) for batch in loader]
+    def flatten_parcels(chunks):                    # list of (B, P, T) -> (P, total_T)
+        # transpose to (P, B, T) then reshape (P, B*T): keeps sample-major time,
+        # so column ordering matches flatten_time above.
+        return np.concatenate(
+            [w.transpose(1, 0, 2).reshape(w.shape[1], -1) for w in chunks], axis=1
         )
-        if len(pda_true) == len(pda_arr):
-            r = np.corrcoef(pda_arr, pda_true[:len(pda_arr)])[0, 1]
-            print(f"  PDA correlation (pred vs true): r = {r:.4f}")
+
+    pda_arr       = flatten_time(all_pda)          # (total_T,)  predicted CEN-DMN
+    pda_true_arr  = flatten_time(all_pda_true)     # (total_T,)  true CEN-DMN
+    fmri_hat_arr  = flatten_parcels(all_fmri_hat)  # (66, total_T)
+    fmri_true_arr = flatten_parcels(all_fmri_true) # (66, total_T)
+
+    # Pearson correlation between predicted and true PDA (honest, full length)
+    if len(pda_arr) > 1 and len(pda_true_arr) == len(pda_arr):
+        r = np.corrcoef(pda_arr, pda_true_arr)[0, 1]
+        print(f"  PDA correlation (pred vs true): r = {r:.4f}")
 
     out_path = out_dir / f"sub-{subject}_task-{task}_pda_prediction.npz"
     np.savez(
         out_path,
         pda_predicted=pda_arr,        # (T,)
+        pda_true=pda_true_arr,        # (T,)  ground-truth CEN-DMN, aligned with pred
         fmri_predicted=fmri_hat_arr,  # (66, T)
         fmri_true=fmri_true_arr,      # (66, T)
         subject=subject,

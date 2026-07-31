@@ -50,11 +50,14 @@ def load_config(path):
 def load_predictions(pred_path):
     """Load prediction .npz file."""
     data = np.load(pred_path, allow_pickle=True)
+    # Prefer the explicitly-saved, aligned ground-truth PDA (predict_pda.py >= the
+    # save-reshape fix). Older files lack it; reconstructing from the legacy
+    # `fmri_true` array is unreliable (it was saved with a scrambled reshape), so
+    # fall back to None and let the caller decide.
+    pda_true = np.asarray(data["pda_true"]) if "pda_true" in data.files else None
     return {
         "pda_pred": data["pda_predicted"],
-        "pda_true": data["fmri_true"][:, data["dmn_idx"]:data["dmn_idx"]+1].mean(axis=1) - 
-                    data["fmri_true"][:, data["cen_idx"]:data["cen_idx"]+1].mean(axis=1)
-                    if "fmri_true" in data else None,
+        "pda_true": pda_true,
         "fmri_pred": data["fmri_predicted"],
         "fmri_true": data["fmri_true"],
         "subject": str(data["subject"]),
