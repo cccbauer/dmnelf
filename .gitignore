@@ -48,3 +48,6 @@ analysis/fingerprint/fsnr_eeg/results/pertr_fsnr/*.npz
 analysis/fingerprint/fsnr_eeg/results/cen_ceiling/*.npz
 
 # EFP CEN clean re-scoring per-subject csvs kept; nothing to ignore
+
+# Raw participant data (DMNELF, rtBPD) — 90+ GB, never belongs in git
+/data/
