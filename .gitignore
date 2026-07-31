@@ -46,3 +46,5 @@ analysis/fingerprint/fsnr_eeg/results/pertr_fsnr/*.npz
 
 # CEN ceiling target/reliability caches (regenerable on cluster)
 analysis/fingerprint/fsnr_eeg/results/cen_ceiling/*.npz
+
+# EFP CEN clean re-scoring per-subject csvs kept; nothing to ignore
