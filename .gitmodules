@@ -1,0 +1,12 @@
+[submodule "analysis/pineuro"]
+	path = analysis/pineuro
+	url = https://github.com/marlvan/pineuro.git
+[submodule "analysis/fingerprint/microstate_pda"]
+	path = analysis/fingerprint/microstate_pda
+	url = https://github.com/cccbauer/microstate_pda.git
+[submodule "analysis/fingerprint/spectral_power_pda"]
+	path = analysis/fingerprint/spectral_power_pda
+	url = https://github.com/cccbauer/spectral_power_pda.git
+[submodule "analysis/fingerprint/adaptive_sync_dmnelf"]
+	path = analysis/fingerprint/adaptive_sync_dmnelf
+	url = https://github.com/cccbauer/adaptive_sync_dmnelf.git
