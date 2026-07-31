@@ -1,0 +1,229 @@
+record_id,measure,Baseline,Post-treatment,1 month,3 month,6 month
+mbNF01,PAI-BOR total (0-72),55,NA,41,28,38
+mbNF01,"ZAN-BPD-SR total (8 items, 0-32)",19,NA,7,2,3
+mbNF01,PHQ-9 total (0-27),18,NA,16,9,13
+mbNF01,PANAS trait negative affect (10-50),41,NA,28,17,25
+mbNF01,PANAS trait positive affect (10-50),24,NA,40,40,39
+mbNF02,PAI-BOR total (0-72),48,49,29,27,39
+mbNF02,"ZAN-BPD-SR total (8 items, 0-32)",20,7,11,4,18
+mbNF02,PHQ-9 total (0-27),16,11,12,9,14
+mbNF02,PANAS trait negative affect (10-50),28,35,29,15,36
+mbNF02,PANAS trait positive affect (10-50),29,43,36,45,35
+mbNF03,PAI-BOR total (0-72),43,38,41,33,32
+mbNF03,"ZAN-BPD-SR total (8 items, 0-32)",14,15,12,10,12
+mbNF03,PHQ-9 total (0-27),19,19,16,14,14
+mbNF03,PANAS trait negative affect (10-50),32,33,31,29,31
+mbNF03,PANAS trait positive affect (10-50),25,25,28,26,22
+mbNF04,PAI-BOR total (0-72),56,NA,NA,NA,NA
+mbNF04,"ZAN-BPD-SR total (8 items, 0-32)",12,NA,NA,NA,NA
+mbNF04,PHQ-9 total (0-27),9,NA,NA,NA,NA
+mbNF04,PANAS trait negative affect (10-50),24,NA,NA,NA,NA
+mbNF04,PANAS trait positive affect (10-50),16,NA,NA,NA,NA
+mbNF05,PAI-BOR total (0-72),42,NA,NA,NA,NA
+mbNF05,"ZAN-BPD-SR total (8 items, 0-32)",14,NA,NA,NA,NA
+mbNF05,PHQ-9 total (0-27),10,NA,NA,NA,NA
+mbNF05,PANAS trait negative affect (10-50),37,NA,NA,NA,NA
+mbNF05,PANAS trait positive affect (10-50),25,NA,NA,NA,NA
+mbNF06,PAI-BOR total (0-72),50,NA,NA,NA,NA
+mbNF06,"ZAN-BPD-SR total (8 items, 0-32)",20,NA,NA,NA,NA
+mbNF06,PHQ-9 total (0-27),22,NA,NA,NA,NA
+mbNF06,PANAS trait negative affect (10-50),41,NA,NA,NA,NA
+mbNF06,PANAS trait positive affect (10-50),23,NA,NA,NA,NA
+mbNF07,PAI-BOR total (0-72),32,NA,NA,NA,NA
+mbNF07,"ZAN-BPD-SR total (8 items, 0-32)",12,NA,NA,NA,NA
+mbNF07,PHQ-9 total (0-27),3,NA,NA,NA,NA
+mbNF07,PANAS trait negative affect (10-50),24,NA,NA,NA,NA
+mbNF07,PANAS trait positive affect (10-50),32,NA,NA,NA,NA
+mbNF08,PAI-BOR total (0-72),33,NA,NA,NA,NA
+mbNF08,"ZAN-BPD-SR total (8 items, 0-32)",4,NA,NA,NA,NA
+mbNF08,PHQ-9 total (0-27),5,NA,NA,NA,NA
+mbNF08,PANAS trait negative affect (10-50),28,NA,NA,NA,NA
+mbNF08,PANAS trait positive affect (10-50),37,NA,NA,NA,NA
+mbNF09,PAI-BOR total (0-72),56,56,57,55,53
+mbNF09,"ZAN-BPD-SR total (8 items, 0-32)",10,14,13,13,12
+mbNF09,PHQ-9 total (0-27),16,13,14,20,13
+mbNF09,PANAS trait negative affect (10-50),43,34,37,43,39
+mbNF09,PANAS trait positive affect (10-50),34,30,27,27,27
+mbNF10,PAI-BOR total (0-72),55,51,57,53,52
+mbNF10,"ZAN-BPD-SR total (8 items, 0-32)",14,13,21,17,12
+mbNF10,PHQ-9 total (0-27),8,9,5,15,6
+mbNF10,PANAS trait negative affect (10-50),26,19,24,20,21
+mbNF10,PANAS trait positive affect (10-50),32,22,22,28,21
+mbNF11,PAI-BOR total (0-72),47,47,NA,49,NA
+mbNF11,"ZAN-BPD-SR total (8 items, 0-32)",15,5,NA,10,NA
+mbNF11,PHQ-9 total (0-27),10,7,NA,5,NA
+mbNF11,PANAS trait negative affect (10-50),31,24,NA,29,NA
+mbNF11,PANAS trait positive affect (10-50),23,28,NA,29,NA
+mbNF12,PAI-BOR total (0-72),40,NA,NA,NA,NA
+mbNF12,"ZAN-BPD-SR total (8 items, 0-32)",13,NA,NA,NA,NA
+mbNF12,PHQ-9 total (0-27),6,NA,NA,NA,NA
+mbNF12,PANAS trait negative affect (10-50),29,NA,NA,NA,NA
+mbNF12,PANAS trait positive affect (10-50),26,NA,NA,NA,NA
+mbNF13,PAI-BOR total (0-72),40,45,38,NA,NA
+mbNF13,"ZAN-BPD-SR total (8 items, 0-32)",11,13,15,NA,NA
+mbNF13,PHQ-9 total (0-27),19,18,18,NA,NA
+mbNF13,PANAS trait negative affect (10-50),30,10,27,NA,NA
+mbNF13,PANAS trait positive affect (10-50),30,10,26,NA,NA
+mbNF14,PAI-BOR total (0-72),36,NA,NA,NA,NA
+mbNF14,"ZAN-BPD-SR total (8 items, 0-32)",10,NA,NA,NA,NA
+mbNF14,PHQ-9 total (0-27),8,NA,NA,NA,NA
+mbNF14,PANAS trait negative affect (10-50),32,NA,NA,NA,NA
+mbNF14,PANAS trait positive affect (10-50),31,NA,NA,NA,NA
+mbNF15,PAI-BOR total (0-72),52,45,49,38,45
+mbNF15,"ZAN-BPD-SR total (8 items, 0-32)",13,8,10,8,7
+mbNF15,PHQ-9 total (0-27),10,15,8,11,11
+mbNF15,PANAS trait negative affect (10-50),41,29,31,34,35
+mbNF15,PANAS trait positive affect (10-50),31,25,32,24,30
+mbNF16,PAI-BOR total (0-72),35,NA,NA,NA,NA
+mbNF16,"ZAN-BPD-SR total (8 items, 0-32)",4,NA,NA,NA,NA
+mbNF16,PHQ-9 total (0-27),9,NA,NA,NA,NA
+mbNF16,PANAS trait negative affect (10-50),28,NA,NA,NA,NA
+mbNF16,PANAS trait positive affect (10-50),44,NA,NA,NA,NA
+mbNF17,PAI-BOR total (0-72),49,NA,NA,NA,NA
+mbNF17,"ZAN-BPD-SR total (8 items, 0-32)",11,NA,NA,NA,NA
+mbNF17,PHQ-9 total (0-27),9,NA,NA,NA,NA
+mbNF17,PANAS trait negative affect (10-50),26,NA,NA,NA,NA
+mbNF17,PANAS trait positive affect (10-50),31,NA,NA,NA,NA
+mbNF18,PAI-BOR total (0-72),48,35,37,41,NA
+mbNF18,"ZAN-BPD-SR total (8 items, 0-32)",13,6,7,11,NA
+mbNF18,PHQ-9 total (0-27),17,12,7,11,NA
+mbNF18,PANAS trait negative affect (10-50),29,21,15,24,NA
+mbNF18,PANAS trait positive affect (10-50),24,32,33,33,NA
+mbNF19,PAI-BOR total (0-72),35,NA,NA,NA,NA
+mbNF19,"ZAN-BPD-SR total (8 items, 0-32)",0,NA,NA,NA,NA
+mbNF19,PHQ-9 total (0-27),10,NA,NA,NA,NA
+mbNF19,PANAS trait negative affect (10-50),18,NA,NA,NA,NA
+mbNF19,PANAS trait positive affect (10-50),19,NA,NA,NA,NA
+mbNF20,PAI-BOR total (0-72),49,NA,NA,NA,NA
+mbNF20,"ZAN-BPD-SR total (8 items, 0-32)",17,NA,NA,NA,NA
+mbNF20,PHQ-9 total (0-27),8,NA,NA,NA,NA
+mbNF20,PANAS trait negative affect (10-50),39,NA,NA,NA,NA
+mbNF20,PANAS trait positive affect (10-50),28,NA,NA,NA,NA
+mbNF21,PAI-BOR total (0-72),48,NA,NA,NA,NA
+mbNF21,"ZAN-BPD-SR total (8 items, 0-32)",14,NA,NA,NA,NA
+mbNF21,PHQ-9 total (0-27),12,NA,NA,NA,NA
+mbNF21,PANAS trait negative affect (10-50),33,NA,NA,NA,NA
+mbNF21,PANAS trait positive affect (10-50),23,NA,NA,NA,NA
+mbNF22,PAI-BOR total (0-72),57,NA,41,33,36
+mbNF22,"ZAN-BPD-SR total (8 items, 0-32)",15,NA,16,8,13
+mbNF22,PHQ-9 total (0-27),14,NA,6,8,9
+mbNF22,PANAS trait negative affect (10-50),38,NA,33,26,31
+mbNF22,PANAS trait positive affect (10-50),33,NA,34,24,24
+mbNF24,PAI-BOR total (0-72),61,NA,NA,NA,NA
+mbNF24,"ZAN-BPD-SR total (8 items, 0-32)",28,NA,NA,NA,NA
+mbNF24,PHQ-9 total (0-27),4,NA,NA,NA,NA
+mbNF24,PANAS trait negative affect (10-50),44,NA,NA,NA,NA
+mbNF24,PANAS trait positive affect (10-50),38,NA,NA,NA,NA
+mbNF25,PAI-BOR total (0-72),23,NA,NA,NA,NA
+mbNF25,"ZAN-BPD-SR total (8 items, 0-32)",5,NA,NA,NA,NA
+mbNF25,PHQ-9 total (0-27),11,NA,NA,NA,NA
+mbNF25,PANAS trait negative affect (10-50),20,NA,NA,NA,NA
+mbNF25,PANAS trait positive affect (10-50),26,NA,NA,NA,NA
+mbNF26,PAI-BOR total (0-72),48,46,60,46,NA
+mbNF26,"ZAN-BPD-SR total (8 items, 0-32)",16,20,24,18,NA
+mbNF26,PHQ-9 total (0-27),24,21,22,21,NA
+mbNF26,PANAS trait negative affect (10-50),46,32,46,30,NA
+mbNF26,PANAS trait positive affect (10-50),18,30,18,28,NA
+mbNF27,PAI-BOR total (0-72),47,50,48,46,NA
+mbNF27,"ZAN-BPD-SR total (8 items, 0-32)",11,8,12,5,NA
+mbNF27,PHQ-9 total (0-27),16,10,12,7,NA
+mbNF27,PANAS trait negative affect (10-50),28,34,28,26,NA
+mbNF27,PANAS trait positive affect (10-50),23,24,23,29,NA
+mbNF28,PAI-BOR total (0-72),49,52,50,48,NA
+mbNF28,"ZAN-BPD-SR total (8 items, 0-32)",17,14,13,13,NA
+mbNF28,PHQ-9 total (0-27),17,5,6,3,NA
+mbNF28,PANAS trait negative affect (10-50),33,18,27,32,NA
+mbNF28,PANAS trait positive affect (10-50),32,27,31,33,NA
+mbNF29,PAI-BOR total (0-72),55,NA,NA,NA,NA
+mbNF29,"ZAN-BPD-SR total (8 items, 0-32)",14,NA,NA,NA,NA
+mbNF29,PHQ-9 total (0-27),16,NA,NA,NA,NA
+mbNF29,PANAS trait negative affect (10-50),28,NA,NA,NA,NA
+mbNF29,PANAS trait positive affect (10-50),24,NA,NA,NA,NA
+mbNF30,PAI-BOR total (0-72),48,45,44,43,NA
+mbNF30,"ZAN-BPD-SR total (8 items, 0-32)",22,15,12,16,NA
+mbNF30,PHQ-9 total (0-27),18,15,13,17,NA
+mbNF30,PANAS trait negative affect (10-50),32,24,31,32,NA
+mbNF30,PANAS trait positive affect (10-50),26,24,35,27,NA
+mbNF31,PAI-BOR total (0-72),34,NA,NA,NA,NA
+mbNF31,"ZAN-BPD-SR total (8 items, 0-32)",9,NA,NA,NA,NA
+mbNF31,PHQ-9 total (0-27),5,NA,NA,NA,NA
+mbNF31,PANAS trait negative affect (10-50),29,NA,NA,NA,NA
+mbNF31,PANAS trait positive affect (10-50),30,NA,NA,NA,NA
+mbNF32,PAI-BOR total (0-72),39,47,45,NA,NA
+mbNF32,"ZAN-BPD-SR total (8 items, 0-32)",8,9,10,NA,NA
+mbNF32,PHQ-9 total (0-27),15,11,13,NA,NA
+mbNF32,PANAS trait negative affect (10-50),28,30,31,NA,NA
+mbNF32,PANAS trait positive affect (10-50),29,25,27,NA,NA
+mbNF33,PAI-BOR total (0-72),37,NA,NA,NA,NA
+mbNF33,"ZAN-BPD-SR total (8 items, 0-32)",8,NA,NA,NA,NA
+mbNF33,PHQ-9 total (0-27),6,NA,NA,NA,NA
+mbNF33,PANAS trait negative affect (10-50),29,NA,NA,NA,NA
+mbNF33,PANAS trait positive affect (10-50),28,NA,NA,NA,NA
+mbNF34,PAI-BOR total (0-72),48,NA,NA,NA,NA
+mbNF34,"ZAN-BPD-SR total (8 items, 0-32)",18,NA,NA,NA,NA
+mbNF34,PHQ-9 total (0-27),20,NA,NA,NA,NA
+mbNF34,PANAS trait negative affect (10-50),34,NA,NA,NA,NA
+mbNF34,PANAS trait positive affect (10-50),28,NA,NA,NA,NA
+mbNF35,PAI-BOR total (0-72),41,NA,NA,NA,NA
+mbNF35,"ZAN-BPD-SR total (8 items, 0-32)",16,NA,NA,NA,NA
+mbNF35,PHQ-9 total (0-27),14,NA,NA,NA,NA
+mbNF35,PANAS trait negative affect (10-50),32,NA,NA,NA,NA
+mbNF35,PANAS trait positive affect (10-50),28,NA,NA,NA,NA
+mbNF36,PAI-BOR total (0-72),47,NA,NA,NA,NA
+mbNF36,"ZAN-BPD-SR total (8 items, 0-32)",10,NA,NA,NA,NA
+mbNF36,PHQ-9 total (0-27),13,NA,NA,NA,NA
+mbNF36,PANAS trait negative affect (10-50),33,NA,NA,NA,NA
+mbNF36,PANAS trait positive affect (10-50),20,NA,NA,NA,NA
+mbNF37,PAI-BOR total (0-72),33,NA,NA,NA,NA
+mbNF37,"ZAN-BPD-SR total (8 items, 0-32)",5,NA,NA,NA,NA
+mbNF37,PHQ-9 total (0-27),9,NA,NA,NA,NA
+mbNF37,PANAS trait negative affect (10-50),20,NA,NA,NA,NA
+mbNF37,PANAS trait positive affect (10-50),19,NA,NA,NA,NA
+mbNF38,PAI-BOR total (0-72),38,31,22,NA,NA
+mbNF38,"ZAN-BPD-SR total (8 items, 0-32)",7,3,2,NA,NA
+mbNF38,PHQ-9 total (0-27),9,3,0,NA,NA
+mbNF38,PANAS trait negative affect (10-50),28,16,14,NA,NA
+mbNF38,PANAS trait positive affect (10-50),30,19,19,NA,NA
+mbNF39,PAI-BOR total (0-72),45,46,45,NA,NA
+mbNF39,"ZAN-BPD-SR total (8 items, 0-32)",16,13,11,NA,NA
+mbNF39,PHQ-9 total (0-27),25,22,14,NA,NA
+mbNF39,PANAS trait negative affect (10-50),30,30,13,NA,NA
+mbNF39,PANAS trait positive affect (10-50),28,31,20,NA,NA
+mbNF40,PAI-BOR total (0-72),54,NA,NA,NA,NA
+mbNF40,"ZAN-BPD-SR total (8 items, 0-32)",17,NA,NA,NA,NA
+mbNF40,PHQ-9 total (0-27),17,NA,NA,NA,NA
+mbNF40,PANAS trait negative affect (10-50),31,NA,NA,NA,NA
+mbNF40,PANAS trait positive affect (10-50),32,NA,NA,NA,NA
+mbNF41,PAI-BOR total (0-72),57,16,25,NA,NA
+mbNF41,"ZAN-BPD-SR total (8 items, 0-32)",18,3,7,NA,NA
+mbNF41,PHQ-9 total (0-27),13,3,2,NA,NA
+mbNF41,PANAS trait negative affect (10-50),27,22,16,NA,NA
+mbNF41,PANAS trait positive affect (10-50),41,50,48,NA,NA
+mbNF43,PAI-BOR total (0-72),49,NA,NA,NA,NA
+mbNF43,"ZAN-BPD-SR total (8 items, 0-32)",12,NA,NA,NA,NA
+mbNF43,PHQ-9 total (0-27),6,NA,NA,NA,NA
+mbNF43,PANAS trait negative affect (10-50),32,NA,NA,NA,NA
+mbNF43,PANAS trait positive affect (10-50),32,NA,NA,NA,NA
+mbNF44,PAI-BOR total (0-72),54,NA,NA,NA,NA
+mbNF44,"ZAN-BPD-SR total (8 items, 0-32)",19,NA,NA,NA,NA
+mbNF44,PHQ-9 total (0-27),15,NA,NA,NA,NA
+mbNF44,PANAS trait negative affect (10-50),46,NA,NA,NA,NA
+mbNF44,PANAS trait positive affect (10-50),27,NA,NA,NA,NA
+mbNF45,PAI-BOR total (0-72),56,43,26,NA,NA
+mbNF45,"ZAN-BPD-SR total (8 items, 0-32)",12,9,3,NA,NA
+mbNF45,PHQ-9 total (0-27),8,8,2,NA,NA
+mbNF45,PANAS trait negative affect (10-50),31,26,19,NA,NA
+mbNF45,PANAS trait positive affect (10-50),31,34,36,NA,NA
+mbNF46,PAI-BOR total (0-72),54,49,NA,NA,NA
+mbNF46,"ZAN-BPD-SR total (8 items, 0-32)",13,13,NA,NA,NA
+mbNF46,PHQ-9 total (0-27),13,21,NA,NA,NA
+mbNF46,PANAS trait negative affect (10-50),36,22,NA,NA,NA
+mbNF46,PANAS trait positive affect (10-50),26,23,NA,NA,NA
+mbNF47,PAI-BOR total (0-72),36,NA,NA,NA,NA
+mbNF47,"ZAN-BPD-SR total (8 items, 0-32)",7,NA,NA,NA,NA
+mbNF47,PHQ-9 total (0-27),7,NA,NA,NA,NA
+mbNF48,PAI-BOR total (0-72),48,35,NA,NA,NA
+mbNF48,"ZAN-BPD-SR total (8 items, 0-32)",18,4,NA,NA,NA
+mbNF48,PHQ-9 total (0-27),19,18,NA,NA,NA
+mbNF48,PANAS trait negative affect (10-50),20,35, NA,NA,NA
+mbNF48,PANAS trait positive affect (10-50),

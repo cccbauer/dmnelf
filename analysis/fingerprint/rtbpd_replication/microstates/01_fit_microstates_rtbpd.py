@@ -1,0 +1,431 @@
+# 01_fit_microstates_rtbpd.py
+# Run locally: python 01_fit_microstates_rtbpd.py
+# Deploys cluster script, submits SLURM job, monitors.
+#
+# What it does on the cluster:
+#   - Loads rest EEG for the 15 rtBPD nf1 subjects with a complete 4-run
+#     rest set (config_rtbpd_ms.SUBJECTS), pooling GFP peaks across ALL 4
+#     runs (pre 01/02 + post 03/04) per subject so pre and post share one
+#     common template set — required for a valid pre/post contrast later.
+#   - Excludes TP9/TP10 (EEG-fMRI-artifact-prone) + ECG/EKG/EMG/EOG/STIM/
+#     STATUS (substring match — mirrors DMNELF's 01_fit_microstates.py
+#     load_eeg() exactly; see config_rtbpd_ms.EXCLUDE_CHS comment).
+#   - Extracts GFP peaks, rejects outliers > 3 SD.
+#   - Runs polarity-invariant k-means (k=7, Custo 2017).
+#   - Matches fitted maps to canonical networks (identical signature dict
+#     to DMNELF — Phase 0 confirmed all channel names transfer 1:1).
+#   - Saves templates_500Hz.npy (7, n_ch), assignments_500Hz.json, and
+#     channels_500Hz.json (the retained channel-name list, so downstream
+#     steps 02/03 don't have to re-derive it via glob + drop logic).
+
+import py_compile
+import time
+from pathlib import Path
+from utils_cluster import run_ssh, scp_to, make_cluster_dirs
+from config_rtbpd_ms import (
+    CLUSTER_BASE, SLURM_ACCOUNT, PYTHON,
+    SUBJECTS, EEG_ROOT, SESSION, ALL_RUNS,
+    SFREQ, SFREQ_TAG, EEG_DESC,
+    N_MICROSTATES, N_KMEANS_RESTARTS,
+    KMEANS_MAX_ITER, GFP_OUTLIER_SD, EXCLUDE_CHS,
+    SCRIPTS_DIR,
+)
+
+# ── 1. Build cluster-side script ───────────────────────────
+lines = [
+    '#!/usr/bin/env python3',
+    '"""',
+    '01_fit_microstates_rtbpd_cluster.py',
+    'Fit 7 microstate templates on pooled rtBPD rest EEG (ALL 4 nf1 rest',
+    'runs, pre+post pooled) so pre and post share one common template set.',
+    'Excludes TP9/TP10 (EEG-fMRI-artifact-prone) + ECG/EKG/EMG/EOG/STIM/',
+    'STATUS (substring match, mirrors DMNELF 01_fit_microstates.py',
+    'load_eeg() exactly).',
+    'Matches fitted maps to canonical networks after fitting (identical',
+    'signature dict to DMNELF -- Phase 0 confirmed all channel names',
+    'transfer 1:1, no substitution needed).',
+    '"""',
+    'import sys',
+    'sys.stdout.reconfigure(line_buffering=True)',
+    'import numpy as np',
+    'import json',
+    'import glob',
+    'from pathlib import Path',
+    'import mne',
+    'from scipy.signal import argrelmax',
+    '',
+    '# -- Paths and constants ---------------------------------',
+    'EEG_ROOT      = Path("' + EEG_ROOT + '")',
+    'OUT_DIR       = Path("' + CLUSTER_BASE + '")',
+    'SUBJECTS      = ' + repr(SUBJECTS),
+    'SESSION       = "' + SESSION + '"',
+    'ALL_RUNS      = ' + repr(ALL_RUNS),
+    'SFREQ         = ' + repr(SFREQ),
+    'SFREQ_TAG     = "' + SFREQ_TAG + '"',
+    'EEG_DESC      = "' + EEG_DESC + '"',
+    'N_MICROSTATES = ' + repr(N_MICROSTATES),
+    'N_RESTARTS    = ' + repr(N_KMEANS_RESTARTS),
+    'MAX_ITER      = ' + repr(KMEANS_MAX_ITER),
+    'OUTLIER_SD    = ' + repr(GFP_OUTLIER_SD),
+    'EXCLUDE_CHS   = ' + repr(EXCLUDE_CHS),
+    '',
+    '# -- Helpers ----------------------------------------------',
+    'def load_eeg(fif_path):',
+    '    raw = mne.io.read_raw_fif(str(fif_path), preload=True,',
+    '                               verbose=False)',
+    '    drop = [ch for ch in raw.ch_names',
+    '            if any(x in ch.upper() for x in',
+    '                   ("ECG","EKG","EMG","EOG","STIM","STATUS"))',
+    '            or ch in EXCLUDE_CHS]',
+    '    if drop:',
+    '        raw.drop_channels(drop)',
+    '    if raw.info["sfreq"] != SFREQ:',
+    '        raw.resample(SFREQ, verbose=False)',
+    '    data = (raw.get_data() * 1e6).astype(np.float32)',
+    '    data -= data.mean(axis=1, keepdims=True)',
+    '    return data, list(raw.ch_names)',
+    '',
+    'def compute_gfp(eeg):',
+    '    return eeg.std(axis=0).astype(np.float32)',
+    '',
+    'def get_gfp_peaks(gfp):',
+    '    peaks = argrelmax(gfp, order=1)[0]',
+    '    mu    = gfp[peaks].mean()',
+    '    sig   = gfp[peaks].std()',
+    '    peaks = peaks[gfp[peaks] < mu + OUTLIER_SD * sig]',
+    '    return peaks',
+    '',
+    'def normalize_map(m):',
+    '    n = np.linalg.norm(m)',
+    '    return m / n if n > 1e-10 else m',
+    '',
+    '# -- Load all rest GFP peaks (pooled across all 4 runs) ----',
+    'print("=" * 55)',
+    'print("1. Loading rest EEG GFP peaks  (" + SFREQ_TAG + ")")',
+    'print("   Runs pooled: " + str(ALL_RUNS) + "  (pre+post)")',
+    'print("   Excluding: " + str(EXCLUDE_CHS)',
+    '      + "  (+ ECG/EKG/EMG/EOG/STIM/STATUS by substring)")',
+    'print("=" * 55)',
+    '',
+    'all_peaks = []',
+    'ref_ch_names = None',
+    'n_loaded  = 0',
+    'n_missing = 0',
+    '',
+    'for subject in SUBJECTS:',
+    '    for run in ALL_RUNS:',
+    '        fname = (subject + "_" + SESSION + "_task-rest"',
+    '                 + "_run-" + run',
+    '                 + "_desc-" + EEG_DESC + "_eeg.fif")',
+    '        fif = (EEG_ROOT / subject / SESSION / "eeg" / fname)',
+    '        if not fif.exists():',
+    '            print("  MISSING: " + fname)',
+    '            n_missing += 1',
+    '            continue',
+    '        print("  Loading: " + subject + "  run-" + run)',
+    '        eeg, ch_names = load_eeg(fif)',
+    '        if ref_ch_names is None:',
+    '            ref_ch_names = ch_names',
+    '        gfp  = compute_gfp(eeg)',
+    '        pksi = get_gfp_peaks(gfp)',
+    '        maps = eeg[:, pksi].T',
+    '        maps = np.array([normalize_map(m) for m in maps])',
+    '        all_peaks.append(maps)',
+    '        n_loaded += 1',
+    '        print("    ch=" + str(eeg.shape[0])',
+    '              + "  samples=" + str(eeg.shape[1])',
+    '              + "  peaks=" + str(len(pksi)))',
+    '',
+    'if len(all_peaks) == 0:',
+    '    print("ERROR: no EEG files found")',
+    '    sys.exit(1)',
+    '',
+    'all_peaks = np.concatenate(all_peaks, axis=0)',
+    'print()',
+    'print("Runs loaded:  " + str(n_loaded)',
+    '      + "  (expected " + str(len(SUBJECTS) * len(ALL_RUNS)) + ")")',
+    'print("Runs missing: " + str(n_missing))',
+    'print("Total peaks:  " + str(len(all_peaks)))',
+    'print("Map shape:    " + str(all_peaks.shape))',
+    '',
+    '# -- Polarity-invariant k-means ----------------------------',
+    'print()',
+    'print("=" * 55)',
+    'print("2. Fitting k-means  k=" + str(N_MICROSTATES)',
+    '      + "  restarts=" + str(N_RESTARTS))',
+    'print("=" * 55)',
+    '',
+    'rng = np.random.default_rng(42)',
+    'best_gev       = -1.0',
+    'best_templates = None',
+    '',
+    'for restart in range(N_RESTARTS):',
+    '    idx  = rng.choice(len(all_peaks), N_MICROSTATES, replace=False)',
+    '    maps = all_peaks[idx].copy()',
+    '',
+    '    prev_labels = None',
+    '    for iteration in range(MAX_ITER):',
+    '        corrs  = np.abs(all_peaks @ maps.T)',
+    '        labels = corrs.argmax(axis=1)',
+    '',
+    '        new_maps = np.zeros_like(maps)',
+    '        for k in range(N_MICROSTATES):',
+    '            members = all_peaks[labels == k].copy()',
+    '            if len(members) == 0:',
+    '                new_maps[k] = all_peaks[rng.integers(len(all_peaks))]',
+    '                continue',
+    '            ref = members[0]',
+    '            for i in range(len(members)):',
+    '                if np.dot(members[i], ref) < 0:',
+    '                    members[i] = -members[i]',
+    '            new_maps[k] = normalize_map(members.mean(axis=0))',
+    '',
+    '        if prev_labels is not None:',
+    '            if np.all(labels == prev_labels):',
+    '                break',
+    '        prev_labels = labels.copy()',
+    '        maps = new_maps',
+    '',
+    '    gfp_sq = (all_peaks ** 2).sum(axis=1)',
+    '    gev    = 0.0',
+    '    for k in range(N_MICROSTATES):',
+    '        corr_k = np.abs(all_peaks[labels == k] @ maps[k])',
+    '        if len(corr_k) > 0:',
+    '            gev += float((corr_k ** 2',
+    '                          * gfp_sq[labels == k]).sum()',
+    '                         / gfp_sq.sum())',
+    '',
+    '    print("  restart " + str(restart + 1).zfill(2)',
+    '          + "  iter=" + str(iteration)',
+    '          + "  GEV=" + "{:.4f}".format(gev))',
+    '',
+    '    if gev > best_gev:',
+    '        best_gev       = gev',
+    '        best_templates = maps.copy()',
+    '',
+    '# -- Save templates + channel list -------------------------',
+    'print()',
+    'print("=" * 55)',
+    'print("3. Saving templates")',
+    'print("=" * 55)',
+    '',
+    'ms_dir = OUT_DIR / "microstates"',
+    'ms_dir.mkdir(parents=True, exist_ok=True)',
+    '',
+    'out_templates = ms_dir / ("templates_" + SFREQ_TAG + ".npy")',
+    'out_gev       = ms_dir / ("gev_"       + SFREQ_TAG + ".npy")',
+    'out_channels  = ms_dir / ("channels_"  + SFREQ_TAG + ".json")',
+    '',
+    'np.save(str(out_templates), best_templates)',
+    'np.save(str(out_gev),       np.array([best_gev]))',
+    'with open(str(out_channels), "w") as f:',
+    '    json.dump(ref_ch_names, f, indent=2)',
+    '',
+    'print("Templates: " + str(best_templates.shape))',
+    'print("Best GEV:  " + "{:.4f}".format(best_gev))',
+    'print("Channels:  " + str(len(ref_ch_names)) + "  " + str(ref_ch_names))',
+    'print("Saved:     " + str(out_templates))',
+    '',
+    '# -- QC per-map stats ----------------------------------------',
+    'print()',
+    'print("=" * 55)',
+    'print("4. Per-map stats")',
+    'print("=" * 55)',
+    '',
+    'corrs  = np.abs(all_peaks @ best_templates.T)',
+    'labels = corrs.argmax(axis=1)',
+    'gfp_sq = (all_peaks ** 2).sum(axis=1)',
+    '',
+    'for k in range(N_MICROSTATES):',
+    '    cov    = 100.0 * (labels == k).sum() / len(labels)',
+    '    corr_k = np.abs(all_peaks[labels == k] @ best_templates[k])',
+    '    gev_k  = float((corr_k ** 2',
+    '                    * gfp_sq[labels == k]).sum()',
+    '                   / gfp_sq.sum())',
+    '    print("  MS" + chr(65 + k)',
+    '          + "  coverage=" + "{:.1f}".format(cov) + "%"',
+    '          + "  GEV="      + "{:.4f}".format(gev_k))',
+    '',
+    '# -- Canonical network matching ------------------------------',
+    'print()',
+    'print("=" * 55)',
+    'print("5. Canonical network matching (Custo 2017)")',
+    'print("=" * 55)',
+    '',
+    'ch_names = ref_ch_names',
+    'print("  Channels: " + str(len(ch_names)))',
+    'print("  " + str(ch_names))',
+    'print()',
+    '',
+    '# Canonical signatures -- key channels per network',
+    '# Based on Custo 2017, Britz 2010, Michel & Koenig 2018',
+    '# (identical to DMNELF 01_fit_microstates.py -- Phase 0 confirmed all',
+    '# channel names below exist 1:1 in the rtBPD montage, no substitution)',
+    'canonical_signatures = {',
+    '    "DMN":  {"pos": ["Pz","POz","P3","P4","CP1","CP2"],',
+    '             "neg": ["Fz","F3","F4","FC1","FC2","Fp1","Fp2"]},',
+    '    "CEN":  {"pos": ["F4","FC2","FC6","P4","CP2"],',
+    '             "neg": ["F3","FC1","FC5","P3","CP1"]},',
+    '    "VIS":  {"pos": ["Oz","O1","O2","POz","Pz"],',
+    '             "neg": ["Fz","Fp1","Fp2","F3","F4"]},',
+    '    "SOM":  {"pos": ["Cz","C3","C4","CP1","CP2"],',
+    '             "neg": ["Oz","O1","O2","Fp1","Fp2"]},',
+    '    "SAL":  {"pos": ["Fz","FC1","FC2","Cz","F3","F4"],',
+    '             "neg": ["Pz","POz","P3","P4","Oz"]},',
+    '    "AUD":  {"pos": ["T7","T8","C3","C4","F7","F8"],',
+    '             "neg": ["Pz","POz","Fz","Fp1","Fp2"]},',
+    '    "DANT": {"pos": ["Pz","P3","P4","Cz","CP1","CP2"],',
+    '             "neg": ["Fp1","Fp2","F7","F8","Fz"]},',
+    '}',
+    '',
+    'def make_canonical_vec(sig, ch_names):',
+    '    v = np.zeros(len(ch_names))',
+    '    for ch in sig["pos"]:',
+    '        if ch in ch_names:',
+    '            v[ch_names.index(ch)] += 1.0',
+    '    for ch in sig["neg"]:',
+    '        if ch in ch_names:',
+    '            v[ch_names.index(ch)] -= 1.0',
+    '    n = np.linalg.norm(v)',
+    '    return v / n if n > 1e-10 else v',
+    '',
+    'canonical_vecs = {name: make_canonical_vec(sig, ch_names)',
+    '                  for name, sig in canonical_signatures.items()}',
+    'canon_names    = list(canonical_vecs.keys())',
+    '',
+    '# Build correlation matrix (n_maps x n_canonical)',
+    'corr_matrix = np.zeros((N_MICROSTATES, len(canon_names)))',
+    'for k in range(N_MICROSTATES):',
+    '    t = best_templates[k]',
+    '    for j, cname in enumerate(canon_names):',
+    '        cvec = canonical_vecs[cname]',
+    '        corr_matrix[k, j] = abs(np.corrcoef(t, cvec)[0, 1])',
+    '',
+    'print("  Correlation matrix (rows=our maps, cols=canonical):")',
+    'header = "       " + "".join(["{:>7}".format(n) for n in canon_names])',
+    'print(header)',
+    'for k in range(N_MICROSTATES):',
+    '    row = "  MS" + chr(65+k) + "  "',
+    '    row += "".join(["{:>7.3f}".format(corr_matrix[k,j])',
+    '                     for j in range(len(canon_names))])',
+    '    print(row)',
+    'print()',
+    '',
+    '# Greedy assignment -- best match first',
+    'assigned_maps   = set()',
+    'assigned_canons = set()',
+    'assignment_list = []',
+    'flat_idx = np.argsort(corr_matrix.ravel())[::-1]',
+    'for idx in flat_idx:',
+    '    k = idx // len(canon_names)',
+    '    j = idx  % len(canon_names)',
+    '    if k not in assigned_maps and j not in assigned_canons:',
+    '        assigned_maps.add(k)',
+    '        assigned_canons.add(j)',
+    '        assignment_list.append((k, canon_names[j],',
+    '                                float(corr_matrix[k, j])))',
+    'assignment_list.sort(key=lambda x: x[0])',
+    '',
+    'print("  Final assignments:")',
+    'label_map = {}',
+    'for k, canon, corr in assignment_list:',
+    '    label_map[k] = canon',
+    '    print("  MS" + chr(65+k)',
+    '          + " -> " + canon',
+    '          + "  r=" + "{:.3f}".format(corr))',
+    '',
+    'assign_path = ms_dir / ("assignments_" + SFREQ_TAG + ".json")',
+    'with open(str(assign_path), "w") as f:',
+    '    json.dump({str(k): v for k, v in label_map.items()}, f, indent=2)',
+    'print()',
+    'print("  Saved: " + str(assign_path))',
+    '',
+    'print()',
+    'print("DONE  " + SFREQ_TAG)',
+]
+
+# ── 2. Save cluster script locally ─────────────────────────
+script_name = "01_fit_microstates_rtbpd_" + SFREQ_TAG + "_cluster.py"
+script_path = SCRIPTS_DIR / script_name
+script_path.parent.mkdir(parents=True, exist_ok=True)
+
+with open(script_path, "w") as f:
+    f.write("\n".join(lines))
+
+# ── 3. Syntax check ────────────────────────────────────────
+print("Checking syntax...")
+try:
+    py_compile.compile(str(script_path), doraise=True)
+    print("Syntax OK: " + script_name)
+except py_compile.PyCompileError as e:
+    print("SYNTAX ERROR: " + str(e))
+    raise
+
+# ── 4. Deploy ──────────────────────────────────────────────
+print("\nDeploying...")
+make_cluster_dirs()
+remote_script = CLUSTER_BASE + "/scripts/" + script_name
+scp_to(script_path, remote_script, verbose=False)
+print("Deployed: " + script_name)
+
+# ── 5. Submit SLURM job ────────────────────────────────────
+job_name = "rtbpd_fit_ms_" + SFREQ_TAG
+sbatch_lines = [
+    "#!/bin/bash",
+    "#SBATCH --job-name=" + job_name,
+    "#SBATCH --output=" + CLUSTER_BASE + "/logs/" + job_name + "_%j.out",
+    "#SBATCH --error="  + CLUSTER_BASE + "/logs/" + job_name + "_%j.err",
+    "#SBATCH --partition=short",
+    "#SBATCH --time=12:00:00",
+    "#SBATCH --cpus-per-task=4",
+    "#SBATCH --mem=32G",
+    "#SBATCH --account=" + SLURM_ACCOUNT,
+    "",
+    PYTHON + " " + CLUSTER_BASE + "/scripts/" + script_name,
+]
+
+sbatch_name = "01_fit_microstates_rtbpd_" + SFREQ_TAG + ".sh"
+sbatch_path = SCRIPTS_DIR / sbatch_name
+with open(sbatch_path, "w") as f:
+    f.write("\n".join(sbatch_lines))
+
+remote_sbatch = CLUSTER_BASE + "/scripts/" + sbatch_name
+scp_to(sbatch_path, remote_sbatch, verbose=False)
+
+print("\nSubmitting SLURM job (" + SFREQ_TAG + ")...")
+result = run_ssh("sbatch " + remote_sbatch)
+job_id = ""
+for line in result.stdout.strip().split("\n"):
+    if "Submitted" in line:
+        job_id = line.strip().split()[-1]
+        print("Job ID: " + job_id)
+
+# ── 6. Monitor ─────────────────────────────────────────────
+if job_id:
+    print("\nMonitoring job " + job_id + "  (Ctrl+C to stop)")
+    print("-" * 55)
+    try:
+        while True:
+            r = run_ssh(
+                "squeue -j " + job_id
+                + " --format=%.8i_%.8T_%.10M 2>/dev/null",
+                verbose=False
+            )
+            status = r.stdout.strip()
+            if status and "JOBID" not in status.split("\n")[-1]:
+                print(status)
+            else:
+                print("Job finished — checking log...")
+                log = run_ssh(
+                    "tail -40 " + CLUSTER_BASE
+                    + "/logs/" + job_name + "_" + job_id
+                    + ".out 2>/dev/null",
+                    verbose=False
+                )
+                print(log.stdout)
+                break
+            time.sleep(15)
+    except KeyboardInterrupt:
+        print("\nStopped watching.")
+        print("  tail -f " + CLUSTER_BASE
+              + "/logs/" + job_name + "_" + job_id + ".out")

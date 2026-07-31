@@ -1,0 +1,271 @@
+neural,clinical,n,r,p
+fc_within_cen_difumo_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.8369801337630737,0.00252551886450573
+delta_power_delta,PHQ-9 total (0-27),10,-0.8279887269420019,0.003094753985430685
+delta_power_delta,PHQ-9 total (0-27) [resid],10,-0.7894357812005304,0.0066121652521502535
+fc_within_dmn_pers_delta,PANAS trait negative affect (10-50) [resid],10,-0.7893340507509831,0.006624077090006969
+fc_dmn_cen_pers_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.6940722791883421,0.025968734402930925
+fc_within_dmn_pers_delta,PANAS trait negative affect (10-50),10,-0.6933853594924374,0.026178485542176555
+gamma_power_delta,PHQ-9 total (0-27),10,0.6880371754035982,0.027851388621798923
+fc_dmn_cen_difumo_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.6862602641238787,0.028422984897133453
+CEN_duration_ms_delta,PHQ-9 total (0-27) [resid],10,-0.6694553261872619,0.03422968563211928
+CEN_duration_ms_delta,PHQ-9 total (0-27),10,-0.6653058304847468,0.03577813805534373
+gamma_power_delta,PHQ-9 total (0-27) [resid],10,0.6613498507533884,0.03729785884738317
+fc_within_cen_difumo_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.6528048611909028,0.040727943862814545
+delta_plv_delta,PAI-BOR total (0-72),10,0.64448399069853,0.04426598671564108
+delta_plv_delta,PAI-BOR total (0-72) [resid],10,0.6244430912621857,0.05361803570574674
+beta_power_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.6233546815911792,0.05416045057939769
+theta_power_delta,PHQ-9 total (0-27) [resid],10,-0.6188000916238204,0.0564696726776009
+theta_power_delta,PHQ-9 total (0-27),10,-0.6060286189161114,0.06328931729846951
+DMN_duration_ms_delta,PAI-BOR total (0-72) [resid],10,-0.605750887005139,0.06344333627136282
+DMN_duration_ms_delta,PAI-BOR total (0-72),10,-0.6005223432380052,0.06638890737417825
+CEN_duration_ms_delta,PANAS trait positive affect (10-50),10,0.5918332764671764,0.07147929524146855
+fc_within_dmn_pers_delta,PANAS trait positive affect (10-50) [resid],10,-0.5917096814317333,0.07155347770953988
+delta_plv_delta,PHQ-9 total (0-27),10,-0.591562561155201,0.07164184548429192
+CEN_coverage_pct_delta,PHQ-9 total (0-27) [resid],10,-0.5779203889495149,0.08014726305180249
+CEN_coverage_pct_delta,PHQ-9 total (0-27),10,-0.5754441321335146,0.0817578222227873
+gamma_power_delta,PANAS trait positive affect (10-50) [resid],10,-0.5653415256382389,0.08854417190009554
+beta_plv_delta,PHQ-9 total (0-27),10,-0.55005490171306,0.09948110002374372
+delta_power_delta,PANAS trait positive affect (10-50) [resid],10,0.5483773579188574,0.10073096581176888
+CEN_gev_pct_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.5439946291171436,0.10404314354768583
+DMN_occurrence_hz_delta,PHQ-9 total (0-27),10,0.5427579495109176,0.10499002643697705
+delta_plv_delta,PHQ-9 total (0-27) [resid],10,-0.5427556681690648,0.10499177818883336
+fc_mpfc_pcc_delta,PANAS trait negative affect (10-50) [resid],10,-0.5376791499838243,0.10893562668727044
+fc_acc_mpfc_delta,PHQ-9 total (0-27),10,-0.5296709573710287,0.11534409662803419
+fc_within_dmn_pers_delta,PANAS trait positive affect (10-50),10,-0.5280455764119532,0.11667289734279412
+DMN_duration_ms_delta,PANAS trait positive affect (10-50),10,0.527227127326612,0.1173456092910682
+CEN_duration_ms_delta,PANAS trait negative affect (10-50),10,0.5266105227291531,0.11785401415829033
+beta_power_delta,PHQ-9 total (0-27),10,0.5246604557194637,0.11947092776632832
+gamma_power_delta,PANAS trait positive affect (10-50),10,-0.5241874347997878,0.11986520858740027
+beta_plv_delta,PHQ-9 total (0-27) [resid],10,-0.5182553543201945,0.1248786870959584
+fc_dmn_cen_difumo_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.5130831683670627,0.12935441211415347
+beta_power_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.5078866213244753,0.13394969235784507
+DMN_occurrence_hz_delta,PHQ-9 total (0-27) [resid],10,0.5003259433037461,0.1408126800343501
+fc_mpfc_pcc_delta,PANAS trait negative affect (10-50),10,-0.4940678002548726,0.1466528564325822
+CEN_gev_pct_delta,PHQ-9 total (0-27) [resid],10,-0.49029538684362345,0.15024338396099018
+fc_dmn_cen_difumo_delta,PHQ-9 total (0-27) [resid],10,0.487833832540023,0.15261473739611744
+beta_power_delta,PHQ-9 total (0-27) [resid],10,0.4875852876997897,0.1528554262789206
+gamma_plv_delta,PANAS trait positive affect (10-50) [resid],10,0.4815421461304076,0.15877831392434022
+gamma_power_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.4813881447667622,0.1589310286108894
+CEN_gev_pct_delta,PHQ-9 total (0-27),10,-0.4792345242228279,0.1610759249392904
+CEN_coverage_pct_delta,PANAS trait positive affect (10-50),10,0.4790229863336431,0.1612875393877933
+delta_power_delta,PANAS trait positive affect (10-50),10,0.4780141869137617,0.1622990018730994
+CEN_occurrence_hz_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.4736523786808693,0.16671608233151802
+DMN_coverage_pct_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.4732709145630129,0.1671057624943286
+delta_power_delta,PANAS trait negative affect (10-50),10,0.46923845110395634,0.171258380675972
+gamma_plv_delta,PHQ-9 total (0-27),10,-0.46495159645629053,0.1757397545276468
+CEN_coverage_pct_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.46253046764413713,0.1783011844663931
+DMN_duration_ms_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.4604653693679485,0.18050332787027162
+CEN_coverage_pct_delta,PANAS trait negative affect (10-50),10,0.4556614335920721,0.1856879859639288
+beta_power_delta,PANAS trait positive affect (10-50),10,-0.4555484860973526,0.18581092724201775
+CEN_duration_ms_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.45511206069386423,0.18628641844616342
+delta_power_delta,PANAS trait negative affect (10-50) [resid],10,0.4546589404255169,0.18678085571715652
+gamma_power_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.45399203379580205,0.18750997561913282
+DMN_coverage_pct_delta,PAI-BOR total (0-72) [resid],10,-0.4503984861039635,0.19146750298181456
+fc_dmn_cen_difumo_delta,PHQ-9 total (0-27),10,0.4475035072746424,0.1946909847811022
+fc_acc_mpfc_delta,PHQ-9 total (0-27) [resid],10,-0.4463474227007956,0.19598705083642518
+DMN_coverage_pct_delta,PAI-BOR total (0-72),10,-0.4460522916257309,0.19631872155725036
+gamma_plv_delta,PANAS trait positive affect (10-50),10,0.4342664476889696,0.2098311350567887
+CEN_gev_pct_delta,PANAS trait positive affect (10-50),10,0.43177303825272784,0.2127566473496192
+CEN_gev_pct_delta,PANAS trait negative affect (10-50),10,0.42638262156445444,0.21916089905244976
+alpha_plv_delta,PANAS trait positive affect (10-50) [resid],10,0.422460071232859,0.22388964298146705
+CEN_duration_ms_delta,PANAS trait negative affect (10-50) [resid],10,0.41830314273732405,0.22896377647324756
+fc_within_dmn_difumo_delta,PANAS trait positive affect (10-50) [resid],10,-0.4057371244631835,0.24469462037508904
+theta_plv_delta,PHQ-9 total (0-27) [resid],10,-0.40453640549019587,0.24622851869489615
+fc_dmn_cen_difumo_delta,PANAS trait positive affect (10-50),10,-0.4032402089442708,0.24789039794762763
+beta_power_delta,PANAS trait negative affect (10-50),10,-0.39766062147974096,0.25511522958389443
+gamma_power_delta,PANAS trait negative affect (10-50),10,-0.3952099885482586,0.2583248973107806
+CEN_occurrence_hz_delta,PANAS trait positive affect (10-50),10,0.3909381394215522,0.2639728759750911
+beta_power_delta,PANAS trait positive affect (10-50) [resid],10,-0.38360168409388706,0.2738293785190981
+DMN_gev_pct_delta,PHQ-9 total (0-27) [resid],10,0.3831611603462475,0.27442750497506024
+alpha_power_delta,PANAS trait positive affect (10-50) [resid],10,0.3816975088788181,0.2764198954062263
+alpha_plv_delta,PHQ-9 total (0-27),10,-0.3793701563774519,0.2796041218557008
+DMN_occurrence_hz_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.37687543537682994,0.28303928560517644
+fc_within_dmn_pers_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.3682378540706308,0.29510772936850466
+DMN_gev_pct_delta,PHQ-9 total (0-27),10,0.36685749271109563,0.2970614010172826
+alpha_plv_delta,PANAS trait negative affect (10-50) [resid],10,0.36611028085809466,0.298121822039793
+CEN_occurrence_hz_delta,PANAS trait negative affect (10-50),10,0.3648128420465395,0.29996788755538684
+theta_plv_delta,PHQ-9 total (0-27),10,-0.36302959828761416,0.3025150650000198
+DMN_gev_pct_delta,PAI-BOR total (0-72),10,-0.3615722770680085,0.30460517790678787
+fc_mpfc_pcc_delta,PHQ-9 total (0-27),10,-0.3599552511049567,0.30693325462614873
+DMN_duration_ms_delta,PANAS trait positive affect (10-50) [resid],10,0.35707450770730154,0.311103918336625
+gamma_plv_delta,PANAS trait negative affect (10-50) [resid],10,0.3561401864637098,0.31246296705701654
+fc_mpfc_pcc_delta,PHQ-9 total (0-27) [resid],10,-0.35484509843329265,0.31435192546593765
+alpha_plv_delta,PHQ-9 total (0-27) [resid],10,-0.35342224380203424,0.3164341186935548
+fc_dmn_cen_pers_delta,PHQ-9 total (0-27) [resid],10,0.35208452108603394,0.31839828981758084
+DMN_gev_pct_delta,PAI-BOR total (0-72) [resid],10,-0.3488315840518002,0.3232010184457643
+fc_within_dmn_difumo_delta,PAI-BOR total (0-72) [resid],10,-0.3474857765245267,0.32519894542348293
+alpha_power_delta,PANAS trait positive affect (10-50),10,0.3458189551521873,0.32768228683207057
+theta_plv_delta,PAI-BOR total (0-72) [resid],10,0.3442683688096884,0.3300012298364917
+alpha_power_delta,PHQ-9 total (0-27) [resid],10,-0.34107629433633646,0.3348016179132176
+CEN_duration_ms_delta,PANAS trait positive affect (10-50) [resid],10,0.3401862421640378,0.3361464763089198
+theta_plv_delta,PAI-BOR total (0-72),10,0.339777900604308,0.3367644013521223
+beta_plv_delta,PANAS trait positive affect (10-50) [resid],10,0.3387486259893282,0.3383245374721642
+DMN_occurrence_hz_delta,PAI-BOR total (0-72) [resid],10,-0.3368136300691502,0.3412675204330599
+theta_power_delta,PANAS trait positive affect (10-50) [resid],10,0.3361596111675729,0.3422651773917612
+DMN_occurrence_hz_delta,PAI-BOR total (0-72),10,-0.3359021053768801,0.34265839070384796
+alpha_power_delta,PAI-BOR total (0-72),10,-0.3305951023094646,0.3508133330197503
+CEN_coverage_pct_delta,PANAS trait negative affect (10-50) [resid],10,0.3302588640076751,0.351333283762219
+DMN_duration_ms_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.3285052384612935,0.3540513477983472
+fc_within_dmn_difumo_delta,PANAS trait negative affect (10-50) [resid],10,-0.32849863185533124,0.35406160779778595
+gamma_plv_delta,PHQ-9 total (0-27) [resid],10,-0.32693496133780386,0.35649418305987174
+fc_mpfc_pcc_delta,PANAS trait positive affect (10-50) [resid],10,-0.3259014846679537,0.3581065396545366
+DMN_gev_pct_delta,PANAS trait positive affect (10-50),10,0.3246683679974508,0.3600351351444978
+fc_acc_pcc_delta,PHQ-9 total (0-27) [resid],10,-0.32458512487270785,0.3601655144213169
+gamma_plv_delta,PAI-BOR total (0-72) [resid],10,0.32380629365352187,0.3613865005718623
+theta_power_delta,PANAS trait negative affect (10-50) [resid],10,0.32201140331889516,0.3642082402871942
+theta_power_delta,PANAS trait negative affect (10-50),10,0.3218048051645345,0.3645337350112671
+theta_power_delta,PANAS trait positive affect (10-50),10,0.31964688689495385,0.3679421781227702
+beta_plv_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.3190612997751049,0.36886983500819426
+fc_within_dmn_difumo_delta,PAI-BOR total (0-72),10,-0.3183536245946978,0.36999244338999926
+alpha_plv_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.31594193244306684,0.3738308699413011
+gamma_plv_delta,PAI-BOR total (0-72),10,0.31527037624720483,0.3749031947842615
+fc_acc_pcc_delta,PHQ-9 total (0-27),10,-0.31485302354321876,0.3755703763293266
+gamma_power_delta,PANAS trait negative affect (10-50) [resid],10,-0.3117022524085898,0.38062603170384407
+alpha_power_delta,PHQ-9 total (0-27),10,-0.3053524496074504,0.39091516825543304
+fc_within_dmn_difumo_delta,PANAS trait positive affect (10-50),10,-0.3033494465708967,0.3941884497306832
+alpha_power_delta,PAI-BOR total (0-72) [resid],10,-0.30313863755848364,0.3945337179062025
+DMN_duration_ms_delta,PHQ-9 total (0-27),10,-0.3022307631529425,0.3960223222964108
+alpha_power_delta,PANAS trait negative affect (10-50) [resid],10,0.2998043677757209,0.40001401844873025
+fc_dmn_cen_pers_delta,PANAS trait positive affect (10-50) [resid],10,-0.2961861784689179,0.4060019639313023
+beta_plv_delta,PAI-BOR total (0-72) [resid],10,0.29586417779922086,0.40653691803699626
+DMN_coverage_pct_delta,PHQ-9 total (0-27),10,0.2921974792784229,0.4126521558445126
+CEN_gev_pct_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.2921371671075593,0.41275310463229253
+theta_plv_delta,PANAS trait negative affect (10-50) [resid],10,0.29187282086907135,0.413195697439237
+beta_power_delta,PANAS trait negative affect (10-50) [resid],10,-0.291664420184881,0.4135447789811376
+theta_plv_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.29159918332426055,0.4136540825820698
+fc_within_dmn_difumo_delta,PANAS trait negative affect (10-50),10,-0.29006124933177707,0.4162348188114942
+fc_within_cen_difumo_delta,PANAS trait positive affect (10-50),10,-0.284080766449541,0.4263419511719637
+beta_power_delta,PAI-BOR total (0-72) [resid],10,0.28318097791665964,0.42787240241712776
+CEN_gev_pct_delta,PANAS trait negative affect (10-50) [resid],10,0.2827362985861994,0.4286296982722753
+DMN_coverage_pct_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.2815447054019241,0.4306620607761775
+beta_plv_delta,PAI-BOR total (0-72),10,0.2803744439498479,0.4326623696010425
+DMN_coverage_pct_delta,PHQ-9 total (0-27) [resid],10,0.2774220080502199,0.4377279067639493
+fc_acc_pcc_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.2749579618332587,0.44197621670217835
+gamma_plv_delta,PANAS trait negative affect (10-50),10,0.2732323503305464,0.4449625311118249
+theta_plv_delta,PANAS trait negative affect (10-50),10,0.2725696361893024,0.446111845370811
+CEN_occurrence_hz_delta,PANAS trait negative affect (10-50) [resid],10,0.2686725363153509,0.452897568988891
+CEN_occurrence_hz_delta,PAI-BOR total (0-72),10,0.26838178001642354,0.45340569463403035
+alpha_plv_delta,PANAS trait negative affect (10-50),10,0.2669587989362871,0.455896191047122
+fc_mpfc_pcc_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.2641066251811683,0.4609064581447755
+delta_plv_delta,PANAS trait negative affect (10-50),10,0.26352229443292585,0.4619359397303663
+CEN_occurrence_hz_delta,PAI-BOR total (0-72) [resid],10,0.261306004897171,0.4658499093058639
+beta_power_delta,PAI-BOR total (0-72),10,0.26109568305363823,0.466222099020992
+DMN_occurrence_hz_delta,PANAS trait negative affect (10-50),10,-0.25880997691323865,0.47027540220922504
+DMN_duration_ms_delta,PHQ-9 total (0-27) [resid],10,-0.25794338343105516,0.4718161996002041
+fc_dmn_cen_pers_delta,PHQ-9 total (0-27),10,0.25559083638062874,0.476010167460006
+CEN_duration_ms_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.25359035457516615,0.4795892607462837
+DMN_gev_pct_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.2528409152641391,0.48093310069708856
+fc_dmn_cen_pers_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.2465246373084613,0.4923235276813018
+alpha_plv_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.24311360077478422,0.4985222922272663
+DMN_gev_pct_delta,PANAS trait positive affect (10-50) [resid],10,0.24301312118007773,0.4987053905287746
+delta_plv_delta,PANAS trait negative affect (10-50) [resid],10,0.24244251336400646,0.49974571741074336
+fc_mpfc_pcc_delta,PAI-BOR total (0-72) [resid],10,-0.23480615137679936,0.5137559478513414
+DMN_occurrence_hz_delta,PANAS trait negative affect (10-50) [resid],10,-0.23385886486895435,0.5155051760138658
+fc_dmn_cen_pers_delta,PAI-BOR total (0-72),10,0.22850607946849244,0.5254354778617636
+CEN_coverage_pct_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.22700934802818867,0.5282260322655487
+fc_dmn_cen_pers_delta,PAI-BOR total (0-72) [resid],10,0.2264312739267476,0.5293054213502819
+alpha_power_delta,PANAS trait negative affect (10-50),10,0.22597821014985203,0.5301520141102126
+beta_plv_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.22531281424147162,0.53139636323012
+fc_mpfc_pcc_delta,PAI-BOR total (0-72),10,-0.2206517746537036,0.5401458412494202
+fc_mpfc_pcc_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.21858554599199614,0.5440427376908494
+fc_within_cen_difumo_delta,PHQ-9 total (0-27) [resid],10,0.21526624423933932,0.5503261386729389
+gamma_power_delta,PAI-BOR total (0-72) [resid],10,0.21440960230743544,0.5519523623897953
+gamma_power_delta,PAI-BOR total (0-72),10,0.20754102852180611,0.5650588979560227
+fc_acc_pcc_delta,PANAS trait positive affect (10-50),10,-0.20664535299700096,0.5667767570425846
+CEN_occurrence_hz_delta,PHQ-9 total (0-27) [resid],10,-0.20501881243415454,0.5699014707494722
+CEN_occurrence_hz_delta,PHQ-9 total (0-27),10,-0.19848228339932866,0.5825241083901627
+fc_within_cen_difumo_delta,PANAS trait positive affect (10-50) [resid],10,-0.1967366237938366,0.5859126310350581
+fc_acc_pcc_delta,PANAS trait negative affect (10-50),10,0.19432852720791696,0.5905989413595363
+fc_within_cen_pers_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.19387116073639543,0.591490557682236
+fc_dmn_cen_pers_delta,PANAS trait positive affect (10-50),10,-0.1933233840970317,0.5925590735049916
+DMN_occurrence_hz_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.19248755367708434,0.5941908379680231
+fc_dmn_cen_difumo_delta,PANAS trait positive affect (10-50) [resid],10,-0.19053295332345158,0.5980131186103911
+theta_plv_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.18926156497196697,0.6005041249455862
+DMN_coverage_pct_delta,PANAS trait positive affect (10-50),10,0.18925403528431065,0.6005188888554739
+theta_plv_delta,PANAS trait positive affect (10-50) [resid],10,0.18794663731197606,0.6030843634675294
+CEN_occurrence_hz_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.18664886930669672,0.6056348220881266
+fc_dmn_cen_difumo_delta,PAI-BOR total (0-72),10,-0.17964548227316335,0.6194640904162357
+beta_plv_delta,PANAS trait negative affect (10-50) [resid],10,0.17608491472350998,0.6265367364556533
+fc_within_dmn_pers_delta,PAI-BOR total (0-72) [resid],10,-0.17269860690561117,0.6332887672475298
+fc_dmn_cen_pers_delta,PANAS trait negative affect (10-50),10,0.166842354665771,0.6450231687217837
+fc_dmn_cen_difumo_delta,PAI-BOR total (0-72) [resid],10,-0.16348254803094325,0.6517875268203076
+alpha_plv_delta,PAI-BOR total (0-72) [resid],10,0.16211581535509328,0.6545457826108873
+delta_plv_delta,PANAS trait positive affect (10-50) [resid],10,0.16065310324649665,0.6575019121082132
+theta_power_delta,PAI-BOR total (0-72),10,-0.1602108352561625,0.6583965767707713
+CEN_coverage_pct_delta,PANAS trait positive affect (10-50) [resid],10,0.15670044709834102,0.6655115166879263
+fc_within_dmn_pers_delta,PAI-BOR total (0-72),10,-0.15351878811346004,0.671981026486533
+fc_acc_pcc_delta,PANAS trait negative affect (10-50) [resid],10,0.15085221857504438,0.6774181599637774
+fc_within_cen_pers_delta,PHQ-9 total (0-27) [resid],10,-0.14983476862621878,0.6794962951478523
+DMN_duration_ms_delta,PANAS trait negative affect (10-50),10,0.14793070698451594,0.6833905467630058
+alpha_power_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.1460530766337855,0.6872373353892999
+fc_within_cen_pers_delta,PANAS trait negative affect (10-50) [resid],10,-0.14602309511974793,0.6872988126177288
+alpha_plv_delta,PAI-BOR total (0-72),10,0.14591496775162555,0.6875205419732351
+CEN_duration_ms_delta,PAI-BOR total (0-72) [resid],10,-0.14538861126758695,0.688600211059611
+CEN_duration_ms_delta,PAI-BOR total (0-72),10,-0.14525735432180464,0.6888695259451327
+DMN_gev_pct_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.14407812107036222,0.6912905021744317
+theta_power_delta,PAI-BOR total (0-72) [resid],10,-0.1439614092010641,0.6915302501113011
+alpha_plv_delta,PANAS trait positive affect (10-50),10,0.1430257657090882,0.6934531267840698
+gamma_plv_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.14147010081909947,0.696653718877875
+fc_dmn_cen_pers_delta,PANAS trait negative affect (10-50) [resid],10,0.13535373993056118,0.709278815068789
+fc_within_cen_difumo_delta,PHQ-9 total (0-27),10,0.13505362229956364,0.7098999735670155
+fc_within_cen_pers_delta,PHQ-9 total (0-27),10,-0.12987924097175318,0.7206334059121471
+DMN_duration_ms_delta,PANAS trait negative affect (10-50) [resid],10,0.1256249363587097,0.7294914026106594
+fc_mpfc_pcc_delta,PANAS trait positive affect (10-50),10,-0.12235300517861508,0.7363236878094199
+delta_power_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.12195918985686983,0.7371471665012788
+DMN_coverage_pct_delta,PANAS trait negative affect (10-50),10,-0.11958899629957846,0.7421083692137459
+fc_within_cen_pers_delta,PANAS trait positive affect (10-50) [resid],10,0.11770783708284326,0.7460520490773075
+DMN_coverage_pct_delta,PANAS trait negative affect (10-50) [resid],10,-0.11620902289118201,0.7491979866621334
+beta_plv_delta,PANAS trait negative affect (10-50),10,0.11619194540868462,0.7492338507515119
+fc_within_cen_pers_delta,PANAS trait negative affect (10-50),10,-0.11001792494668715,0.7622276810588486
+fc_within_cen_difumo_delta,PAI-BOR total (0-72),10,-0.10528464337276755,0.7722258629119765
+gamma_plv_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.10091354524136606,0.7814859182777117
+fc_acc_pcc_delta,PAI-BOR total (0-72) [resid],10,-0.09367315211156721,0.7968785489885316
+delta_plv_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.09288119905857162,0.7985661194743594
+beta_plv_delta,PANAS trait positive affect (10-50),10,0.09029693792797658,0.8040781084396913
+fc_within_cen_difumo_delta,PAI-BOR total (0-72) [resid],10,-0.08844524498320477,0.8080323983683599
+fc_within_cen_pers_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.08688365664841685,0.811370218691464
+fc_acc_pcc_delta,PANAS trait positive affect (10-50) [resid],10,-0.08676199452024577,0.8116303812915455
+DMN_gev_pct_delta,PANAS trait negative affect (10-50) [resid],10,0.08163338404197144,0.8226122341384821
+fc_within_dmn_difumo_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.08040408689883403,0.8252487136956157
+DMN_coverage_pct_delta,PANAS trait positive affect (10-50) [resid],10,0.07770381413243298,0.8310454956734417
+DMN_occurrence_hz_delta,PANAS trait positive affect (10-50) [resid],10,-0.07665766062428889,0.8332933028333838
+fc_acc_mpfc_delta,PAI-BOR total (0-72) [resid],10,-0.07512268455426394,0.836593379335003
+theta_power_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.0749744667241973,0.8369121582228027
+fc_dmn_cen_difumo_delta,PANAS trait negative affect (10-50),10,-0.07393013025481018,0.8391588641305072
+fc_acc_mpfc_delta,PANAS trait positive affect (10-50) [resid],10,-0.07374958734957396,0.83954737690628
+delta_plv_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.07197288144473266,0.8433723479397754
+fc_within_dmn_pers_delta,PHQ-9 total (0-27) [resid],10,-0.0682426025277759,0.8514125746214697
+fc_within_cen_pers_delta,PAI-BOR total (0-72) [resid],10,0.06817435662931265,0.8515597885634394
+CEN_gev_pct_delta,PAI-BOR total (0-72) [resid],10,-0.06776623142232924,0.852440245754415
+delta_power_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,-0.0660540936926505,0.8561354664320208
+CEN_gev_pct_delta,PANAS trait positive affect (10-50) [resid],10,0.06551235940866307,0.8573051919814324
+fc_acc_pcc_delta,PAI-BOR total (0-72),10,-0.061066249736365916,0.8669146055774626
+fc_acc_mpfc_delta,PANAS trait positive affect (10-50),10,-0.05675956863161055,0.8762376759144577
+theta_plv_delta,PANAS trait positive affect (10-50),10,-0.05342027180235656,0.8834760621787464
+fc_acc_pcc_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.05185991060723699,0.8868610543346116
+fc_acc_mpfc_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.0515133179724844,0.8876131655408936
+CEN_gev_pct_delta,PAI-BOR total (0-72),10,-0.05140695425913971,0.8878439926167319
+fc_within_dmn_pers_delta,PHQ-9 total (0-27),10,0.04956670163022894,0.8918388378492794
+fc_acc_mpfc_delta,PAI-BOR total (0-72),10,-0.045863689562061646,0.8998839481342014
+fc_within_dmn_pers_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.0425025886477177,0.9071933608586116
+theta_power_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,0.041971403167267884,0.908349121375492
+fc_acc_mpfc_delta,PANAS trait negative affect (10-50) [resid],10,-0.03961478594390852,0.9134785218234003
+delta_plv_delta,PANAS trait positive affect (10-50),10,0.03666920319038182,0.9198938890606169
+DMN_gev_pct_delta,PANAS trait negative affect (10-50),10,0.03520915875975324,0.9230753747855973
+delta_power_delta,PAI-BOR total (0-72) [resid],10,0.03290458635151974,0.9280990990197151
+CEN_occurrence_hz_delta,PANAS trait positive affect (10-50) [resid],10,0.03211940016500159,0.9298112526487842
+fc_acc_mpfc_delta,PANAS trait negative affect (10-50),10,-0.031864958513552324,0.9303661364887112
+fc_within_dmn_difumo_delta,PHQ-9 total (0-27),10,-0.031805267452743535,0.9304963140855085
+fc_within_cen_pers_delta,PAI-BOR total (0-72),10,0.02939378557652754,0.9357566191677904
+delta_power_delta,PAI-BOR total (0-72),10,0.027327870522758417,0.9402649074706628
+alpha_power_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.02547571903448676,0.9443080187731683
+fc_acc_mpfc_delta,"ZAN-BPD-SR total (8 items, 0-32)",10,-0.025115117944835175,0.9450953204108895
+DMN_occurrence_hz_delta,PANAS trait positive affect (10-50),10,-0.024577857460959827,0.9462684023502578
+CEN_coverage_pct_delta,PAI-BOR total (0-72),10,0.02227407892139278,0.9512996190977423
+fc_within_cen_pers_delta,PANAS trait positive affect (10-50),10,0.02195888681371007,0.9519880905527304
+fc_dmn_cen_difumo_delta,PANAS trait negative affect (10-50) [resid],10,-0.016779253795928213,0.9633057145171662
+fc_within_cen_difumo_delta,PANAS trait negative affect (10-50) [resid],10,0.016347073114407144,0.9642503318527502
+CEN_coverage_pct_delta,PAI-BOR total (0-72) [resid],10,0.012799710562853409,0.9720052199016593
+fc_within_cen_difumo_delta,PANAS trait negative affect (10-50),10,0.006877514839880465,0.9849561478785945
+fc_within_dmn_difumo_delta,"ZAN-BPD-SR total (8 items, 0-32) [resid]",10,0.0035919783999812938,0.9921426486285376
+fc_within_dmn_difumo_delta,PHQ-9 total (0-27) [resid],10,-0.0008972888309705385,0.9980371822625703
