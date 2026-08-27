@@ -9,6 +9,7 @@ Usage:
   python cross_cohort_calibrated.py
 """
 import sys, warnings, time
+import argparse
 from pathlib import Path
 import numpy as np, pandas as pd, yaml
 from sklearn.preprocessing import StandardScaler
@@ -17,10 +18,17 @@ from scipy.stats import pearsonr, gamma as gamma_dist
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJ_DIR = SCRIPT_DIR.parent
-WAVELET_SCRIPTS = PROJ_DIR.parent / "wavelet_coupling" / "scripts"
-EBC_SCRIPTS = PROJ_DIR.parent / "eeg_bold_coupling" / "scripts"
-sys.path.insert(0, str(WAVELET_SCRIPTS))
-sys.path.insert(0, str(EBC_SCRIPTS))
+IMPORT_ROOTS = [
+    PROJ_DIR.parent,
+    Path("/projects/swglab/data/DMNELF/analysis/fingerprint"),
+]
+for root in IMPORT_ROOTS:
+    wavelet = root / "wavelet_coupling" / "scripts"
+    ebc = root / "eeg_bold_coupling" / "scripts"
+    if wavelet.exists():
+        sys.path.insert(0, str(wavelet))
+    if ebc.exists():
+        sys.path.insert(0, str(ebc))
 
 from bandpower_wavelet import gather_subject_wavelet, canonical_hrf, zscore, hrf_convolve
 from multivariate_decode_pda import (
@@ -33,6 +41,17 @@ import mne; mne.set_log_level("ERROR")
 BAND_NAMES = ["delta", "theta", "alpha", "beta", "gamma"]
 TARGETS = ["GSR_CEN", "PDA", "RAW_DMN"]
 BASELINE_TRS = 25  # ~24s baseline before feedback onset
+
+
+def parse_args():
+    ap = argparse.ArgumentParser(description="Calibrated cross-cohort DMNELF to rtBPD prediction")
+    ap.add_argument(
+        "--subjects-set",
+        choices=["pilot", "all"],
+        default="pilot",
+        help="Which rtBPD subject set from config.yaml to evaluate (default: pilot)",
+    )
+    return ap.parse_args()
 
 
 def load_config(p):
@@ -78,10 +97,25 @@ def load_confounds_rtbpd(cfg, sub, run_idx):
     return gs
 
 
+def resolve_rtbpd_eeg_session(cfg, sub):
+    """Resolve EEG session label for a subject without mutating raw data labels."""
+    d = cfg["data"]
+    eroot = Path(d["eeg_preproc_dir_cluster"])
+    preferred = d["session_eeg"]
+    candidates = [preferred]
+    if preferred == "ses-nf":
+        candidates.append("ses-nf1")
+
+    for ses in candidates:
+        eeg_dir = eroot / f"sub-{sub}" / ses / "eeg"
+        if eeg_dir.exists() and any(eeg_dir.glob("*_eeg.fif")):
+            return ses
+    return preferred
+
+
 def gather_rtbpd_subject(cfg, sub, hrf):
     d = cfg["data"]
-    ses_eeg = d["session_eeg"]
-    ses_fmri = d["session_fmri"]
+    ses_eeg = resolve_rtbpd_eeg_session(cfg, sub)
     task = d["task"]
     spt = d["eeg"]["samples_per_tr"]
     desc = d["eeg"]["desc"]
@@ -95,7 +129,8 @@ def gather_rtbpd_subject(cfg, sub, hrf):
     for npz in sorted(fdir.glob(f"sub-{sub}_task-{task}_run-*_features.npz")):
         z = np.load(npz, allow_pickle=True)
         fm = np.asarray(z["fmri_features"], float)
-        n_tr = fm.shape[0]; run = npz.name.split("run-")[1][0]
+        n_tr = fm.shape[0]
+        run = npz.stem.split("run-")[1].split("_")[0]
         fif = (eroot / f"sub-{sub}" / ses_eeg / "eeg" /
                f"sub-{sub}_{ses_eeg}_task-{task}_run-{int(run):02d}_desc-{desc}_eeg.fif")
         if not fif.exists():
@@ -105,21 +140,24 @@ def gather_rtbpd_subject(cfg, sub, hrf):
         bp, chs = wavelet_power_run(raw, bands, spt, n_tr, hrf, method="dwt_stats")
         targets = dict(DMN=fm[:, dmn_i], CEN=fm[:, cen_i], PDA=fm[:, cen_i] - fm[:, dmn_i])
         runs.append(dict(run=run, n_tr=n_tr, targets=targets, bp=bp, parcels=fm[:, :ndi], chs=chs))
-    return runs
+    return runs, ses_eeg
 
 
 def main():
+    args = parse_args()
     cfg = load_config(str(PROJ_DIR / "config.yaml"))
     cfg_dmnelf = make_dmnelf_config(cfg)
     dmnelf_subjects = cfg["dmnelf"]["subjects"]
-    rtbpd_subjects = cfg["data"]["subjects"]["pilot"]
+    rtbpd_subjects = cfg["data"]["subjects"][args.subjects_set]
+    exclude = set(cfg["data"]["subjects"].get("exclude", []))
+    rtbpd_subjects = [s for s in rtbpd_subjects if s not in exclude]
     hrf = canonical_hrf(tr=cfg["data"]["fmri"]["tr"], length_s=cfg["hrf"]["length_s"])
     out_dir = PROJ_DIR / "results"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("Cross-Cohort Calibrated Prediction: DMNELF → rtBPD")
     print(f"  Training: {len(dmnelf_subjects)} DMNELF subjects")
-    print(f"  Testing: {len(rtbpd_subjects)} rtBPD subjects")
+    print(f"  Testing ({args.subjects_set}): {len(rtbpd_subjects)} rtBPD subjects")
     print()
 
     # ── Load DMNELF training data ──
@@ -154,7 +192,8 @@ def main():
 
     for sub in rtbpd_subjects:
         print(f"\n  {sub}:")
-        runs = gather_rtbpd_subject(cfg, sub, hrf)
+        runs, ses_eeg = gather_rtbpd_subject(cfg, sub, hrf)
+        print(f"    Session map: EEG={ses_eeg}, fMRI={cfg['data']['session_fmri']}")
         if not runs:
             print("    No data")
             continue
