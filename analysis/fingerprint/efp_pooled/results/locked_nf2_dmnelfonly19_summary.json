@@ -1,0 +1,45 @@
+{
+  "model": "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_pooled/models/dmnelfonly_epoc12_clean_ridge.npz",
+  "cohort": "rtbpd_nf2",
+  "targets": "clean",
+  "label": "LOCKED nf2-only | dmnelfonly19",
+  "held_out": true,
+  "summary": {
+    "CEN": {
+      "subject_mean_r": 0.020108673657652266,
+      "sem": 0.009744037573201669,
+      "n_subjects": 2,
+      "ci95": [
+        NaN,
+        NaN
+      ],
+      "sign_flip_p": NaN,
+      "per_subject_min": 0.010364636084450596,
+      "per_subject_max": 0.029852711230853934
+    },
+    "DMN": {
+      "subject_mean_r": -0.012163068161393707,
+      "sem": 0.06216729108287141,
+      "n_subjects": 2,
+      "ci95": [
+        NaN,
+        NaN
+      ],
+      "sign_flip_p": NaN,
+      "per_subject_min": -0.07433035924426512,
+      "per_subject_max": 0.05000422292147771
+    },
+    "PDA": {
+      "subject_mean_r": 0.04567956362411892,
+      "sem": 0.0019702634622354785,
+      "n_subjects": 2,
+      "ci95": [
+        NaN,
+        NaN
+      ],
+      "sign_flip_p": NaN,
+      "per_subject_min": 0.043709300161883444,
+      "per_subject_max": 0.0476498270863544
+    }
+  }
+}

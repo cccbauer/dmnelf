@@ -1,0 +1,45 @@
+{
+  "model": "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_epoc/efp_epoc_model.npz",
+  "cohort": "rtbpd_nf2",
+  "targets": "clean",
+  "label": "LOCKED nf2-only | shipped",
+  "held_out": true,
+  "summary": {
+    "CEN": {
+      "subject_mean_r": 0.03748014218917277,
+      "sem": 0.006118826131896865,
+      "n_subjects": 2,
+      "ci95": [
+        NaN,
+        NaN
+      ],
+      "sign_flip_p": NaN,
+      "per_subject_min": 0.031361316057275906,
+      "per_subject_max": 0.04359896832106964
+    },
+    "DMN": {
+      "subject_mean_r": -0.005127093754294237,
+      "sem": 0.06795432227801994,
+      "n_subjects": 2,
+      "ci95": [
+        NaN,
+        NaN
+      ],
+      "sign_flip_p": NaN,
+      "per_subject_min": -0.07308141603231418,
+      "per_subject_max": 0.0628272285237257
+    },
+    "PDA": {
+      "subject_mean_r": -0.026469922454967553,
+      "sem": 0.020679038465724418,
+      "n_subjects": 2,
+      "ci95": [
+        NaN,
+        NaN
+      ],
+      "sign_flip_p": NaN,
+      "per_subject_min": -0.04714896092069197,
+      "per_subject_max": -0.0057908839892431355
+    }
+  }
+}

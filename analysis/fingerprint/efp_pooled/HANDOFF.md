@@ -1,6 +1,7 @@
 # efp_pooled — pooled DMNELF+rtBPD EFP fingerprint
 
-**Status:** Phase 1 COMPLETE. Headline result below. Phase 2 (pooled retrain) is next.
+**Status:** Phase 2 first pass COMPLETE — and it is a NEGATIVE result. Read both result
+sections below before doing anything else; the planned remaining arms need a protocol change.
 **Branch:** `efp-pooled` in the `dmnelf` repo. **Last updated:** 2026-08-31.
 
 Goal: rebuild the mindwear EEG→BOLD decoder on a pooled DMNELF+rtBPD cohort (28 train subjects vs
@@ -116,6 +117,60 @@ In-sample → held-out degradation: CEN −60%, DMN −79%, **PDA −95% (to zer
 - **Do not quote r=+0.22 as the decoder's performance.** It is in-sample, on a training subject who
   is the cohort's best performer. The honest deployed number for PDA is ~0.
 
+## PHASE 2 FIRST PASS — NEGATIVE. Pooling + directly-fit PDA did not rescue PDA transfer.
+
+Trained two arms with all four defects fixed (PDA fitted as its own ridge, alpha grid widened to
+1e8, subject-grouped `GroupKFold` alpha selection, true across-channel median band edges):
+
+- **arm A `pooled28`** — 28 subjects (19 DMNELF + 9 rtBPD), 12,444 TRs
+- **arm B `dmnelfonly19`** — same fixes, 19 DMNELF only, 7,164 TRs (isolates the effect of pooling)
+
+### Training-side grouped CV (subject-grouped, within training cohort)
+
+| arm | CEN | DMN | PDA | notes |
+|---|---|---|---|---|
+| pooled28 | **+0.075** | +0.037 | +0.041 | CEN alpha=3.9e5, inside grid |
+| dmnelfonly19 | +0.042 | +0.032 | +0.043 | **CEN alpha=1e8 still saturates**; PDA picked alpha=0.01 (grid min) with in-sample +0.466 vs CV +0.043 — a flat CV surface, argmax landed on noise |
+
+Pooling nearly doubled CEN grouped-CV (+0.042 → +0.075) and stopped the CEN alpha saturating even
+against the widened 1e8 grid — so pooling *does* give the CEN model real cross-subject structure it
+did not have before.
+
+### LOCKED external test — 10 nf1-only subjects, 49 runs (each arm scored ONCE)
+
+| model | CEN | DMN | **PDA** |
+|---|---|---|---|
+| shipped (n=19, PDA derived) | +0.039 *(p=.038)* | **+0.061** *(p=.016)* | −0.011 *(p=0.47)* |
+| pooled28 (PDA fitted) | +0.033 *(p=.12)* | **+0.059** *(p=.006)* | −0.039 *(p=0.13)* |
+| dmnelfonly19 (PDA fitted) | +0.019 *(p=.34)* | **+0.049** *(p=.026)* | +0.013 *(p=0.55)* |
+
+(The nf2-only arm is 2 subjects / 9 runs — CIs and p are `nan`. Treat as uninformative.)
+
+### What this means — three conclusions
+
+1. **PDA does not transfer to new subjects under ANY variant tried.** Shipped, pooled-with-fixes,
+   and DMNELF-only-with-fixes all land at ~0 (−0.039 to +0.013, every p > 0.13). Fitting PDA
+   directly — which Phase 1 predicted would be the fix, and which offline LOSO supported — **did
+   not work.** The problem is not the training procedure.
+2. **DMN is the only target that transfers reliably**: +0.049 to +0.061, p < 0.03 in all three
+   models, including the untouched shipped one. If a portable EEG neurofeedback signal is wanted,
+   **DMN alone is the defensible target, not PDA.**
+3. **Grouped CV overstated transfer.** Pooling's big CEN grouped-CV gain (+0.042→+0.075) did not
+   appear on the locked set (+0.019 → +0.033, vs shipped's +0.039). Within-cohort grouped CV is not
+   a safe proxy for new-subject transfer here — select on it only with that caveat.
+
+This is consistent with `eeg_bold_coupling/HANDOFF.md`: the EEG-decodable component is largely
+shared/global, so a contrast that cancels the shared component (CEN − DMN) cancels the decodable
+part. Phase 1 showed the differencing destroys transfer; Phase 2 shows fitting the contrast directly
+does not recover it, because the contrast itself is what is not decodable.
+
+### PROTOCOL NOTE — read before running more arms
+
+The locked set has now been spent on three arms. The remaining planned arms (`gsr` targets,
+ElasticNet, `epoc_afproxy`, `cap31`) must be **selected on training-side grouped CV only**, with a
+single final locked-set confirmation of the one chosen winner. Scoring every arm on the locked set
+would reintroduce exactly the selection creep the lock exists to prevent.
+
 ## Phases
 
 - [x] **Phase 0** — folder, locked cohort split, this document.
@@ -124,7 +179,7 @@ In-sample → held-out degradation: CEN −60%, DMN −79%, **PDA −95% (to zer
       Decoder`), reusing `compare_engine.py:150-171` alignment/normalization. Reports per-run r for
       CEN/DMN/PDA, cohort mean ± SEM, Fisher CIs, sign-flip permutation; labels every number
       in-sample vs held-out. **Expect well below +0.22.**
-- [ ] **Phase 2** — `scripts/train_pooled.py` (copied from `efp_epoc/export_model.py`, not edited in
+- [~] **Phase 2** — `scripts/train_pooled.py` (copied from `efp_epoc/export_model.py`, not edited in
       place). Four fixes: (1) fit PDA directly as a third target, emit `pda_coef`/`pda_alpha`;
       (2) widen α grid `logspace(-2,5,15)` → `logspace(-2,8,30)` (current `cen_alpha` == grid max);
       (3) replace LOO-GCV with subject-grouped/blocked CV; (4) fix band edges (currently one
@@ -185,7 +240,8 @@ Host alias `explorer` (passwordless ssh; prints two harmless "Loading matlab" li
 Work dir to create: `/projects/swglab/data/DMNELF/analysis/fingerprint/efp_pooled/`.
 SLURM available (`partition=short`); see `efp_meirhasson/scripts/submit_*.sh` for job templates.
 
-**Running jobs:** none. Last completed: `9841912` (`submit_eval_holdout.sh`) — results in
+**Running jobs:** none. Completed: `9841912` (Phase 1 eval), `9842071` (Phase 2 train arms A/B),
+`9842175` (locked-set scoring). Earlier: `9841912` (`submit_eval_holdout.sh`) — results in
 `efp_pooled/results/shipped_on_{dmnelf,rtbpd,rtbpd_nf2}.csv` + `_summary.json`, mirrored into git.
 
 **Hard-won operational fact:** the login node OOM-kills *everything*, including numpy-only scripts

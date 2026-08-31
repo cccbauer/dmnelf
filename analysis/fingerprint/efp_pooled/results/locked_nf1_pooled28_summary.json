@@ -1,0 +1,45 @@
+{
+  "model": "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_pooled/models/pooled_epoc12_clean_ridge.npz",
+  "cohort": "rtbpd",
+  "targets": "clean",
+  "label": "LOCKED nf1-only | pooled28",
+  "held_out": true,
+  "summary": {
+    "CEN": {
+      "subject_mean_r": 0.03316189310233033,
+      "sem": 0.018932580315883334,
+      "n_subjects": 10,
+      "ci95": [
+        -0.009666579069497458,
+        0.07599036527415812
+      ],
+      "sign_flip_p": 0.11658834116588342,
+      "per_subject_min": -0.12234861117258158,
+      "per_subject_max": 0.08540813091409706
+    },
+    "DMN": {
+      "subject_mean_r": 0.058931046544388264,
+      "sem": 0.01362166552822084,
+      "n_subjects": 10,
+      "ci95": [
+        0.028116698300482097,
+        0.08974539478829444
+      ],
+      "sign_flip_p": 0.005499450054994501,
+      "per_subject_min": -0.033378981622063535,
+      "per_subject_max": 0.10478936263359434
+    },
+    "PDA": {
+      "subject_mean_r": -0.039370515601131584,
+      "sem": 0.023531934973620112,
+      "n_subjects": 10,
+      "ci95": [
+        -0.09260345085620791,
+        0.01386241965394474
+      ],
+      "sign_flip_p": 0.12708729127087293,
+      "per_subject_min": -0.15965369613473412,
+      "per_subject_max": 0.08926824481405218
+    }
+  }
+}
