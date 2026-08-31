@@ -1,6 +1,6 @@
 # efp_pooled — pooled DMNELF+rtBPD EFP fingerprint
 
-**Status:** Phase 0 complete (cohort split locked). Phase 1 not started.
+**Status:** Phase 1 in progress — held-out scorer written, SLURM job 9841611 running.
 **Branch:** `efp-pooled` in the `dmnelf` repo. **Last updated:** 2026-08-31.
 
 Goal: rebuild the mindwear EEG→BOLD decoder on a pooled DMNELF+rtBPD cohort (28 train subjects vs
@@ -81,7 +81,7 @@ Schemas verified identical: `runs` (object array) + `ch_names` (31); each run di
 ## Phases
 
 - [x] **Phase 0** — folder, locked cohort split, this document.
-- [ ] **Phase 1** — `scripts/eval_loso.py`: honest held-out score for the CURRENT
+- [~] **Phase 1** — `scripts/eval_holdout.py`: honest held-out score for the CURRENT
       `efp_epoc_model.npz`. Runs the real online path (`ReplaySource → RTFeatureExtractor →
       Decoder`), reusing `compare_engine.py:150-171` alignment/normalization. Reports per-run r for
       CEN/DMN/PDA, cohort mean ± SEM, Fisher CIs, sign-flip permutation; labels every number
@@ -147,7 +147,13 @@ Host alias `explorer` (passwordless ssh; prints two harmless "Loading matlab" li
 Work dir to create: `/projects/swglab/data/DMNELF/analysis/fingerprint/efp_pooled/`.
 SLURM available (`partition=short`); see `efp_meirhasson/scripts/submit_*.sh` for job templates.
 
-**Running jobs:** none yet.
+**Running jobs:** `9841611` — `submit_eval_holdout.sh`, scores the shipped model on all
+three cohorts. Check with `ssh explorer 'sacct -j 9841611 --format=JobID,State,ExitCode,Elapsed'`;
+results land in `efp_pooled/results/shipped_on_{dmnelf,rtbpd,rtbpd_nf2}.csv` + `_summary.json`.
+
+**Hard-won operational fact:** the login node OOM-kills *everything*, including numpy-only scripts
+(`import mne` and even plain feature loading both got `Killed`). Every compute step must go through
+SLURM. Use `partition=short`, `--mem=16G` is ample for the cache-based scoring.
 
 ## Known issues to fix opportunistically
 
