@@ -1,0 +1,22 @@
+  dmnelf001: 380 feedback TRs
+  dmnelf004: 380 feedback TRs
+  dmnelf005: 380 feedback TRs
+  dmnelf006: 380 feedback TRs
+  dmnelf007: 380 feedback TRs
+  dmnelf008: 380 feedback TRs
+  dmnelf009: 380 feedback TRs
+  dmnelf010: 380 feedback TRs
+  dmnelf011: 380 feedback TRs
+  dmnelf012: 380 feedback TRs
+  dmnelf013: 380 feedback TRs
+  dmnelf014: 380 feedback TRs
+  dmnelf015: 380 feedback TRs
+  dmnelf016: 380 feedback TRs
+  dmnelf1001: 380 feedback TRs
+  dmnelf1002: 380 feedback TRs
+  dmnelf1003: 324 feedback TRs
+  dmnelf002: 380 feedback TRs
+  dmnelf003: 380 feedback TRs
+CEN: n=7164 feat=1320 alpha=100000 in-sample r=+0.168
+DMN: n=7164 feat=1320 alpha=31622.8 in-sample r=+0.246
+saved /projects/swglab/data/DMNELF/analysis/fingerprint/efp_epoc/efp_epoc_model.npz  (montage=epoc12, 12 ch, bands Hz: [[1, 4], [5, 6], [7, 9], [10, 10], [11, 13], [14, 15], [16, 18], [19, 21], [22, 27], [28, 40]])

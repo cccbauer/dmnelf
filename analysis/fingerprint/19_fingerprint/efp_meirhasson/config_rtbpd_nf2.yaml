@@ -1,0 +1,69 @@
+project:
+  name: efp_meirhasson_rtbpd_nf2
+  description: >
+    rtBPD SECOND neurofeedback session (nf2) config for the EFP pipeline — the
+    double-replication arm. Separate feature/sphere dirs so nf2 does not collide
+    with nf1 (cyclic_features filenames carry no session label).
+
+data:
+  eeg_preproc_dir_cluster: /projects/swglab/data/rtBPD/derivatives/eeg_preprocessed
+  features_dir_cluster: /projects/swglab/data/rtBPD/derivatives/cyclic_features_nf2
+  confounds_dir_cluster: /projects/swglab/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+  network_masks_dir_cluster: /projects/swglab/data/rtBPD/derivatives/network_masks
+
+  eeg_preproc_dir_local: ~/Documents/GitHub/dmnelf/data/rtBPD/derivatives/eeg_preprocessed
+  features_dir_local: ~/Documents/GitHub/dmnelf/data/rtBPD/derivatives/cyclic_features_nf2
+  confounds_dir_local: ~/Documents/GitHub/dmnelf/data/rtBPD/derivatives/fmriprep_25.2.5_fmap
+  network_masks_dir_local: ~/Documents/GitHub/dmnelf/data/rtBPD/derivatives/network_masks
+
+  # nf2: EEG + fMRI both under ses-nf2
+  session: ses-nf2
+  session_eeg: ses-nf2
+  session_fmri: ses-nf2
+  task: feedback
+
+  # separate VIS sphere store so nf2 does not overwrite nf1 (keyed by subject only)
+  visual_sphere_dir: /projects/swglab/data/DMNELF/analysis/fingerprint/efp_meirhasson/results/visual_sphere_nf2
+
+  subjects:
+    pilot: [rtbpd002, rtbpd003]
+    # subjects with clean EEG + BOLD in ses-nf2 (018 has 2 usable runs)
+    all: [rtbpd002, rtbpd003, rtbpd009, rtbpd010, rtbpd011, rtbpd015, rtbpd018,
+          rtbpd022, rtbpd026, rtbpd027, rtbpd028, rtbpd030]
+
+  fmri:
+    tr: 1.2
+    dmn_idx: 64
+    cen_idx: 65
+    n_difumo: 64
+    vis_sphere_mni: [-1, -86, 13]
+    vis_sphere_radius_mm: 6
+
+  eeg:
+    sfreq: 250.0
+    desc: preproc500Hz
+
+efp:
+  freq_min: 1
+  freq_max: 40
+  n_bands: 10
+  delay_window_s: 12
+  resolutions: [tr, hz4]
+  hz4: 4.0
+  cv_outer_k: 5
+  cv_outer_m: 2
+  alpha_grid_n: 30
+  alpha_grid_lo: 0.01
+  alpha_grid_hi: 10000.0
+
+targets: [DMN, CEN, PDA, GSR_DMN, GSR_CEN, GSR_PDA, VIS]
+
+hrf:
+  length_s: 32
+  delay: 6
+  undershoot: 16
+
+baseline:
+  theta: [4, 7]
+  alpha: [8, 13]
+  occipital_channels: [Oz, O1, O2, POz, PO3, PO4, Pz, P3, P4]

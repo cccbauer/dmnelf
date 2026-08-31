@@ -1,0 +1,74 @@
+project:
+  name: efp_meirhasson
+  description: >
+    Replicate Meir-Hasson et al. 2014 EEG Finger-Print (EFP) for DMN/CEN/PDA.
+    Single-electrode Stockwell time-frequency, data-driven equal-energy bands,
+    sliding time-delay design, ridge regression with double CV.
+
+data:
+  eeg_preproc_dir_cluster: /projects/swglab/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir_cluster: /projects/swglab/data/DMNELF/derivatives/cyclic_features
+  confounds_dir_cluster: /projects/swglab/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+  network_masks_dir_cluster: /projects/swglab/data/DMNELF/derivatives/network_masks
+
+  eeg_preproc_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/eeg_preprocessed
+  features_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/cyclic_features
+  confounds_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/fmriprep_25.2.5_fmap
+  network_masks_dir_local: ~/Documents/GitHub/dmnelf/data/DMNELF/derivatives/network_masks
+
+  session: ses-dmnelf
+  task: feedback
+
+  subjects:
+    # 19: adds dmnelf002/003, recovered via R128 reconstruction this session
+    all: [dmnelf001, dmnelf002, dmnelf003, dmnelf004, dmnelf005, dmnelf006,
+          dmnelf007, dmnelf008, dmnelf009, dmnelf010, dmnelf011, dmnelf012,
+          dmnelf013, dmnelf014, dmnelf015, dmnelf016, dmnelf1001, dmnelf1002,
+          dmnelf1003]
+    pilot: [dmnelf001, dmnelf005]
+
+  fmri:
+    tr: 1.2
+    dmn_idx: 64
+    cen_idx: 65
+    n_difumo: 64
+    # visual-cortex positive control ROI — faithful to Meir-Hasson 2014 Fig 5:
+    # a single 6 mm sphere at the calcarine (MNI [-1,-86,13] ~ V1). Extracted from
+    # BOLD by extract_visual_sphere.py (NiftiSpheresMasker, standardize+detrend),
+    # matching how the DMN/CEN mask timeseries are extracted.
+    vis_sphere_mni: [-1, -86, 13]
+    vis_sphere_radius_mm: 6
+
+  eeg:
+    sfreq: 250.0        # paper downsamples to 250 Hz (load resamples from source desc)
+    desc: preproc500Hz  # source file; resampled to sfreq on load (present local + cluster)
+    samples_per_tr: 300 # 250 Hz * 1.2 s
+
+efp:
+  freq_min: 1           # ST computed at integer freqs 1..freq_max Hz (1 Hz resolution)
+  freq_max: 40
+  n_bands: 10           # data-driven equal-energy bands (paper: 10)
+  delay_window_s: 12    # sliding delay 0 .. -12 s
+  resolutions: [tr, hz4]  # build both native-TR and 4 Hz-upsampled, to compare
+  hz4: 4.0
+
+  # ridge / cross-validation
+  cv_outer_k: 5         # m-k-fold contiguous block CV (paper k=5, m=2)
+  cv_outer_m: 2
+  alpha_grid_n: 30      # inner RidgeCV lambda grid size (log-spaced)
+  alpha_grid_lo: 0.01
+  alpha_grid_hi: 10000.0
+
+targets: [DMN, CEN, PDA, GSR_DMN, GSR_CEN, GSR_PDA, VIS]
+
+# canonical HRF (baselines only: T/A and fixed-HRF predictors)
+hrf:
+  length_s: 32
+  delay: 6
+  undershoot: 16
+
+# baseline band definitions (Hz) for the Theta/Alpha predictor
+baseline:
+  theta: [4, 7]
+  alpha: [8, 13]
+  occipital_channels: [Oz, O1, O2, POz, PO3, PO4, Pz, P3, P4]
