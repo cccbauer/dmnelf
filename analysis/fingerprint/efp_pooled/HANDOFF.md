@@ -44,14 +44,17 @@ Pooling plausibly reaches +0.20–0.25. **A convincing dual-ball display is not 
 |---|---|---|
 | TR | 1.2 s | 1.2 s |
 | EEG | 250 Hz, 31 ch + ECG | 500 Hz → resampled to 250 on load, same 31 ch, same order |
-| Session | `ses-dmnelf` | EEG `ses-nf`, fMRI `ses-nf1` (same physical session) |
+| Session | `ses-dmnelf` | `ses-nf1` (and `ses-nf2` for 11 subjects) |
 | Runs × TRs | 4 × 125 | 5 × 150 |
 
 Gotchas that cost time — do not rediscover them:
-- rtBPD EEG is **`desc-preproc500Hz` in `ses-nf`**, NOT `preproc250Hz` in `ses-nf1`. Globbing the
-  latter makes 9 subjects look like they have no feedback EEG. `efp_meirhasson/config_rtbpd.yaml`
-  already handles this (`session_eeg: ses-nf`, `desc: preproc500Hz`, `sfreq: 250.0`).
-- `dmnelf016`'s feedback EEG also exists only as `desc-preproc500Hz`.
+- rtBPD EEG sessions are **`ses-nf1` / `ses-nf2`**, and the universal file format is
+  **`desc-preproc500Hz`**. A `desc-preproc250Hz` copy exists for only *some* subjects (e.g. 004,
+  022 have it; 002 does not), so globbing 250Hz makes 9 subjects look like they have no feedback
+  EEG. Always use the 500Hz files and resample to 250 -- which is what
+  `efp_meirhasson/config_rtbpd.yaml` does (`desc: preproc500Hz`, `sfreq: 250.0`). Note some
+  subjects also have a `ses-nf1-archive` directory; ignore it.
+- DMNELF EEG is natively `desc-preproc250Hz` except `dmnelf016`, which is 500Hz only.
 - **Two DMNELF feature caches exist and they differ.** Use the `19_fingerprint` one (19 subjects).
   The v1 `efp_meirhasson/results/features_cache` has only 17 — no dmnelf002/003.
 
