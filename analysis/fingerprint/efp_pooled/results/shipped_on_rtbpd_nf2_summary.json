@@ -1,0 +1,45 @@
+{
+  "model": "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_epoc/efp_epoc_model.npz",
+  "cohort": "rtbpd_nf2",
+  "targets": "clean",
+  "label": "shipped efp_epoc_model.npz (n=19 DMNELF-trained)",
+  "held_out": true,
+  "summary": {
+    "CEN": {
+      "subject_mean_r": 0.09274666459360431,
+      "sem": 0.029829447323523002,
+      "n_subjects": 11,
+      "ci95": [
+        0.026282514078784736,
+        0.1592108151084239
+      ],
+      "sign_flip_p": 0.006099390060993901,
+      "per_subject_min": -0.024177624179655882,
+      "per_subject_max": 0.30307745273476183
+    },
+    "DMN": {
+      "subject_mean_r": 0.03571511702034979,
+      "sem": 0.01978381582578551,
+      "n_subjects": 11,
+      "ci95": [
+        -0.008365971661623811,
+        0.07979620570232339
+      ],
+      "sign_flip_p": 0.11048895110488952,
+      "per_subject_min": -0.07308141603231419,
+      "per_subject_max": 0.13274391879759947
+    },
+    "PDA": {
+      "subject_mean_r": 0.007858161357939226,
+      "sem": 0.021311671251248863,
+      "n_subjects": 11,
+      "ci95": [
+        -0.03962720135772729,
+        0.05534352407360575
+      ],
+      "sign_flip_p": 0.7125287471252875,
+      "per_subject_min": -0.10964250914034834,
+      "per_subject_max": 0.12115278825950548
+    }
+  }
+}

@@ -70,11 +70,21 @@ def joint_norm(a, c):
     return (a - mu) / sd, (c - mu) / sd
 
 
-def fisher_ci(r, n):
-    if not np.isfinite(r) or n < 5:
+def mean_ci(mean, sem, n):
+    """95% CI for a MEAN of per-subject correlations.
+
+    NOT Fisher: Fisher's 1/sqrt(n-3) applies to a single r from n paired observations, and using it
+    with n = number of subjects yields absurdly wide intervals. The quantity here is a sample mean
+    across subjects, so the interval is t-based on the between-subject SEM.
+    """
+    if not np.isfinite(mean) or not np.isfinite(sem) or n < 3:
         return np.nan, np.nan
-    z, se = np.arctanh(np.clip(r, -0.999, 0.999)), 1.0 / np.sqrt(n - 3)
-    return float(np.tanh(z - 1.96 * se)), float(np.tanh(z + 1.96 * se))
+    try:
+        from scipy.stats import t as tdist
+        crit = float(tdist.ppf(0.975, n - 1))
+    except Exception:
+        crit = 1.96
+    return float(mean - crit * sem), float(mean + crit * sem)
 
 
 def sign_flip_p(rs, n_perm=10000, seed=0):
@@ -88,18 +98,22 @@ def sign_flip_p(rs, n_perm=10000, seed=0):
     return float((np.sum(np.abs(null) >= abs(obs)) + 1) / (n_perm + 1))
 
 
-def run_designs(runs, ch_names, eidx, n_delays, targets):
-    """Yield (run_id, X_masked, {CEN,DMN} masked+jointly-normalized observed)."""
+def run_designs(runs, ch_names, eidx, n_delays, targets, skips=None):
+    """Yield (run_id, X_masked, observed CEN, observed DMN) for each scorable run."""
     for rd in runs:
         rd = rd.item() if hasattr(rd, "item") else rd
-        r = rd["run"]
+        r = str(rd["run"])
         if r not in targets:
+            if skips is not None:
+                skips.append(f"run{r}: no target (have {sorted(targets)})")
             continue
         per_ch, off = [], None
         for ci in eidx:
             Xc, off = make_delay_design(rd["bp_tr"][ci], n_delays)
             per_ch.append((Xc - Xc.mean(0)) / (Xc.std(0) + 1e-12))
         if not per_ch or per_ch[0].shape[0] == 0:
+            if skips is not None:
+                skips.append(f"run{r}: empty design")
             continue
         nvalid = per_ch[0].shape[0]
         t_idx = off + np.arange(nvalid)
@@ -107,6 +121,8 @@ def run_designs(runs, ch_names, eidx, n_delays, targets):
         y_dmn = np.asarray(targets[r]["DMN"], float)[off:off + nvalid]
         m = (t_idx >= BASELINE_TR + HRF_DROP) & np.isfinite(y_cen) & np.isfinite(y_dmn)
         if m.sum() < 20:
+            if skips is not None:
+                skips.append(f"run{r}: only {int(m.sum())} usable TRs (<20)")
             continue
         X = np.column_stack([c[m] for c in per_ch])
         yield r, X, y_cen[m], y_dmn[m]
@@ -123,7 +139,8 @@ def load_targets(prefix, sub, key_variant):
         cen_k = f"run{n}_gsr" if key_variant == "gsr" else f"run{n}"
         dmn_k = f"run{n}_dmn"
         if cen_k in z.files and dmn_k in z.files:
-            out[n] = {"CEN": z[cen_k], "DMN": z[dmn_k]}
+            # Key by str: the feature cache stores rd["run"] as a string ('1', '2', ...).
+            out[str(n)] = {"CEN": z[cen_k], "DMN": z[dmn_k]}
     return out
 
 
@@ -171,7 +188,9 @@ def main():
         if not targets:
             print(f"  {sub}: no cenmean targets, skip"); continue
 
-        for r, X, y_cen, y_dmn in run_designs(runs, ch_names, eidx, n_delays, targets):
+        skips = []
+        n_before = len(rows)
+        for r, X, y_cen, y_dmn in run_designs(runs, ch_names, eidx, n_delays, targets, skips):
             Xs_cen = (X - M["cen_feat_mean"]) / M["cen_feat_std"]
             Xs_dmn = (X - M["dmn_feat_mean"]) / M["dmn_feat_std"]
             p_cen = Xs_cen @ M["cen_coef"] + float(M["cen_intercept"])
@@ -190,6 +209,8 @@ def main():
             rows.append(row)
             print(f"  {sub} run{r}: n={row['n']:3d}  CEN {row['CEN']:+.3f}  "
                   f"DMN {row['DMN']:+.3f}  PDA {row['PDA']:+.3f}")
+        if len(rows) == n_before:
+            print(f"  {sub}: NO runs scored -> {'; '.join(skips) if skips else 'cache had no runs'}")
 
     if not rows:
         print("\nNo scorable runs."); return
@@ -201,7 +222,7 @@ def main():
         per_sub = [float(np.mean([r[k] for r in rows if r["subject"] == s])) for s in subs_seen]
         per_sub = [v for v in per_sub if np.isfinite(v)]
         mean = float(np.mean(per_sub)); sem = float(np.std(per_sub, ddof=1) / np.sqrt(len(per_sub)))
-        lo, hi = fisher_ci(mean, len(per_sub))
+        lo, hi = mean_ci(mean, sem, len(per_sub))
         p = sign_flip_p(per_sub)
         summary[k] = {"subject_mean_r": mean, "sem": sem, "n_subjects": len(per_sub),
                       "ci95": [lo, hi], "sign_flip_p": p,

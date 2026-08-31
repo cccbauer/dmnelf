@@ -1,6 +1,6 @@
 # efp_pooled — pooled DMNELF+rtBPD EFP fingerprint
 
-**Status:** Phase 1 in progress — held-out scorer written, SLURM job 9841611 running.
+**Status:** Phase 1 COMPLETE. Headline result below. Phase 2 (pooled retrain) is next.
 **Branch:** `efp-pooled` in the `dmnelf` repo. **Last updated:** 2026-08-31.
 
 Goal: rebuild the mindwear EEG→BOLD decoder on a pooled DMNELF+rtBPD cohort (28 train subjects vs
@@ -78,10 +78,48 @@ Schemas verified identical: `runs` (object array) + `ch_names` (31); each run di
 
 ---
 
+## PHASE 1 RESULT — the deployed decoder's PDA does not transfer
+
+Scored the shipped `efp_epoc_model.npz` (DMNELF-trained, n=19) with `eval_holdout.py`.
+Every rtBPD subject is genuinely held out for it. Subject-mean r ± SEM, 95% CI, sign-flip p:
+
+| cohort | status | n | CEN | DMN | **PDA** |
+|---|---|---|---|---|---|
+| dmnelf | in-sample | 19 subj / 75 runs | +0.171 ± 0.020 | +0.249 ± 0.013 | +0.194 ± 0.030 |
+| **rtbpd nf1** | **HELD OUT** | 19 subj / 93 runs | +0.069 ± 0.017 *(p=.0004)* | +0.052 ± 0.015 *(p=.003)* | **+0.010 ± 0.012, CI [−0.016,+0.036], p=0.43** |
+| **rtbpd nf2** | **HELD OUT** | 11 subj / 51 runs | +0.093 ± 0.030 *(p=.006)* | +0.036 ± 0.020 *(p=.11)* | **+0.008 ± 0.021, CI [−0.040,+0.055], p=0.71** |
+
+**Harness is validated:** the in-sample CEN/DMN (+0.171/+0.249) reproduce the deployed model's own
+build log (`export_n19_9817780.out`: +0.168/+0.246) to within 0.003.
+
+**The finding: PDA — the signal mindwear actually feeds back — has no out-of-sample validity.**
+r = +0.010 (p=0.43) on 19 held-out subjects, replicated at +0.008 (p=0.71) on an independent second
+session. Per-subject PDA on held-out rtBPD is 9 positive / 10 negative — a coin flip.
+
+CEN and DMN individually *do* transfer, weakly but reliably (+0.069, +0.052, both p<0.005). Their
+**difference** does not. This is consistent with `eeg_bold_coupling/HANDOFF.md`: the transferable
+component is largely shared/global (arousal), and differencing cancels precisely the part that
+transfers, leaving nothing network-specific behind.
+
+In-sample → held-out degradation: CEN −60%, DMN −79%, **PDA −95% (to zero)**.
+
+### What this changes
+
+- Fitting **PDA directly** (Phase 2 defect #1) is promoted from "nice improvement" to **the central
+  fix**. The current architecture — difference two independently-regularized ridges — is what
+  destroys transfer. Offline, directly-fit PDA is the *best*-transferring target (LOSO n=19: PDA
+  +0.157 vs CEN +0.114, DMN +0.107), so the signal exists; this build throws it away.
+- **Pooling gains urgency**: a DMNELF-only model has never seen rtBPD-like variance, and the
+  cross-cohort collapse is the evidence.
+- Prior context: `frozen_v1` cross-cohort DMNELF→rtBPD PDA was +0.037 (n.s.). This result (+0.010)
+  is consistent with it and now measured directly on the *deployed* model for the first time.
+- **Do not quote r=+0.22 as the decoder's performance.** It is in-sample, on a training subject who
+  is the cohort's best performer. The honest deployed number for PDA is ~0.
+
 ## Phases
 
 - [x] **Phase 0** — folder, locked cohort split, this document.
-- [~] **Phase 1** — `scripts/eval_holdout.py`: honest held-out score for the CURRENT
+- [x] **Phase 1** — `scripts/eval_holdout.py`: honest held-out score for the CURRENT
       `efp_epoc_model.npz`. Runs the real online path (`ReplaySource → RTFeatureExtractor →
       Decoder`), reusing `compare_engine.py:150-171` alignment/normalization. Reports per-run r for
       CEN/DMN/PDA, cohort mean ± SEM, Fisher CIs, sign-flip permutation; labels every number
@@ -147,9 +185,8 @@ Host alias `explorer` (passwordless ssh; prints two harmless "Loading matlab" li
 Work dir to create: `/projects/swglab/data/DMNELF/analysis/fingerprint/efp_pooled/`.
 SLURM available (`partition=short`); see `efp_meirhasson/scripts/submit_*.sh` for job templates.
 
-**Running jobs:** `9841611` — `submit_eval_holdout.sh`, scores the shipped model on all
-three cohorts. Check with `ssh explorer 'sacct -j 9841611 --format=JobID,State,ExitCode,Elapsed'`;
-results land in `efp_pooled/results/shipped_on_{dmnelf,rtbpd,rtbpd_nf2}.csv` + `_summary.json`.
+**Running jobs:** none. Last completed: `9841912` (`submit_eval_holdout.sh`) — results in
+`efp_pooled/results/shipped_on_{dmnelf,rtbpd,rtbpd_nf2}.csv` + `_summary.json`, mirrored into git.
 
 **Hard-won operational fact:** the login node OOM-kills *everything*, including numpy-only scripts
 (`import mne` and even plain feature loading both got `Killed`). Every compute step must go through
