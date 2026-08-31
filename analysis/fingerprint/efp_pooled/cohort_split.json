@@ -1,0 +1,81 @@
+{
+  "created": "2026-08-31",
+  "rationale": "Locked BEFORE any training. rtBPD is the only external cohort, so a subject-level holdout is reserved from it. Subjects with BOTH sessions go to TRAIN (nf1) so their nf2 sessions provide a session-transfer test; subjects with only one session are reserved as the locked external test. Never edit this file.",
+  "feature_caches": {
+    "dmnelf": "/projects/swglab/data/DMNELF/analysis/fingerprint/19_fingerprint/efp_meirhasson/results/features_cache",
+    "rtbpd_nf1": "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_meirhasson/results/features_cache_rtbpd",
+    "rtbpd_nf2": "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_meirhasson/results/features_cache_rtbpd_nf2",
+    "note": "DMNELF cache MUST come from the 19_fingerprint tree; the v1 efp_meirhasson tree has only 17 (no dmnelf002/003). Schemas verified identical: 31 ch, 10 bands, keys bp_tr/bp_hz4/ta_tr/tgt_tr/band_hz; time axis 125 TR (DMNELF) vs 150 TR (rtBPD)."
+  },
+  "targets_cache": "/projects/swglab/data/DMNELF/analysis/fingerprint/efp_epoc/cen_mean_cache",
+  "train": {
+    "dmnelf": [
+      "dmnelf001",
+      "dmnelf002",
+      "dmnelf003",
+      "dmnelf004",
+      "dmnelf005",
+      "dmnelf006",
+      "dmnelf007",
+      "dmnelf008",
+      "dmnelf009",
+      "dmnelf010",
+      "dmnelf011",
+      "dmnelf012",
+      "dmnelf013",
+      "dmnelf014",
+      "dmnelf015",
+      "dmnelf016",
+      "dmnelf1001",
+      "dmnelf1002",
+      "dmnelf1003"
+    ],
+    "rtbpd_nf1": [
+      "rtbpd002",
+      "rtbpd003",
+      "rtbpd009",
+      "rtbpd010",
+      "rtbpd011",
+      "rtbpd015",
+      "rtbpd022",
+      "rtbpd026",
+      "rtbpd030"
+    ],
+    "n": 28
+  },
+  "locked_external_test": {
+    "rtbpd_nf1": [
+      "rtbpd004",
+      "rtbpd012",
+      "rtbpd013",
+      "rtbpd018",
+      "rtbpd020",
+      "rtbpd021",
+      "rtbpd024",
+      "rtbpd034",
+      "rtbpd038",
+      "rtbpd040"
+    ],
+    "rtbpd_nf2": [
+      "rtbpd027",
+      "rtbpd028"
+    ],
+    "n": 12,
+    "policy": "Scored EXACTLY ONCE per arm. No iteration against it."
+  },
+  "session_transfer_test": {
+    "rtbpd_nf2": [
+      "rtbpd002",
+      "rtbpd003",
+      "rtbpd009",
+      "rtbpd010",
+      "rtbpd011",
+      "rtbpd015",
+      "rtbpd022",
+      "rtbpd026",
+      "rtbpd030"
+    ],
+    "n": 9,
+    "note": "Same people as train, different session."
+  }
+}
