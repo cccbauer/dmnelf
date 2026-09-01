@@ -1,8 +1,8 @@
 # efp_pooled — pooled DMNELF+rtBPD EFP fingerprint
 
-**Status:** Phase 2 first pass COMPLETE — and it is a NEGATIVE result. Read both result
-sections below before doing anything else; the planned remaining arms need a protocol change.
-**Branch:** `efp-pooled` in the `dmnelf` repo. **Last updated:** 2026-08-31.
+**Status:** Phase 2 first pass COMPLETE (NEGATIVE). Phase 2.5 (montage/estimator/joint-fit arms)
+COMPLETE, also NEGATIVE — read all three result sections below before doing anything else.
+**Branch:** `efp-pooled` in the `dmnelf` repo. **Last updated:** 2026-09-01.
 
 Goal: rebuild the mindwear EEG→BOLD decoder on a pooled DMNELF+rtBPD cohort (28 train subjects vs
 the current 19), fix four verified defects in the training script, and — for the first time —
@@ -171,6 +171,55 @@ ElasticNet, `epoc_afproxy`, `cap31`) must be **selected on training-side grouped
 single final locked-set confirmation of the one chosen winner. Scoring every arm on the locked set
 would reintroduce exactly the selection creep the lock exists to prevent.
 
+## PHASE 2.5 — montage / ElasticNet / joint-fit arms — NEGATIVE, none earned a locked-set query
+
+User decision after Phase 2: keep the shipped two-ridge architecture (CEN, DMN fit independently,
+PDA = cen − dmn downstream) rather than keep chasing direct-PDA-fit or pooling — focus instead on
+improving CEN/DMN, the two targets that DO transfer. Four single-variable-changed arms, all
+`--dmnelf-only` (19 subjects, isolates each variable from the pooling question already answered in
+Phase 2), trained via `train_pooled.py` on 2026-09-01 (SLURM job `9855083`, log:
+`results/logs/arms2_9855083.out`). Baseline is `dmnelfonly19-with-fixes` (epoc12, ridge — the
+already-locked-tested model from Phase 2: grouped-CV CEN +0.042 / DMN +0.032; locked test CEN
+r=+0.019 p=.343 / DMN r=+0.049 p=.026):
+
+| arm | montage | estimator | CEN grouped-CV | DMN grouped-CV |
+|---|---|---|---|---|
+| baseline (Phase 2) | epoc12 | ridge | +0.042 | +0.032 |
+| C | epoc_afproxy (+Fp1/Fp2) | ridge | +0.041 | +0.030 |
+| D | cap31 (full 31-ch) | ridge | +0.049 | +0.019 |
+| E | epoc12 | elasticnet | +0.044 | +0.019 |
+| F | epoc12 | **pls** (joint CEN+DMN, n_components grid-searched 2–80) | +0.012 (mean) | +0.012 (mean) |
+
+New estimator added to `train_pooled.py --estimator pls`: 2-output `PLSRegression` fit jointly on
+`[CEN, DMN]` (motivated by `eeg_bold_coupling/HANDOFF.md` — the EEG-decodable component is largely
+shared/global, so letting the two targets share a low-rank latent structure, instead of two fully
+independently-regularized ridges, seemed like it should help). Grouped-CV picked `n_components=2`;
+the coefficient/intercept extraction was numerically verified against `sklearn`'s own
+`.predict()` (max abs diff ~1e-16) before trusting it — this isn't a plumbing bug.
+
+**Findings:**
+- **Arm C (epoc_afproxy)**: adding Fp1/Fp2 to the portable montage does essentially nothing
+  (CEN/DMN both within noise of baseline).
+- **Arm D (cap31)**: the only arm with a real (non-trivial) effect, but it's a **trade-off, not a
+  win** — CEN improves (+0.042→+0.049) while DMN gets *worse* (+0.032→+0.019). Not scored on the
+  locked set per protocol (ambiguous candidates don't earn a confirmatory query).
+- **Arm E (ElasticNet)**: flat for CEN, worse for DMN vs Ridge.
+- **Arm F (joint PLS2) is the worst of the four on honest grouped-CV** despite having the
+  *highest* in-sample r of any arm tried (CEN=+0.12, DMN=+0.10 in-sample vs only +0.012 grouped-CV
+  mean) — a textbook overfitting signature. **The shared-latent-structure hypothesis is not
+  supported**: forcing CEN and DMN to share components hurts rather than helps, at least with a
+  linear low-rank (PLS) approach on this feature set.
+- **None of these 4 arms was scored on the locked external test.** Per the protocol note above,
+  the lock is reserved for a genuine winner, and none of these qualified.
+
+**Net conclusion across Phase 2 + 2.5**: pooling, direct-PDA-fit, wider montages, ElasticNet, and
+joint multi-task fitting have all now been tried and none improves on the already-shipped
+architecture's CEN/DMN transfer. This is consistent with `eeg_bold_coupling/HANDOFF.md`: the
+ceiling here looks like it's set by how much EEG-decodable signal exists at all (largely
+shared/global), not by these modeling choices. The one lever not yet tried is **per-subject
+calibration** (see below) — everything in Phase 2/2.5 was cohort-level modeling; nothing here
+touches per-individual weight adaptation.
+
 ## Phases
 
 - [x] **Phase 0** — folder, locked cohort split, this document.
@@ -185,9 +234,13 @@ would reintroduce exactly the selection creep the lock exists to prevent.
       (3) replace LOO-GCV with subject-grouped/blocked CV; (4) fix band edges (currently one
       arbitrary channel's, via a `band_hz` overwrite bug at `efp_features.py:238-241`).
       Scored arms: target `_gsr` vs `clean`; ElasticNet vs Ridge.
-- [ ] **Phase 3** — montage comparison on identical 31-ch recordings: `epoc12` / `epoc_afproxy`
-      (+Fp1/Fp2 for AF3/AF4) / `cap31` (has Pz/POz/TP10, the LOSO transfer electrodes EPOC X lacks).
-- [ ] **Phase 4** — score all arms once on the locked 12, pick, ship to `mindwear/model/`.
+- [x] **Phase 2.5** — montage comparison (`epoc12`/`epoc_afproxy`/`cap31`) + ElasticNet + a new
+      joint-CEN+DMN `pls` estimator, all `--dmnelf-only` to isolate each variable. NEGATIVE — see
+      above. Supersedes the original Phase 3 scope (montage comparison is done; cap31 shows a
+      CEN/DMN trade-off, not a win).
+- [ ] **Phase 4** — nothing left worth a locked-set confirmation from Phase 2/2.5's arms. Next
+      candidate for Phase 4 is per-subject calibration (see "Largest lever" below), not another
+      cohort-level model variant.
 
 ## Do not redo — recorded negative results
 
@@ -197,6 +250,13 @@ would reintroduce exactly the selection creep the lock exists to prevent.
 - HRF-convolved band-limited power: no network-specific signal survives global-signal control.
 - Training on `orig` targets scores ~6× higher than `clean` but is largely arousal artifact —
   EEG→DMN r=+0.30 collapses to −0.042 (p=0.52) under global-signal control. Prefer `_gsr`.
+- **Wider montage (`epoc_afproxy`, `cap31`) as a way to improve CEN+DMN**: `epoc_afproxy` does
+  nothing; `cap31` trades a small CEN gain for a real DMN loss, not a net win (Phase 2.5).
+- **ElasticNet instead of Ridge** for CEN/DMN: flat-to-worse vs Ridge, no benefit found (Phase 2.5).
+- **Joint CEN+DMN fit via 2-output PLS** (shared low-rank latent structure): grouped-CV mean r
+  +0.012, the worst of every arm tried despite the highest in-sample r — clear overfitting, not a
+  fix. The "let CEN/DMN share structure" hypothesis from `eeg_bold_coupling/HANDOFF.md` does not
+  translate into a working linear joint model here (Phase 2.5).
 
 ## Largest lever, deliberately deferred
 

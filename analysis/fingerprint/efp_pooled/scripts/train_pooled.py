@@ -21,10 +21,20 @@ Fixes vs export_model.py:
      rd["band_hz"], which upstream (efp_features.py:238-241) holds only the LAST channel's
      equal-energy edges because it is overwritten inside a per-channel loop.
 
+--estimator pls (added after Phase 2): the user decided to KEEP the shipped two-ridge
+architecture (CEN, DMN fit independently, PDA = cen - dmn downstream) rather than chase PDA
+directly. This estimator instead asks whether CEN and DMN can be fit JOINTLY -- 2-output PLS
+extracts a small number of shared latent components that predict [CEN, DMN] together, letting them
+borrow statistical strength from whatever they share (motivated by eeg_bold_coupling/HANDOFF.md:
+the EEG-decodable component is largely shared/global, and independent per-target regularization
+currently throws that sharing away). No pda_coef is written for this estimator -- eval_holdout.py
+already falls back to cen - dmn when it's absent, which is exactly the architecture being kept.
+
 Cohort comes from the LOCKED cohort_split.json; the held-out subjects are never loaded here.
 
 Usage (see submit_train_pooled.sh):
   python train_pooled.py --montage epoc12 --targets clean --estimator ridge --out <model.npz>
+  python train_pooled.py --montage epoc12 --targets clean --estimator pls --out <model.npz>
 """
 import argparse
 import json
@@ -32,6 +42,7 @@ from pathlib import Path
 
 import numpy as np
 from scipy.stats import zscore
+from sklearn.cross_decomposition import PLSRegression
 from sklearn.linear_model import Ridge, ElasticNet
 from sklearn.model_selection import GroupKFold
 
@@ -179,11 +190,41 @@ def pick_alpha_grouped(X, y, groups, estimator, l1_ratio=0.5, n_splits=5, log=pr
     return float(best), float(best_score)
 
 
+PLS_GRID = [2, 5, 10, 20, 40, 80]   # deliberately small vs 1320 input features -- the shared-latent
+                                    # -structure hypothesis predicts only a few components matter
+
+
+def pick_ncomp_grouped_pls(X, Ycen, Ydmn, groups, n_splits=5, log=print):
+    """Joint CEN+DMN PLS2: grouped-CV over n_components, scored as the MEAN of
+    corr(pred_cen, val_cen) and corr(pred_dmn, val_dmn) so neither target dominates the choice."""
+    n_groups = len(np.unique(groups))
+    gkf = GroupKFold(n_splits=min(n_splits, n_groups))
+    folds = list(gkf.split(X, Ycen, groups))
+    Y = np.column_stack([Ycen, Ydmn])
+
+    best, best_score = None, -np.inf
+    for nc in PLS_GRID:
+        if nc >= X.shape[1]:
+            continue
+        sc = []
+        for tr_i, va_i in folds:
+            mdl = PLSRegression(n_components=nc, scale=False).fit(X[tr_i], Y[tr_i])
+            pr = mdl.predict(X[va_i])
+            r_cen = 0.0 if np.std(pr[:, 0]) < 1e-12 else np.corrcoef(pr[:, 0], Ycen[va_i])[0, 1]
+            r_dmn = 0.0 if np.std(pr[:, 1]) < 1e-12 else np.corrcoef(pr[:, 1], Ydmn[va_i])[0, 1]
+            sc.append((r_cen + r_dmn) / 2.0)
+        s = float(np.nanmean(sc))
+        log(f"      n_components={nc:>4d}  grouped-CV mean(CEN,DMN) r={s:+.4f}")
+        if s > best_score:
+            best, best_score = nc, s
+    return int(best), float(best_score)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--montage", choices=list(MONTAGES), default="epoc12")
     ap.add_argument("--targets", choices=["clean", "gsr"], default="clean")
-    ap.add_argument("--estimator", choices=["ridge", "elasticnet"], default="ridge")
+    ap.add_argument("--estimator", choices=["ridge", "elasticnet", "pls"], default="ridge")
     ap.add_argument("--l1-ratio", type=float, default=0.5)
     ap.add_argument("--split", default=str(POOLED / "cohort_split.json"))
     ap.add_argument("--dmnelf-only", action="store_true", help="ablation: train on DMNELF alone")
@@ -241,33 +282,80 @@ def main():
              "layout": "channel-major, delay-major, band-minor",
              "n_train_subjects": len(used), "train_subjects": np.array(used),
              "target_variant": a.targets, "estimator": a.estimator,
-             "pda": "FITTED DIRECTLY as its own ridge (not cen - dmn)",
-             "alpha_selection": "GroupKFold by subject over the pooled cohort",
+             "pda": ("cen - dmn (joint PLS2 CEN/DMN, PDA not fit directly)" if a.estimator == "pls"
+                     else "FITTED DIRECTLY as its own ridge (not cen - dmn)"),
+             "alpha_selection": ("GroupKFold n_components sweep (joint PLS2)" if a.estimator == "pls"
+                                 else "GroupKFold by subject over the pooled cohort"),
              "cohort_split": str(a.split)}
 
     print()
-    for tgt in TARGET_NAMES:
-        X = np.vstack(fitX[tgt]); y = np.concatenate(fitY[tgt])
-        g = np.array(fitG[tgt])
+    if a.estimator == "pls":
+        # Joint CEN+DMN fit. fitX["CEN"] and fitX["DMN"] are row-identical designs (subject_designs'
+        # mask depends on isfinite(cen) & isfinite(dmn) regardless of which target is extracted) --
+        # safe to reuse fitX["CEN"] as the shared design and pair it with both targets' y's, which
+        # were appended in the same subject/run order. PDA is intentionally NOT fit here; it stays
+        # cen - dmn downstream (eval_holdout.py / decoder.py both already do this when pda_coef is
+        # absent from the model file).
+        X = np.vstack(fitX["CEN"]); y_cen = np.concatenate(fitY["CEN"]); y_dmn = np.concatenate(fitY["DMN"])
+        g = np.array(fitG["CEN"])
+        assert len(y_cen) == len(y_dmn) == X.shape[0], "CEN/DMN row mismatch -- design assumption broken"
         mu, sd = X.mean(0), X.std(0) + 1e-12
         Xs_ = (X - mu) / sd
-        print(f"  === {tgt}: n={len(y)} feat={X.shape[1]} subjects={len(np.unique(g))}")
-        alpha, cv_r = pick_alpha_grouped(Xs_, y, g, a.estimator, a.l1_ratio,
-                                         log=lambda s: None)
-        mdl = (Ridge(alpha=alpha) if a.estimator == "ridge"
-               else ElasticNet(alpha=alpha, l1_ratio=a.l1_ratio, max_iter=5000)).fit(Xs_, y)
-        in_r = float(np.corrcoef(mdl.predict(Xs_), y)[0, 1])
-        saturated = (" *** SATURATES GRID ***"
-                     if a.estimator == "ridge" and alpha >= ALPHAS.max() * 0.999 else "")
-        print(f"      alpha={alpha:g}{saturated}  grouped-CV r={cv_r:+.4f}  in-sample r={in_r:+.4f}")
-        k = tgt.lower()
-        model[f"{k}_coef"] = mdl.coef_.astype(np.float32)
-        model[f"{k}_intercept"] = float(mdl.intercept_)
-        model[f"{k}_alpha"] = float(alpha)
-        model[f"{k}_grouped_cv_r"] = cv_r
-        model[f"{k}_in_sample_r"] = in_r
-        model[f"{k}_feat_mean"] = mu.astype(np.float32)
-        model[f"{k}_feat_std"] = sd.astype(np.float32)
+        print(f"  === CEN+DMN (joint PLS2): n={len(y_cen)} feat={X.shape[1]} subjects={len(np.unique(g))}")
+        n_comp, cv_r = pick_ncomp_grouped_pls(Xs_, y_cen, y_dmn, g, log=print)
+        pls = PLSRegression(n_components=n_comp, scale=False).fit(Xs_, np.column_stack([y_cen, y_dmn]))
+        pred = pls.predict(Xs_)
+        in_r_cen = float(np.corrcoef(pred[:, 0], y_cen)[0, 1])
+        in_r_dmn = float(np.corrcoef(pred[:, 1], y_dmn)[0, 1])
+        print(f"      n_components={n_comp}  grouped-CV mean r={cv_r:+.4f}  "
+              f"in-sample r: CEN={in_r_cen:+.4f} DMN={in_r_dmn:+.4f}")
+
+        # coef_/intercept extraction is version-robust: don't trust sklearn's internal PLS scaling
+        # convention (coef_ orientation changed across versions) -- instead derive a plain
+        # (coef, intercept) pair per target from Xs_ (already zero-mean) and verify it reproduces
+        # pls.predict() exactly before trusting it.
+        coef = np.asarray(pls.coef_, float)
+        if coef.shape == (X.shape[1], 2):
+            coef = coef.T                                  # -> (2, n_features)
+        assert coef.shape == (2, X.shape[1]), f"unexpected PLS coef_ shape {coef.shape}"
+        for k, ti, y_t, in_r in (("cen", 0, y_cen, in_r_cen), ("dmn", 1, y_dmn, in_r_dmn)):
+            c = coef[ti]
+            b = float(y_t.mean() - Xs_.mean(0) @ c)         # Xs_.mean(0) ~= 0, kept for correctness
+            check = Xs_ @ c + b
+            max_err = float(np.max(np.abs(check - pred[:, ti])))
+            print(f"      [{k}] manual-vs-pls.predict() max abs diff = {max_err:.2e}"
+                  + ("  *** MISMATCH -- DO NOT TRUST ***" if max_err > 1e-6 else "  OK"))
+            model[f"{k}_coef"] = c.astype(np.float32)
+            model[f"{k}_intercept"] = b
+            model[f"{k}_alpha"] = float(n_comp)             # repurposed field: n_components here
+            model[f"{k}_grouped_cv_r"] = cv_r               # joint score, same for both targets
+            model[f"{k}_in_sample_r"] = in_r
+            model[f"{k}_feat_mean"] = mu.astype(np.float32)
+            model[f"{k}_feat_std"] = sd.astype(np.float32)
+        model["pls_n_components"] = n_comp
+    else:
+        for tgt in TARGET_NAMES:
+            X = np.vstack(fitX[tgt]); y = np.concatenate(fitY[tgt])
+            g = np.array(fitG[tgt])
+            mu, sd = X.mean(0), X.std(0) + 1e-12
+            Xs_ = (X - mu) / sd
+            print(f"  === {tgt}: n={len(y)} feat={X.shape[1]} subjects={len(np.unique(g))}")
+            alpha, cv_r = pick_alpha_grouped(Xs_, y, g, a.estimator, a.l1_ratio,
+                                             log=lambda s: None)
+            mdl = (Ridge(alpha=alpha) if a.estimator == "ridge"
+                   else ElasticNet(alpha=alpha, l1_ratio=a.l1_ratio, max_iter=5000)).fit(Xs_, y)
+            in_r = float(np.corrcoef(mdl.predict(Xs_), y)[0, 1])
+            saturated = (" *** SATURATES GRID ***"
+                         if a.estimator == "ridge" and alpha >= ALPHAS.max() * 0.999 else "")
+            print(f"      alpha={alpha:g}{saturated}  grouped-CV r={cv_r:+.4f}  in-sample r={in_r:+.4f}")
+            k = tgt.lower()
+            model[f"{k}_coef"] = mdl.coef_.astype(np.float32)
+            model[f"{k}_intercept"] = float(mdl.intercept_)
+            model[f"{k}_alpha"] = float(alpha)
+            model[f"{k}_grouped_cv_r"] = cv_r
+            model[f"{k}_in_sample_r"] = in_r
+            model[f"{k}_feat_mean"] = mu.astype(np.float32)
+            model[f"{k}_feat_std"] = sd.astype(np.float32)
 
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(a.out, **model)
