@@ -167,12 +167,30 @@ Associated with Change of Clinical Symptoms...") is baked into the image and run
 slide's right edge — still fully legible, but crop it in an image editor first if you want more
 margin.)*
 
-**Still open**: `media/` also has `Bauer2020_fig1-3.png` and `Awashti2026.png` — not used in the
-deck yet since their source papers/context weren't provided. Send those and I'll add them (or
-just leave them out if slide 21's Bauer 2025 + slides 22–23's Bauer 2026 already cover what you
-want from "related work"). Your `Transfer.mov` screen recording is also sitting in `media/` —
-it's not embedded in the pptx (video embedding via script is fragile); easiest is to drop it into
-slide 2 yourself in PowerPoint/Keynote, or just play it as a separate file during the exercise.
+## Part 9 — Origin of the method, and its most rigorous test (slides 24–25)
+
+- **Slide 24 — Bauer et al. (2019/2020), *Psychiatry Research* 284:112770, "Part 2: DMN"**: this
+  is the paper that FIRST introduced the PDA metric and the white-dot/red-circle/blue-circle
+  visual mechanic used throughout this entire talk and in mindwear — worth saying explicitly, so
+  the room understands none of this was invented for today. 11 schizophrenia patients with
+  auditory hallucinations; a single DMN-CEN neurofeedback session reduced hallucination severity
+  (p=.02, d=0.57) with no change under a somatomotor-cortex control condition. Each individual's
+  symptom reduction correlated with their own STG-mPFC connectivity reduction.
+  *(Consider moving this slide earlier, near "Why neurofeedback" (slide 6) — it's origin-story
+  content, not really "results." Left at the end here since inserting mid-deck risks corrupting
+  the file; a simple drag-and-drop in PowerPoint/Keynote is much safer than another scripted
+  edit.)*
+- **Slide 25 — Awashti et al., R61 MINDBPD (NIMH R61MH135009, NCT06446765)**: a real, ongoing,
+  randomized, double-blind, SHAM-controlled trial (n=44: 23 mbNF, 21 sham; both arms also get
+  DBT) — the most rigorously controlled evidence in the whole talk for the core mechanism. Met
+  both prespecified "GO" criteria: mbNF produced significantly greater within-DMN (mPFC-PCC)
+  reduction and DMN-FPCN (mPFC-dlPFC) anticorrelation increase than sham (d=-0.57/p=.034,
+  d=-0.58/p=.028). Its planned R33 phase — testing whether this engagement reduces BPD symptom
+  severity — connects directly forward to the rtBPD clinical-outcome slides (22-23) just shown.
+
+**Still open**: your `Transfer.mov` screen recording is sitting in `media/` but not embedded in
+the pptx (video embedding via script is fragile) — easiest is to drop it into slide 2 yourself in
+PowerPoint/Keynote, or just play it as a separate file during the exercise.
 
 ---
 
