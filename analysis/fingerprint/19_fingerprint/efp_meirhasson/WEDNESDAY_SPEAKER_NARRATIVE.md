@@ -49,9 +49,12 @@ Plain-language version of the argument, in order:
    time, you might learn to shift it far faster than through practice alone — because you get
    the same object of information (your own state) but immediate, or when you cannot introspect on it directly otherwise.
 
-**[PLACEHOLDER — slide 7]** is where your own lab's prior/current fMRI neurofeedback results go
-— this is the evidence that the scanner-based version of this actually works, which is why
-scaling it is worth the effort in the first place.
+**Slide 7 — Zhang et al. (2023), Molecular Psychiatry**: 9 adolescents with a lifetime history of
+depression/anxiety, DMN/CEN individually localized per person, one 15-minute mbNF session using
+PDA = CEN − DMN (the exact metric and ball/dot mechanic used throughout this talk and in
+mindwear). All 9 of 9 showed reduced within-DMN connectivity after just one session, correlating
+with increased state mindfulness (r=−0.88, p=.002) — this is the evidence base that motivates
+scaling the same paradigm outside the scanner.
 
 ## Part 3 — The scaling problem → Meir-Hasson 2014 → our method (slides 8–11)
 
@@ -60,8 +63,12 @@ something you can send someone home with. EEG is cheap and wearable, but EEG doe
 BOLD directly; DMN/CEN are fMRI-defined networks. So the problem becomes: **can we decode
 fMRI-defined network activity from scalp EEG well enough to feed back on it?**
 
-**[PLACEHOLDER — slides 9–10]**: Meir-Hasson et al. (2014) is the paper that first showed this is
-possible in principle — insert their own summary/figures here.
+**Slides 9–10 — Meir-Hasson et al. (2014), NeuroImage**: single electrode → Stockwell
+time-frequency → 10 data-driven equal-energy bands → ridge regression on a [band × sliding
+time-delay] design, no fixed hemodynamic delay. Visual cortex (n=4): beat the alpha predictor in
+ALL subjects. Amygdala (17/20 cleared threshold): beat theta/alpha in 95% (significant), 85%
+reached r>0.6. Delay varied by subject/electrode/frequency band — direct justification for the
+sliding per-band delay design our own EFP inherits.
 
 **Slide 11 — our method, in plain language** (this is the part you'll get asked about, so know it
 cold):
@@ -126,6 +133,25 @@ Say these numbers as **correlations between predicted and actual signal**, not a
 One sentence each: replication succeeded (within-subject, LOSO, cross-cohort for CEN/DMN) → that
 validated fingerprint now runs in a portable tool → the goal is taking DMN self-regulation
 training outside the scanner, ultimately into everyday settings.
+
+## Part 7 — The broader paradigm (slide 21)
+
+Bauer et al. (2025), *Psychiatry Research: Neuroimaging*. Same recipe — real-time fMRI
+neurofeedback from a symptom-relevant region, paired with the same mental-noting mindfulness
+technique — tested in schizophrenia patients with treatment-resistant auditory hallucinations,
+targeting STG instead of DMN/CEN. Randomized, sham-controlled (n=23): real feedback produced
+significantly greater reductions in secondary auditory cortex activity and its connectivity to
+prefrontal control regions than sham. Point: region-specific targeting is what did the work, not
+generic relaxation — the same logic underlying targeting DMN/CEN specifically here. Together with
+slide 7, this is a second independent population/region where the framework produced measurable
+brain change — not a one-off.
+
+**Pending**: you mentioned adding a "Bauer 2026" rtBPD slide (Figure 1: reduced mPFC–PCC
+connectivity after neurofeedback + 1 month of mindfulness; Figure 2: correlation between ZAN-BPD
+score reduction and mPFC–left DLPFC connectivity reduction) and figures placed in a "media"
+folder — I couldn't locate that folder on this machine to pull the images in or write it up
+further. Send the path (or the figures directly) and I'll add the slide + these speaker notes for
+it.
 
 ---
 
