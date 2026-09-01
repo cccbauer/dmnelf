@@ -3,9 +3,12 @@
 Build the Wednesday lab-talk deck: experiential intro -> why neurofeedback -> Meir-Hasson 2014
 method -> our n=19 replication + rtBPD cross-cohort results -> mindwear -> live demo.
 
-Slides marked PLACEHOLDER are intentionally left for the user to fill in with material this
-script has no access to (Meir-Hasson 2014's own figures, prior/ongoing fMRI study results,
-mindwear screenshots, other posters) -- never fabricated here.
+Meir-Hasson 2014 (slides 9-10), the prior-fMRI-evidence slide (7), and the related-work slide (21)
+are filled in from the actual papers (Meir-Hasson et al. 2014 NeuroImage; Zhang et al. 2023 Mol
+Psychiatry; Bauer et al. 2025 Psychiatry Res: Neuroimaging) -- real cited numbers, not fabricated.
+No figure IMAGES from those papers are embedded (not available as local files); each such slide
+notes where to drop in the original figure if wanted. The mindwear screenshot on slide 18 is the
+one remaining true placeholder -- this script has no access to a current screenshot.
 
 Cross-cohort (DMNELF->rtBPD) numbers are read from cross_cohort_efp_summary_tr{,_nf2}.csv in
 THIS (19_fingerprint) results dir -- must be freshly re-run on n=19 first (see
@@ -77,21 +80,6 @@ def img(s, path, left, top, width=None, height=None):
         s.shapes.add_picture(str(path), Inches(left), Inches(top), **kw)
 
 
-def placeholder_slide(heading, instructions):
-    """A clearly-marked slide for content the user will insert themselves."""
-    s = prs.slides.add_slide(BLANK)
-    box = s.shapes.add_shape(1, Inches(0.6), Inches(0.9), Inches(12.1), Inches(5.9))  # 1 = rectangle
-    box.fill.solid(); box.fill.fore_color.rgb = RGBColor(0xFF, 0xF3, 0xE0)
-    box.line.color.rgb = ORANGE; box.line.width = Pt(2)
-    tf = box.text_frame; tf.word_wrap = True; tf.margin_left = Inches(0.3); tf.margin_top = Inches(0.25)
-    r = tf.paragraphs[0].add_run(); r.text = f"PLACEHOLDER — {heading}"
-    r.font.size = Pt(24); r.font.bold = True; r.font.color.rgb = ORANGE
-    for line in instructions:
-        p = tf.add_paragraph(); rr = p.add_run(); rr.text = "• " + line
-        rr.font.size = Pt(16); rr.font.color.rgb = RGBColor(0x5C, 0x40, 0x00); p.space_after = Pt(8)
-    return s
-
-
 # 1 — Title
 s = prs.slides.add_slide(BLANK)
 tb = s.shapes.add_textbox(Inches(0.8), Inches(2.3), Inches(11.7), Inches(3.0)); tf = tb.text_frame; tf.word_wrap = True
@@ -159,12 +147,24 @@ bullets(s, [
     "(CEN) target when task-focused attention dominates, and toward the DMN target otherwise.",
 ], size=18)
 
-# 7 — PLACEHOLDER: prior/current fMRI results
-placeholder_slide("Prior & current fMRI neurofeedback results", [
-    "Insert your lab's own prior/ongoing DMN/CEN fMRI-neurofeedback study results here "
-    "(e.g. rtBPD, DMNELF outcome data) — behavioral/clinical effects of the scanner-based version.",
-    "This is the evidence base that motivates scaling the same paradigm outside the scanner.",
-])
+# 7 — prior fMRI results: Zhang et al. 2023 (mbNF) — direct precedent, same PDA metric
+s = prs.slides.add_slide(BLANK)
+title(s, "Prior fMRI evidence: this already works in the scanner",
+      "Zhang, Raya, Morfini, ... Bauer, Whitfield-Gabrieli (2023). Molecular Psychiatry.")
+bullets(s, [
+    "9 adolescents with a lifetime history of depression/anxiety; DMN and CEN individually "
+    "localized per person from a resting-state scan.",
+    "One 15-minute mindfulness-based fMRI neurofeedback (mbNF) session: watch a dot driven by "
+    "PDA = CEN activation − DMN activation move up with effective mental-noting practice — the "
+    "exact same PDA metric and ball/dot mechanic used throughout this talk and in mindwear.",
+    ("Result: participants spent significantly more time in the target state (DMN < CEN) than "
+     "chance (p=.038), and all 9 of 9 adolescents showed reduced within-DMN connectivity after "
+     "just one session.", 0, GREEN, True),
+    "That connectivity reduction correlated with increased state mindfulness (r=−0.88, p=.002), "
+    "and statistically mediated the link between neurofeedback performance and the mindfulness "
+    "gain — i.e., quieting the DMN is plausibly the mechanism, not just a correlate.",
+    ("This is the evidence base motivating scaling the same paradigm outside the scanner.", 0, NAVY, True),
+], size=15)
 
 # 8 — The scaling problem
 s = prs.slides.add_slide(BLANK); title(s, "The scaling problem")
@@ -178,25 +178,53 @@ bullets(s, [
     ("That decoding problem is what the rest of this talk is about.", 0, NAVY, True),
 ], size=19)
 
-# 9-10 — PLACEHOLDER: Meir-Hasson 2014
-placeholder_slide("Meir-Hasson et al. 2014 — background (slide 1 of 2)", [
-    "Insert a summary of the original paper's approach and headline figure(s).",
-    "This is the method our own pipeline replicates and extends to DMN/CEN/PDA.",
-])
-placeholder_slide("Meir-Hasson et al. 2014 — results (slide 2 of 2)", [
-    "Insert the original paper's key result figure(s)/numbers for comparison against our "
-    "replication on the following slides.",
-])
+# 9 — Meir-Hasson 2014 background
+s = prs.slides.add_slide(BLANK)
+title(s, "Meir-Hasson et al. (2014) — the EEG Finger-Print",
+      "NeuroImage 102:128–141  ·  [insert the paper's Fig. 1/Fig. 2 schematic here if desired]")
+bullets(s, [
+    "Goal: predict fMRI BOLD activity in a specific ROI — especially hard-to-reach subcortical "
+    "regions like the amygdala — from simultaneous EEG, well enough to eventually let portable "
+    "EEG stand in for the scanner during neurofeedback.",
+    ("Core method (what we replicate): single electrode -> Stockwell time-frequency transform -> "
+     "10 data-driven equal-energy frequency bands (not fixed alpha/theta) -> ridge regression on "
+     "a [band x sliding time-delay] design.", 0, NAVY, True),
+    "Key innovation: NO fixed hemodynamic delay. Each frequency band gets its own data-driven "
+    "delay, per subject and electrode — because the true EEG-to-BOLD lag varies by all three.",
+    "Validated with double cross-validation (outer block CV for honest test scores, inner CV for "
+    "the ridge regularization strength) — the same discipline our own replication follows.",
+    "Tested on two datasets: eyes-open/closed alpha modulation -> visual cortex (n=4), and "
+    "real-time theta/alpha relaxation neurofeedback -> amygdala and dmPFC (n=20).",
+], size=16)
+
+# 10 — Meir-Hasson 2014 results
+s = prs.slides.add_slide(BLANK)
+title(s, "Meir-Hasson et al. (2014) — results",
+      "[insert the paper's Fig. 4/6/7 bar charts and amygdala EFP maps here if desired]")
+bullets(s, [
+    ("Visual cortex (n=4): their EFP beat a traditional alpha-power predictor in ALL subjects, "
+     "and beat a fixed-delay (HRF) predictor in all subjects (75% significantly).", 0),
+    ("Amygdala (17/20 subjects cleared their validation threshold): EFP beat the traditional "
+     "theta/alpha predictor in 95% of subjects (significant), and the fixed-delay predictor in "
+     "90% (35% significant). 85% of subjects reached r > 0.6.", 0, GREEN, True),
+    "Best electrode for amygdala was P3 (theta/alpha/beta/gamma all contributed); the dmPFC "
+    "control region was best predicted by a DIFFERENT electrode (Fz) with a different frequency "
+    "pattern entirely — evidence the fingerprint is region-specific, not a generic global signal.",
+    "The delay between EEG and BOLD varied by subject, electrode, AND frequency band — directly "
+    "justifying the sliding per-band delay design our own EFP inherits.",
+], size=16)
 
 # 11 — Our method walkthrough
 s = prs.slides.add_slide(BLANK); title(s, "Our method: the EEG Finger-Print (EFP)",
                                         "Replicating and extending Meir-Hasson 2014 for DMN, CEN, and PDA (CEN−DMN)")
-img(s, FULL / "paper_fig2_schematic_PDA_tr.png", left=0.6, top=1.5, width=12.1)
+# image is a wide 4-panel composite (aspect ~1.33) -- constrain by HEIGHT so it can't collide
+# with the bullets below (width=12.1 would render ~9in tall, far taller than the slide)
+img(s, FULL / "paper_fig2_schematic_PDA_tr.png", left=3.6, top=1.45, height=4.6)
 bullets(s, [
     ("In plain terms: for each electrode, break the EEG into 10 frequency bands, look at how "
      "each band's power over the last ~12 seconds predicts the fMRI signal right now, and let a "
      "regression model learn a separate best lag PER frequency band — no assumed fixed delay.", 0)],
-    top=6.55, size=13)
+    top=6.15, size=13)
 
 # 12 — Within-subject results
 s = prs.slides.add_slide(BLANK); title(s, "It works within-subject", "n=19, single best electrode per subject")
@@ -294,10 +322,26 @@ bullets(s, [
     "clinic, and eventually, the living room.",
 ], size=19)
 
-# 21 — PLACEHOLDER: related work
-placeholder_slide("Related work / ongoing projects", [
-    "Insert posters/papers for other current lab projects you want to reference or cross-promote.",
-])
+# 21 — related work: the mindfulness+NFB paradigm generalizes beyond DMN/CEN
+s = prs.slides.add_slide(BLANK)
+title(s, "The broader paradigm: mindfulness + targeted neurofeedback",
+      "Bauer et al. (2025). Psychiatry Research: Neuroimaging 353:112050  ·  [insert poster/slide graphics here]")
+bullets(s, [
+    "Same recipe — real-time fMRI neurofeedback delivered from a symptom-relevant region, "
+    "paired with the same \"mental-noting\" mindfulness technique — also tested in schizophrenia "
+    "patients with treatment-resistant auditory hallucinations, targeting superior temporal "
+    "gyrus (STG) instead of DMN/CEN.",
+    ("Randomized, sham-controlled (n=23): STG-targeted neurofeedback produced significantly "
+     "greater reductions in secondary auditory cortex activity and its connectivity to "
+     "prefrontal cognitive-control regions than sham feedback from an unrelated region.", 0),
+    "Auditory hallucination severity dropped in both groups (consistent with mindfulness itself "
+    "contributing), but only real, region-specific feedback changed the underlying circuit — "
+    "the same logic underlying why targeting DMN/CEN specifically (not a generic relaxation "
+    "signal) should matter here.",
+    ("Together with the mbNF result on slide 7, this is a second, independent population and "
+     "target region where the same mindfulness-plus-neurofeedback framework produced measurable "
+     "brain change — this approach is not a one-off.", 0, NAVY, True),
+], size=15)
 
 out = PROJ / "Fingerprint_20260902.pptx"; prs.save(str(out))
 print(f"Saved {out} ({len(prs.slides._sldIdLst)} slides)")
