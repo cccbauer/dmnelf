@@ -1,7 +1,8 @@
 # efp_pooled — pooled DMNELF+rtBPD EFP fingerprint
 
-**Status:** Phase 2 first pass COMPLETE (NEGATIVE). Phase 2.5 (montage/estimator/joint-fit arms)
-COMPLETE, also NEGATIVE — read all three result sections below before doing anything else.
+**Status:** Phases 1–3 all COMPLETE. Every model/montage/estimator/calibration arm tried is
+NEGATIVE for CEN/DMN transfer beyond the shipped model. Read all result sections below — this
+line of investigation is closed for now; see "Bottom line" at the end of PHASE 3.
 **Branch:** `efp-pooled` in the `dmnelf` repo. **Last updated:** 2026-09-01.
 
 Goal: rebuild the mindwear EEG→BOLD decoder on a pooled DMNELF+rtBPD cohort (28 train subjects vs
@@ -238,9 +239,12 @@ touches per-individual weight adaptation.
       joint-CEN+DMN `pls` estimator, all `--dmnelf-only` to isolate each variable. NEGATIVE — see
       above. Supersedes the original Phase 3 scope (montage comparison is done; cap31 shows a
       CEN/DMN trade-off, not a win).
-- [ ] **Phase 4** — nothing left worth a locked-set confirmation from Phase 2/2.5's arms. Next
-      candidate for Phase 4 is per-subject calibration (see "Largest lever" below), not another
-      cohort-level model variant.
+- [x] **Phase 3** — per-subject calibration (`efp_calibrated.py --epoc12-multi`), honest
+      cross-subject LOSO. NEGATIVE for CEN/DMN (DMN gets systematically worse); positive but
+      modest for PDA/GSR_PDA only. See above.
+- [ ] **Phase 4** — no arm from Phase 2/2.5/3 earned a locked-set (rtBPD) confirmation; nothing
+      here beat the shipped model on CEN/DMN. Nothing left to try that isn't already in "Do not
+      redo" — this line of investigation is closed pending a genuinely new idea.
 
 ## Do not redo — recorded negative results
 
@@ -257,15 +261,52 @@ touches per-individual weight adaptation.
   +0.012, the worst of every arm tried despite the highest in-sample r — clear overfitting, not a
   fix. The "let CEN/DMN share structure" hypothesis from `eeg_bold_coupling/HANDOFF.md` does not
   translate into a working linear joint model here (Phase 2.5).
+- **Per-subject calibration on the real EPOC12 montage** (`efp_calibrated.py --epoc12-multi`,
+  honest cross-subject LOSO): does not improve CEN (p=0.10–0.20 at every calibration size); makes
+  DMN systematically worse, more so with more calibration data. Helps PDA/GSR_PDA only — not the
+  kept targets (Phase 3).
 
-## Largest lever, deliberately deferred
+## PHASE 3 — per-subject calibration — TESTED (2026-09-01). Negative for CEN/DMN, positive for PDA.
 
-**Per-subject calibration.** `efp_meirhasson/scripts/efp_calibrated.py` already implements the
-deployable case: calibrate on run 1 against an HRF-convolved task-design boxcar pseudo-target — no
-fMRI needed. Evidence: `pseudo_cal` > `group_only` (rtbpd002 PDA 0.268 → 0.283–0.289); per-subject
-fit on dmnelf005's own EPOC-12 channels reaches PDA 0.373 under honest LORO. Meanwhile mindwear's
-calibration block only adjusts input standardization and never touches ridge weights
-(`calibration.py`, `session_engine.py:588`). Probably worth more than pooling — do it after.
+The lever below was deliberately deferred until Phase 2/2.5 were exhausted; they are, so this got
+tested. `efp_meirhasson/scripts/efp_calibrated.py` got a new `--epoc12-multi` flag (multivariate,
+the REAL deployed 12-channel montage — the script's existing `--frontal`/`--frontal-multi` used a
+different, generic "frontal headset" electrode set, not EPOC12's actual channels, so this had never
+actually been tested on the real montage before). Ran `--mode loso --epoc12-multi`: honest
+cross-subject LOSO within DMNELF (n=19) — group model trained on 18 subjects, calibrated on the
+held-out subject's OWN run-1 task-design pseudo-target (boxcar, HRF-convolved — no fMRI needed at
+calibration time, the deployable scenario), scored against their REAL fMRI on the remaining runs.
+Results: `19_fingerprint/efp_meirhasson/results/efp_calibrated_loso_epoc12_multi{,_summary}.csv`.
+
+Mean r, group_only vs pseudo_cal, by calibration size (n_cal = 1/2/3 runs):
+
+| target | group_only | pseudo_cal | best p (cal beats baseline) |
+|---|---|---|---|
+| CEN | +0.084 / +0.094 / +0.131 | +0.071 / +0.080 / +0.124 | never (p=0.54–0.65) |
+| **DMN** | +0.062 / +0.050 / +0.040 | **−0.012 / −0.048 / −0.056** | never — consistently worse, and monotonically worse with more calibration data |
+| PDA | −0.048 / −0.028 / +0.015 | +0.055 / +0.017 / +0.065 | significant at n_cal=1 (p=0.008) only |
+| GSR_PDA | −0.033 / −0.014 / +0.010 | +0.070 / +0.034 / +0.072 | significant at n_cal=1 (p=0.005) |
+
+**For CEN and DMN specifically — the targets kept after Phase 2/2.5 — calibration does not help.**
+CEN's blend nominally trends above group_only at every n_cal (+0.110/+0.113/+0.169 vs
++0.084/+0.094/+0.131) but never clears significance (p=0.10–0.20; n=19 is underpowered for an
+effect this size). **DMN gets systematically worse with calibration, monotonically so as more
+calibration data is added** — a clean, consistent negative, not noise. PDA and GSR_PDA (both
+near-zero/negative for the group model on this restricted montage) do get a real, significant
+one-calibration-run boost, but PDA isn't the kept target.
+
+Earlier "evidence" cited for this lever (rtbpd002 PDA 0.268→0.283–0.289; dmnelf005 EPOC-12 PDA
+0.373 under LORO) was from a *within-subject* leave-one-run-out test on hand-picked strong
+performers, not this honest cross-subject LOSO — the two aren't the same claim, and the weaker,
+averaged, all-subjects number above is the one to trust.
+
+**Bottom line across every arm tried (Phase 1 → 3): pooling, direct-PDA-fit, wider montage,
+ElasticNet, joint multi-task fitting, and per-subject calibration have ALL been tried, and none
+improves CEN/DMN transfer beyond the currently-shipped `efp_epoc_model.npz`.** The ceiling here
+looks set by how much EEG-decodable signal exists at all (see `eeg_bold_coupling/HANDOFF.md`),
+not by any of these modeling/calibration choices. Meanwhile mindwear's own calibration block only
+adjusts input standardization and never touches ridge weights (`calibration.py`,
+`session_engine.py:588`) — consistent with this finding, not a bug to fix.
 
 ---
 
