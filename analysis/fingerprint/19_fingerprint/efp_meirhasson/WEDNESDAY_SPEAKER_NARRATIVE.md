@@ -1,6 +1,6 @@
 # Wednesday talk — speaker narrative
 
-Companion to `wednesday_presentation.pptx`. This walks through the whole arc, explains the
+Companion to `Fingerprint_20260902.pptx`. This walks through the whole arc, explains the
 method in plain language (so you can field questions, not just read slides), and gives
 facilitation notes for the two live/interactive parts (the opening exercise and the demo).
 

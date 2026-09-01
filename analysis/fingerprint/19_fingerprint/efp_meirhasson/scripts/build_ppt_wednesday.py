@@ -299,5 +299,5 @@ placeholder_slide("Related work / ongoing projects", [
     "Insert posters/papers for other current lab projects you want to reference or cross-promote.",
 ])
 
-out = PROJ / "wednesday_presentation.pptx"; prs.save(str(out))
+out = PROJ / "Fingerprint_20260902.pptx"; prs.save(str(out))
 print(f"Saved {out} ({len(prs.slides._sldIdLst)} slides)")
