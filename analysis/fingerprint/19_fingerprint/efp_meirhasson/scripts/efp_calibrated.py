@@ -49,6 +49,10 @@ TARGETS = ["PDA", "GSR_CEN", "CEN", "DMN", "GSR_PDA", "GSR_DMN"]
 PSEUDO_SIGN = {"CEN": +1, "PDA": +1, "GSR_CEN": +1, "GSR_PDA": +1, "DMN": -1, "GSR_DMN": -1}
 CAL_SIZES = [0, 1, 2, 3]
 FRONTAL_ELECTRODES = {"Fp1", "Fp2", "F3", "F4", "F7", "F8", "Fz", "FC1", "FC2", "FC5", "FC6"}
+# the ACTUAL mindwear-deployed portable montage (export_model.py/train_pooled.py EPOC12) --
+# distinct from FRONTAL_ELECTRODES above, which is a generic "frontal headset" proxy, not this
+# device's real channel list (posterior/temporal T7/P7/O1/O2/P8/T8 included, Fp1/Fp2/Fz/FC1/FC2 not)
+EPOC12_ELECTRODES = ["F7", "F3", "FC5", "T7", "P7", "O1", "O2", "P8", "T8", "FC6", "F4", "F8"]
 
 
 def group_peak(er, target, res, exclude=None, restrict=None):
@@ -207,14 +211,20 @@ def main():
                     help="Restrict electrode pool to frontal channels (portable headset test)")
     ap.add_argument("--frontal-multi", action="store_true",
                     help="Use all frontal electrodes concatenated (multivariate frontal EFP)")
+    ap.add_argument("--epoc12-multi", action="store_true",
+                    help="Use the real mindwear-deployed EPOC12 montage, concatenated "
+                         "(multivariate EFP matching export_model.py/train_pooled.py exactly)")
     args = ap.parse_args()
     elec_restrict = FRONTAL_ELECTRODES if args.frontal else None
     frontal_suffix = "_frontal" if args.frontal else ""
-    frontal_multi = args.frontal_multi
+    frontal_multi = args.frontal_multi or args.epoc12_multi
     if frontal_multi:
-        frontal_suffix = "_frontal_multi"
-        # sorted for consistent column order across subjects
-        frontal_elecs = sorted(FRONTAL_ELECTRODES)
+        if args.epoc12_multi:
+            frontal_suffix = "_epoc12_multi"
+            frontal_elecs = EPOC12_ELECTRODES               # deployed montage order
+        else:
+            frontal_suffix = "_frontal_multi"
+            frontal_elecs = sorted(FRONTAL_ELECTRODES)       # sorted for consistent column order
 
     dcfg = load_config(args.dmnelf_config) if args.dmnelf_config else load_config()
     res = args.res
