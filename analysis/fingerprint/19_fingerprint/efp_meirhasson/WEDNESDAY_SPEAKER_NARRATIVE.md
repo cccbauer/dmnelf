@@ -146,12 +146,33 @@ generic relaxation — the same logic underlying targeting DMN/CEN specifically 
 slide 7, this is a second independent population/region where the framework produced measurable
 brain change — not a one-off.
 
-**Pending**: you mentioned adding a "Bauer 2026" rtBPD slide (Figure 1: reduced mPFC–PCC
-connectivity after neurofeedback + 1 month of mindfulness; Figure 2: correlation between ZAN-BPD
-score reduction and mPFC–left DLPFC connectivity reduction) and figures placed in a "media"
-folder — I couldn't locate that folder on this machine to pull the images in or write it up
-further. Send the path (or the figures directly) and I'll add the slide + these speaker notes for
-it.
+## Part 8 — Clinical outcome: rtBPD (slides 22–23)
+
+Bauer et al. (2026, in prep). Real-time fMRI neurofeedback + 1 month of daily mindfulness
+practice, n=19.
+
+- **Slide 22**: ZAN-BPD-SR (borderline personality disorder symptom severity) dropped
+  significantly baseline → post-treatment (dz=−0.69, p=.007); PHQ-9 (depression) also dropped
+  (dz=−0.65, p=.011). A real clinical outcome, not just a neural one, in a different patient
+  population than the DMNELF/rtBPD replication cohort discussed earlier in the talk.
+- **Slide 23**: mPFC–PCC connectivity — a core DMN hub-to-hub connection — decreased across the
+  treatment course (two clusters, posteromedial PCC-like and anterior ACC/mid-frontal-like). The
+  brain-behavior link: the amount of mPFC–left DLPFC connectivity reduction correlates with the
+  amount of ZAN-BPD-SR score reduction (r=0.816, n=17) — more connectivity change tracks with
+  more clinical improvement. This is the strongest evidence in the whole talk that the
+  brain-level changes you've been describing translate into something that matters to patients.
+
+*(Note while presenting: figure 3's own title text ("Change of Network Connectivity is
+Associated with Change of Clinical Symptoms...") is baked into the image and runs close to the
+slide's right edge — still fully legible, but crop it in an image editor first if you want more
+margin.)*
+
+**Still open**: `media/` also has `Bauer2020_fig1-3.png` and `Awashti2026.png` — not used in the
+deck yet since their source papers/context weren't provided. Send those and I'll add them (or
+just leave them out if slide 21's Bauer 2025 + slides 22–23's Bauer 2026 already cover what you
+want from "related work"). Your `Transfer.mov` screen recording is also sitting in `media/` —
+it's not embedded in the pptx (video embedding via script is fragile); easiest is to drop it into
+slide 2 yourself in PowerPoint/Keynote, or just play it as a separate file during the exercise.
 
 ---
 
