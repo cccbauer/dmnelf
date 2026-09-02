@@ -221,6 +221,71 @@ shared/global), not by these modeling choices. The one lever not yet tried is **
 calibration** (see below) — everything in Phase 2/2.5 was cohort-level modeling; nothing here
 touches per-individual weight adaptation.
 
+## PHASE 4 — Pz hypothesis REFUTED; and a possible selection bias in the published PDA LOSO
+
+Question: does PDA fail on the portable montage because the EPOC-X lacks centro-parietal midline
+coverage (Pz/POz/Cz), where `efp_cen_clean.py:29` says the CEN signal peaks? Phase 2.5 tested
+`cap31` but had dropped PDA, so this was never asked.
+
+`scripts/montage_pz_ablation.py` — method held fixed (multivariate ridge on the [10 band x 11
+delay] per-channel design), channel set varied, honest nested-CV LOSO over the 19 DMNELF subjects.
+Does NOT touch the locked external set. Jobs `9907733`, `9908042`, `9908150`.
+
+**A methodological error found mid-analysis, and fixed.** The first run built targets from
+`cen_mean_cache` (what the *deployed* `export_model.py` does) rather than from the research
+pipeline's own `tgt_tr` targets stored in the feature cache (what the +0.157 LOSO benchmark used).
+Those are different definitions and the numbers are not comparable. `--target-source {cenmean,cache}`
+now selects; everything below uses `cache`.
+
+### Montage ablation (multivariate, research-pipeline targets)
+
+| montage | n_ch | CEN | DMN | PDA |
+|---|---|---|---|---|
+| epoc12 | 12 | +0.138 *(p<.001)* | +0.089 *(p=.007)* | −0.049 *(p=.138)* |
+| epoc12 + **Pz** | 13 | +0.143 *(p<.001)* | +0.087 *(p=.008)* | **−0.071 *(p=.029)*** |
+| epoc12 + Pz/POz/Cz | 15 | +0.145 *(p<.001)* | +0.084 *(p=.012)* | −0.034 *(p=.284)* |
+| cap31 | 31 | +0.145 *(p<.001)* | +0.086 *(p=.007)* | +0.023 *(p=.497)* |
+
+**The Pz hypothesis is refuted.** Adding Pz does not recover PDA — it makes it *significantly
+negative*. Full 31-channel coverage doesn't recover it either. Missing midline coverage is not the
+explanation. Note also that CEN/DMN transfer *fine* on the 12-channel montage with these targets
+(+0.138/+0.089), at or above the published single-electrode LOSO figures.
+
+### Single-electrode LOSO, same targets, NO electrode selection
+
+| target | best 5 | at the published benchmark electrode | electrodes with r>0 |
+|---|---|---|---|
+| CEN | P7 +0.141, P8 +0.141, P3 +0.140, P4 +0.136, F4 +0.136 | **CP6 = +0.115** (published +0.114) | **31/31** |
+| DMN | T7 +0.117, P8 +0.099, T8 +0.096, CP5 +0.092, P7 +0.091 | O1 = +0.073 (published +0.107) | 30/31 |
+| PDA | POz +0.043, Fp1 +0.043, FC2 +0.035, C4 +0.031, C3 +0.026 | **Pz = +0.011** (published **+0.157**) | **9/31** |
+
+**Harness is validated by CEN**: CP6 = +0.115 against the published +0.114 — a 0.001 match on the
+same cohort, targets, and LOSO structure.
+
+**But PDA at Pz is +0.011 here versus +0.157 published** — a ~14x discrepancy at the same electrode
+under a harness that reproduces CEN exactly. PDA is positive at only 9/31 electrodes and
+*significantly negative* at several (F4 −0.084, p=.0065). That is the signature of a null field in
+which picking the best of 31 electrodes yields a spuriously large value.
+
+**Hypothesis requiring confirmation:** the published PDA LOSO is inflated by best-electrode
+selection performed against the same folds being scored — precisely the bias
+`efp_meirhasson/VALIDATION.md:10-13` already documents for the within-subject numbers
+("best-electrode selection scored on the same CV folds -> optimistically biased ~+0.05-0.15").
+CEN is immune because it is uniformly positive across all 31 electrodes, so selection cannot
+inflate it; PDA is not, so selection would do all the work.
+
+**NOT yet ruled out** (do these before treating the above as established):
+1. Read `efp_meirhasson/scripts/efp_group.py` / `efp_decode.py` and determine exactly how
+   `common_ch` / `loso_fold_modal_ch` are chosen, and whether the choice ever sees the scored fold.
+2. Alpha grid differs: theirs 0.01–1e4 (30 pts), mine 1–1e8 (25 pts).
+3. Their single-electrode design may differ from my per-run z-scored construction.
+4. If confirmed, the same concern applies to the **cross-cohort** PDA figures (+0.080 p=.017,
+   +0.145 p=.007), which are also reported at Pz.
+
+**Consequence if confirmed:** PDA is currently the manuscript's best-transferring target and the
+headline of the preprint's generalization claim. Do not put PDA +0.157 into the RPPR or the
+abstract until item 1 is resolved. CEN and DMN are unaffected and safe to report.
+
 ## Phases
 
 - [x] **Phase 0** — folder, locked cohort split, this document.
