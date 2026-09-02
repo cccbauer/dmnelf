@@ -1,4 +1,4 @@
-# An EEG Finger-Print of DMN/CEN network activation during neurofeedback
+# An EEG Fingerprint of fMRI Default-Mode and Central-Executive Network Interaction: Toward a Framework for Scalable Neurofeedback in Schizophrenia
 
 *Methods and Results draft. Replication and extension of the EEG Finger-Print
 (EFP) method (Meir-Hasson et al., 2014, NeuroImage) to the default-mode (DMN)
@@ -10,8 +10,17 @@ and central-executive (CEN) networks and their differential activation (PDA).*
 
 ### Participants and acquisition
 
-Seventeen participants underwent simultaneous EEG–fMRI during a real-time
-fMRI neurofeedback ("feedback") task. EEG was recorded from 31 scalp electrodes,
+Seventeen participants **with a diagnosis of schizophrenia** underwent simultaneous
+EEG–fMRI during a real-time fMRI neurofeedback ("feedback") task.
+<!-- TODO(author): the following are required for publication and are NOT yet recorded
+     anywhere in this repository -- fill in from study records, do not infer:
+       - age (mean +- SD, range), sex distribution
+       - diagnostic instrument and confirming clinician (e.g. SCID-5)
+       - illness duration, symptom scores at scan (e.g. PANSS/BPRS)
+       - antipsychotic medication status and CPZ-equivalent dose
+       - inclusion/exclusion criteria, recruitment site, IRB protocol number
+       - how the 17 relate to the 19-subject cohort (see the n=19 note below) -->
+EEG was recorded from 31 scalp electrodes,
 gradient- and cardioballistic-artifact corrected, band-pass filtered, ICA-cleaned,
 and resampled to 250 Hz. Functional MRI was acquired at a repetition time (TR) of
 1.2 s and preprocessed with fMRIPrep (MNI152NLin6Asym, 2 mm).
@@ -255,6 +264,45 @@ interpretable alpha-band fingerprints and a validated visual positive control. T
 principal caveat is spatial: the recoverable signal is distributed and global rather
 than focal, so the fingerprints should be read as network-level, arousal-linked
 predictors rather than evidence of localized cortical sources.
+
+### Scalability: what transfers, and what does not
+
+The title frames this work as a step toward scalable neurofeedback, so the limits of
+that scalability belong here rather than in a later paper.
+
+**The research-cap fingerprint transfers, including PDA.** Applied with no retraining
+to an independent cohort (rtBPD, borderline personality disorder), the single-best-electrode
+EFP predicts PDA at r = +0.080 (p = 0.017) in the first session and r = +0.145 (p = 0.007)
+in the second, alongside CEN (+0.165, +0.161) and DMN (+0.084, +0.077). Because the
+fingerprint was trained in schizophrenia and tested in borderline personality disorder,
+this is **cross-diagnosis** as well as cross-study transfer.
+
+**A portable 12-channel montage does not yet preserve PDA.** The deployed EPOC-X decoder
+(12 channels, multivariate rather than single-electrode) was scored on the full rtBPD cohort,
+which it never trained on (19 subjects, 93 runs): CEN +0.069 (p = 0.0004) and DMN +0.052
+(p = 0.003) transfer weakly but reliably, while **PDA has no out-of-sample validity**,
+r = +0.010, 95% CI [−0.016, +0.036], p = 0.43. The independent second session replicates
+this exactly: CEN +0.093 (p = 0.006), PDA +0.008 (p = 0.71). On a locked 10-subject subset
+held out from all subsequent model fitting, PDA remained null across three model variants
+(−0.039 to +0.013, all p > 0.13) while DMN stayed reliable (+0.049 to +0.061, all p < 0.03).
+Pooling additional subjects, fitting PDA directly as its own target, widening the montage,
+ElasticNet regularization, joint multi-task fitting, and per-subject calibration were each
+tested and none recovered it (see `../efp_pooled/HANDOFF.md`).
+
+The interpretation is consistent throughout: the EEG-decodable component of these networks
+is substantially shared and global, so a contrast that cancels the shared component
+(CEN − DMN) survives only where the decoder is sensitive enough to resolve what remains.
+The sliding per-band delay design and a full research montage clear that bar; a 12-channel
+consumer headset does not. Scalable network neurofeedback on PDA is therefore a target
+this framework defines and validates, not one it yet delivers.
+
+> **Note — cohort version.** The results in this document are the frozen n = 17 analysis.
+> A re-run on the extended n = 19 cohort (adding two subjects recovered via R128 trigger
+> reconstruction) with nested cross-validation exists under
+> `analysis/fingerprint/19_fingerprint/`; its LOSO figures are PDA +0.157 (p = 0.002),
+> CEN +0.114, DMN +0.107, GSR_PDA +0.174. Folding n = 19 through the Results tables and
+> figures is a separate pass and has not been done here — do not mix the two cohorts'
+> numbers when quoting.
 
 ---
 
