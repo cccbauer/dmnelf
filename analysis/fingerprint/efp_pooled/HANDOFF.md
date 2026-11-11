@@ -267,12 +267,35 @@ under a harness that reproduces CEN exactly. PDA is positive at only 9/31 electr
 *significantly negative* at several (F4 −0.084, p=.0065). That is the signature of a null field in
 which picking the best of 31 electrodes yields a spuriously large value.
 
-**Hypothesis requiring confirmation:** the published PDA LOSO is inflated by best-electrode
-selection performed against the same folds being scored — precisely the bias
-`efp_meirhasson/VALIDATION.md:10-13` already documents for the within-subject numbers
-("best-electrode selection scored on the same CV folds -> optimistically biased ~+0.05-0.15").
-CEN is immune because it is uniformly positive across all 31 electrodes, so selection cannot
-inflate it; PDA is not, so selection would do all the work.
+**~~Hypothesis: selection bias~~ — RETRACTED 2026-11-11.** I suspected the published PDA LOSO was
+inflated by best-electrode selection against the scored fold. **It is not.** `efp_group.py:179-183`
+picks the electrode per fold via `_group_peak(..., subset=trains)` — the mean r over the **N−1
+training subjects only** — and the docstring states it: "LOSO itself picks the electrode PER FOLD
+on the N-1 training subjects only (leak-free within DMNELF)." Their LOSO is leak-free. The
+VALIDATION.md selection-bias note applies to the *within-subject* numbers, not to this.
+
+**The actual explanation: baseline-block masking.** `efp_decode.py:148-166` (`assemble`) applies
+**no baseline mask** — it uses every TR from `off` onward, so the design spans the 30 s "Relax"
+baseline *and* the feedback task, including the transition between them. The deployed
+`export_model.py` (and therefore `eval_holdout.py` and `montage_pz_ablation.py`, which copied it)
+applies `t_idx >= BASELINE_TR + HRF_DROP` → **TR ≥ 30, dropping the baseline block entirely.**
+
+PDA is precisely the quantity the task manipulates, so including the baseline→task transition lets
+a model predict a large share of PDA variance from block structure alone. CEN is predicted either
+way (31/31 electrodes positive under masking, CP6 +0.115 vs published +0.114), which is why CEN
+reproduced exactly while PDA did not. The two numbers answer different questions:
+
+| question | mask | PDA LOSO |
+|---|---|---|
+| Can EEG predict the fMRI PDA timecourse over a whole run, including the designed baseline→task change? | none | **+0.157** |
+| Can EEG predict *spontaneous within-task* PDA fluctuation — what neurofeedback must track moment to moment? | TR ≥ 30 | **+0.011** |
+
+**Neurofeedback runs inside the task block, so the within-task number is the one that governs
+mindwear.** Neither number is wrong; quoting either without the mask stated is.
+
+**Confirming run still pending** (blocked: see cluster access below): re-run
+`montage_pz_ablation.py --single --target-source cache` with the TR≥30 mask removed. If PDA@Pz
+rises from +0.011 toward ~+0.157, the account is closed.
 
 **NOT yet ruled out** (do these before treating the above as established):
 1. Read `efp_meirhasson/scripts/efp_group.py` / `efp_decode.py` and determine exactly how
@@ -402,7 +425,10 @@ cd mindlab/mindwear && uv run python compare_engine.py --subject dmnelf005 --run
 
 ## Cluster
 
-Host alias `explorer` (passwordless ssh; prints two harmless "Loading matlab" lines on every login).
+Host alias `explorer`. **2026-11-11: ssh failed with `Permission denied (publickey)` — the cause is
+an empty agent (`ssh-add -l` → "The agent has no identities"), not a revoked key. Run
+`ssh-add ~/.ssh/id_ed25519` to restore access.** Logins print two harmless "Loading matlab" lines.
+Note the EFP feature caches are cluster-only (not tracked in git), so no ablation can run locally.
 Work dir to create: `/projects/swglab/data/DMNELF/analysis/fingerprint/efp_pooled/`.
 SLURM available (`partition=short`); see `efp_meirhasson/scripts/submit_*.sh` for job templates.
 
